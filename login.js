@@ -10,7 +10,8 @@ import {
     TouchableHighlight,
     ActionSheetIOS,
     NetInfo,
-    View
+    View,
+    AsyncStorage
 } from 'react-native';
 
 import { NativeModules, NativeAppEventEmitter } from 'react-native';
@@ -71,6 +72,7 @@ export default class Login extends Component {
             return response.json().then((responseJson)=>{
                 if (response.status == 200) {
                     console.log("response json:", responseJson);
+                    AsyncStorage.setItem("access_token", responseJson.token);
                     im.accessToken = responseJson.token;
                     console.log("access token:", im.accessToken);
                     im.start();

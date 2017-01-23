@@ -17,7 +17,8 @@ import {
     ActionSheetIOS,
     NetInfo,
     AppState,
-    View
+    View,
+    AsyncStorage
 } from 'react-native';
 
 import { NativeModules, NativeAppEventEmitter } from 'react-native';
@@ -34,6 +35,24 @@ export default class App extends Component {
         super(props);
         this.handleConnectivityChange = this.handleConnectivityChange.bind(this);
         this.handleAppStateChange = this.handleAppStateChange.bind(this);
+
+        var self = this;
+        AsyncStorage.getItem("access_token", function(err, value) {
+            if (err) {
+                console.log("get access token err:", err);
+            } else if (value) {
+                console.log("access token:", value);
+                im.accessToken = value;
+                im.start();
+                self.setState({loading:false, access_token:value});
+            }
+        });
+
+        this.state = {
+            loading:true,
+            access_token:""
+        };
+
     }
     
     componentDidMount() {
@@ -58,11 +77,24 @@ export default class App extends Component {
         }
     }
 
-    render() {
+    renderLoading() {
+        return (
+            <View>
+                
+            </View>
+        )
+        
+    }
+    renderNavigator() {
         const routes = [
             {index: "login"},
+            {index: "chat"}
         ];
 
+        var initialRoute = routes[0];
+        if (this.state.access_token) {
+            initialRoute = routes[1];
+        }
         var renderScene = function(route, navigator) {
             if (route.index == "login") {
                 return <Login navigator={navigator}/>
@@ -76,11 +108,19 @@ export default class App extends Component {
 
         return (
             <Navigator ref={(nav) => { this.navigator = nav; }} 
-                       initialRoute={routes[0]}
+                       initialRoute={initialRoute}
                        renderScene={renderScene}
                        configureScene={(route, routeStack) =>
                            Navigator.SceneConfigs.FloatFromRight}/>
         );
+    }
+
+    render() {
+        if (this.state.loading) {
+            return this.renderLoading();
+        } else {
+            return this.renderNavigator();
+        }
     }
 
 }
