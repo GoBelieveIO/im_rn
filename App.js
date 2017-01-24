@@ -25,7 +25,16 @@ import { NativeModules, NativeAppEventEmitter } from 'react-native';
 
 import Login from "./login";
 import PeerChat from "./peer_chat";
+import { createStore } from 'redux'
+import { Provider } from 'react-redux'
+import PeerMessageDB from './PeerMessageDB.js';
 
+import {setConversation, setMessages, addMessage, ackMessage} from './actions'
+
+var SQLite = require('react-native-sqlite-storage');
+SQLite.enablePromise(false);
+
+var appReducers = require('./reducers');
 var IMService = require("./im");
 var im = IMService.instance;
 
@@ -36,18 +45,41 @@ export default class App extends Component {
         this.handleConnectivityChange = this.handleConnectivityChange.bind(this);
         this.handleAppStateChange = this.handleAppStateChange.bind(this);
 
+
+        this.store = createStore(appReducers);
+
+        
         var self = this;
         AsyncStorage.getItem("access_token", function(err, value) {
             if (err) {
                 console.log("get access token err:", err);
+                self.setState({loading:false});
             } else if (value) {
                 console.log("access token:", value);
                 im.accessToken = value;
                 im.start();
+
+                self.db = SQLite.openDatabase({name:"gobelieve.db", createFromLocation : 1},
+                                              function() {
+                                                  console.log("db open success");
+                                              },
+                                              function(err) {
+                                                  console.log("db open error:", err);
+                                              });
+                PeerMessageDB.getInstance().setDB(self.db);
+                
                 self.setState({loading:false, access_token:value});
+
+                var conv = {
+                    cid: 2,
+                    unread: 0
+                };
+                
+                self.store.dispatch(setConversation(conv));
+            } else {
+                self.setState({loading:false});                
             }
         });
-
         this.state = {
             loading:true,
             access_token:""
@@ -57,12 +89,66 @@ export default class App extends Component {
     
     componentDidMount() {
         AppState.addEventListener('change', this.handleAppStateChange);
+        var im = IMService.instance;
         im.startReachabilityNotifier();
+        im.addObserver(this);
     }
 
     componentWillUnmount() {
         AppState.removeEventListener('change', this.handleAppStateChange);
+        
+        var im = IMService.instance;
+        im.removeObserver(this);
     }
+
+    handlePeerMessage(message) {
+        var conv = this.store.getState().conversation;
+        if (!conv) {
+            return;
+        }
+        var cid = conv.cid;
+        if (message.sender != cid && 
+            message.receiver != cid) {
+            return;
+        }
+
+        message.flags = 0;
+        var msgObj = JSON.parse(message.content);
+        console.log("handle peer message:", message, msgObj);
+        
+        var self = this;
+        PeerMessageDB.getInstance().insertMessage(message, cid,
+                                                  function(rowid) {
+                                                      message.id = rowid;
+                                                      message._id = rowid;
+                                                      message.text = msgObj.text;
+                                                      message.createAt = new Date();
+                                                      message.user = {
+                                                          _id: message.sender
+                                                      }
+
+                                                      self.store.dispatch(addMessage(message));                                                      
+                                                  },
+                                                  function(err) {
+                                                      
+                                                  });
+    
+    }
+
+    handleMessageACK(msgID, uid) {
+        console.log("handle message ack");
+        var conv = this.store.getState().conversation;
+        if (!conv) {
+            return;
+        }
+        var cid = conv.cid;
+        if (uid != cid) {
+            return;
+        }
+
+        this.store.dispatch(ackMessage(msgID));
+    }
+
 
     handleConnectivityChange(reach) {
         console.log('connectivity change: ' + reach);
@@ -88,7 +174,7 @@ export default class App extends Component {
     renderNavigator() {
         const routes = [
             {index: "login"},
-            {index: "chat"}
+            {index: "chat", sender:1, receiver:2}
         ];
 
         var initialRoute = routes[0];
@@ -107,11 +193,36 @@ export default class App extends Component {
         }
 
         return (
-            <Navigator ref={(nav) => { this.navigator = nav; }} 
-                       initialRoute={initialRoute}
-                       renderScene={renderScene}
-                       configureScene={(route, routeStack) =>
-                           Navigator.SceneConfigs.FloatFromRight}/>
+            <Provider store={this.store}>
+                <Navigator ref={(nav) => { this.navigator = nav; }} 
+                           initialRoute={initialRoute}
+                           renderScene={renderScene}
+                           configureScene={(route, routeStack) =>
+                               Navigator.SceneConfigs.FloatFromRight}
+                           navigationBar={
+                               <Navigator.NavigationBar
+                             routeMapper={{
+                                 LeftButton: (route, navigator, index, navState) =>
+                                     {
+                                         if (route.index === "login") {
+                                             return null;
+                                         } else {
+                                             return (
+                                                 <TouchableHighlight onPress={() => navigator.pop()}>
+                                                     <Text>Back</Text>
+                                                 </TouchableHighlight>
+                                             );
+                                         }
+                                     },
+                                 RightButton: (route, navigator, index, navState) =>
+                                     { return (<Text>Done</Text>); },
+                                 Title: (route, navigator, index, navState) =>
+                                     { return (<Text>Awesome Nav Bar</Text>); },
+                             }}
+                             style={{backgroundColor: 'gray'}}/>
+                               
+                                         }/>
+            </Provider>
         );
     }
 

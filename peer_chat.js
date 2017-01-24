@@ -15,14 +15,18 @@ import {
     Animated
 } from 'react-native';
 
-import {GiftedChat, Actions, Bubble} from './gifted-chat';
-import CustomActions from './CustomActions';
-import CustomView from './CustomView';
+import {GiftedChat, Actions, Bubble} from './gifted-chat'
+import CustomActions from './CustomActions'
+import CustomView from './CustomView'
 import ImagePicker from 'react-native-image-picker'
 import Emoji from 'react-native-emoji'
 import Swiper from 'react-native-swiper'
 import Styles from './Styles/MessageScreenStyle'
 import {Images, Colors, Metrics} from './Themes'
+import PeerMessageDB from './PeerMessageDB.js'
+import {connect} from 'react-redux'
+
+import {setMessages, addMessage, ackMessage} from './actions'
 
 var spliddit = require('spliddit');
 var emoji = require("./emoji");
@@ -43,7 +47,7 @@ const options = {
 }
 
 
-export default class PeerChat extends React.Component {
+class PeerChat extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -53,7 +57,6 @@ export default class PeerChat extends React.Component {
             isLoadingEarlier: false,
             actionVisible: false,
             
-            height: 34,
             isRefreshing: false,
             modalVisible: false,
             focused: false,
@@ -71,19 +74,33 @@ export default class PeerChat extends React.Component {
     }
 
     componentWillMount() {
-        var im = IMService.instance;
-        im.addObserver(this);
+   
         this._isMounted = true;
-        this.setState(() => {
-            return {
-                messages: []
-            };
-        });
+        PeerMessageDB.getInstance().getMessages(this.props.receiver,
+                                                (msgs)=>{
+                                                    for (var i in msgs) {
+                                                        var m = msgs[i];
+                                                        var obj = JSON.parse(m.content);
+                                                        var t = new Date();
+                                                        t.setTime(m.timestamp*1000);
+
+                                                        m._id = m.id;
+                                                        m.text = obj.text;
+                                                        m.createdAt = t;
+                                                        m.user = {
+                                                            _id:m.sender
+                                                        };
+                                                    }
+                                                    this.props.dispatch(setMessages(msgs));
+                                                },
+                                                (e)=>{});
+
+
+        console.log("dispatch:", this.props.dispatch);
     }
 
     componentWillUnmount() {
-        var im = IMService.instance;
-        im.removeObserver(this);
+
         this._isMounted = false;
     }
 
@@ -107,16 +124,46 @@ export default class PeerChat extends React.Component {
         }, 1000); // simulating network
     }
 
+    getNow() {
+        var now = new Date();
+        now = now.getTime()/1000;
+        now = Math.floor(now);
+        return now;
+    }
+    
     sendTextMessage(text) {
         var obj = {"text": text};
         var textMsg = JSON.stringify(obj);
         var sender = this.props.sender;
         var receiver = this.props.receiver;
-        var message = {sender:sender, receiver:receiver, content: textMsg, msgLocalID:1};
-        var im = IMService.instance
-        if (im.connectState == IMService.STATE_CONNECTED) {
-            im.sendPeerMessage(message);
-        }
+        var now = this.getNow();
+        var message = {sender:sender, receiver:receiver, content: textMsg, flags:0, timestamp:now, msgLocalID:1};
+
+        var self = this;
+        PeerMessageDB.getInstance().insertMessage(message, this.props.receiver,
+                                                  function(rowid) {
+                                                      console.log("row id:", rowid);
+                                                      message.id = rowid;
+                                                      message._id = rowid;
+                                                      message.text = text;
+                                                      message.createAt = new Date();
+                                                      message.user = {
+                                                          _id: self.props.sender
+                                                      }
+
+                                                      self.props.dispatch(addMessage(message));
+                                                      self.setState({
+                                                          value: '',
+                                                      });
+
+                                                      var im = IMService.instance;
+                                                      if (im.connectState == IMService.STATE_CONNECTED) {
+                                                          im.sendPeerMessage(message);
+                                                      }
+                                                  },
+                                                  function(err) {
+                                                      
+                                                  });
     }
 
     sendImageMessage(image) {
@@ -135,35 +182,6 @@ export default class PeerChat extends React.Component {
     }
 
 
-    handlePeerMessage(msg) {
-        if (msg.sender != this.props.sender && 
-            msg.sender != this.props.receiver) {
-            return;
-        }
-
-        var msgObj = JSON.parse(msg.content);
-        console.log("handle peer message:", msg, msgObj);
-
-        var text = msgObj.text;
-        this.setState((previousState) => {
-            return {
-                messages: GiftedChat.append(previousState.messages, {
-                    _id: Math.round(Math.random() * 1000000),
-                    text: text,
-                    createdAt: new Date(),
-                    user: {
-                        _id: msg.sender,
-                        name: '哈哈',
-                        //avatar: 'https://facebook.github.io/react/img/logo_og.png',
-                    },
-                }),
-            };
-        });
-    }
-
-    handleMessageACK() {
-        console.log("handle message ack");
-    }
 
 
     renderBubble(props) {
@@ -205,27 +223,9 @@ export default class PeerChat extends React.Component {
         if (!this.state.value || !this.state.value.trim()) return
         var text = this.state.value.trim();
         this.sendTextMessage(text);
-        this.setState({
-            value: '',
-            height: 34
-        });
-
-
-        var message = {
-            _id: Math.round(Math.random() * 1000000),
-            text: text,
-            createdAt: new Date(),
-            user: {
-                _id: this.props.sender,
-                name: '哈哈',
-                //avatar: 'https://facebook.github.io/react/img/logo_og.png',
-            },
-        };
-
         this.setState((previousState) => {
             return {
                 value: '',
-                messages: GiftedChat.append(previousState.messages, message),
             };
         });
     }
@@ -547,7 +547,7 @@ export default class PeerChat extends React.Component {
         return (
             <GiftedChat
                 ref={(giftedChat)=> {this.giftedChat = giftedChat} }
-                messages={this.state.messages}
+                messages={this.props.messages}
                 loadEarlier={this.state.loadEarlier}
                 onLoadEarlier={this.onLoadEarlier}
                 isLoadingEarlier={this.state.isLoadingEarlier}
@@ -576,3 +576,10 @@ const styles = StyleSheet.create({
         color: '#aaa',
     },
 });
+
+
+PeerChat = connect(function(state){
+    return {messages:state.messages};
+})(PeerChat);
+
+export default PeerChat;
