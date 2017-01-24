@@ -17,11 +17,12 @@ export default create({
         borderTopColor: Colors.coolGrey50
     },
     inputRow: {
-        paddingLeft: 15,
+        paddingLeft: 8,
         paddingRight: 8,
         flexDirection: 'row',
         backgroundColor: Colors.white1,
         justifyContent: 'center',
+        alignItems:"center",
     },
     iconRow: {
         flexDirection: 'row',
@@ -40,6 +41,7 @@ export default create({
         flexDirection: 'column',        
         backgroundColor: Colors.snow,
         justifyContent: 'center',
+        marginLeft:4,
     },
     searchInput: {
         borderRadius: 3,

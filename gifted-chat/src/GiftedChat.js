@@ -5,6 +5,8 @@ import {
     Platform,
     StyleSheet,
     View,
+    Text,
+    Dimensions,
 } from 'react-native';
 
 import ActionSheet from '@exponent/react-native-action-sheet';
@@ -53,6 +55,9 @@ class GiftedChat extends React.Component {
         this.state = {
             isInitialized: false, // initialization will calculate maxHeight before rendering the chat
             minInputToolbarHeight:MIN_INPUT_TOOLBAR_HEIGHT,
+            recording: false,
+            recordingText:"",
+            recordingColor:"transparent",
         };
 
         this.onTouchStart = this.onTouchStart.bind(this);
@@ -190,6 +195,20 @@ class GiftedChat extends React.Component {
         return this._isMounted;
     }
 
+    setRecording(recording) {
+        this.setState({recording:recording});
+    }
+
+    setRecordingText(text) {
+        console.log("set text");
+        this.setState({recordingText:text});
+    }
+    
+    setRecordingColor(color) {
+        console.log("set color");
+        this.setState({recordingColor:color});
+    }
+    
     setMinInputToolbarHeight(minHeight) {
         this.setState({minInputToolbarHeight:minHeight});
         var composerHeight = this.state.composerHeight;
@@ -416,8 +435,28 @@ class GiftedChat extends React.Component {
         return null;
     }
 
+    renderRecordView() {
+        const {width, height} = Dimensions.get('window');
+        var left = this.state.recording ? 0 : -width;
+        const {recordingText, recordingColor} = this.state;
+        return (
+            <View style={{backgroundColor:"#dcdcdcaf",
+                          position:"absolute",
+                          top:0,
+                          left:left,
+                          width:width,
+                          height:this.state.messagesContainerHeight,
+                          alignItems:"center",
+                          justifyContent:"center"}}>
+                <Text style={{backgroundColor:recordingColor}}>
+                    {recordingText}
+                </Text>
+            </View>);
+        
+    }
     render() {
-        console.log("render chat...");
+        console.log("render chat...:", Dimensions.get('window'));
+
         if (this.state.isInitialized === true) {
             return (
                 <ActionSheet ref={component => this._actionSheetRef = component}>
@@ -440,12 +479,11 @@ class GiftedChat extends React.Component {
                             }}
                     >
                         {this.renderMessages()}
+                        {this.renderRecordView()}
                         {this.renderInputToolbar()}
                     </View>
                 </ActionSheet>
             );
-
-
         }
         return (
             <View

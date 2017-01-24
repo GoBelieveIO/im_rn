@@ -48,7 +48,6 @@ export default class App extends Component {
 
         this.store = createStore(appReducers);
 
-        
         var self = this;
         AsyncStorage.getItem("access_token", function(err, value) {
             if (err) {
@@ -186,7 +185,9 @@ export default class App extends Component {
                 return <Login navigator={navigator}/>
             } else if (route.index == "chat") {
                 console.log("render chat");
-                return <PeerChat navigator={navigator} sender={route.sender} receiver={route.receiver}/>
+                return <PeerChat navigator={navigator}
+                                 sender={route.sender}
+                                 receiver={route.receiver}/>
             } else {
                 console.log("eeeeeeeeeeeeee");
             }

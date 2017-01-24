@@ -15,18 +15,23 @@ import {
     Animated
 } from 'react-native';
 
-import {GiftedChat, Actions, Bubble} from './gifted-chat'
-import CustomActions from './CustomActions'
-import CustomView from './CustomView'
 import ImagePicker from 'react-native-image-picker'
 import Emoji from 'react-native-emoji'
 import Swiper from 'react-native-swiper'
+import {connect} from 'react-redux'
+import {AudioRecorder, AudioUtils} from 'react-native-audio';
+import {OpenCoreAMR} from 'react-native-amr';
+
+import {GiftedChat, Actions, Bubble} from './gifted-chat'
+import CustomActions from './CustomActions'
+import CustomView from './CustomView'
+
 import Styles from './Styles/MessageScreenStyle'
 import {Images, Colors, Metrics} from './Themes'
 import PeerMessageDB from './PeerMessageDB.js'
-import {connect} from 'react-redux'
-
 import {setMessages, addMessage, ackMessage} from './actions'
+
+
 
 var spliddit = require('spliddit');
 var emoji = require("./emoji");
@@ -34,6 +39,8 @@ var IMService = require("./im");
 
 const {width, height} = Dimensions.get('window')
 
+const MODE_TEXT = "mode_text";
+const MODE_RECORD = "mode_record";
 
 const options = {
     title: 'Select Avatar',
@@ -57,6 +64,9 @@ class PeerChat extends React.Component {
             isLoadingEarlier: false,
             actionVisible: false,
             
+            mode:MODE_TEXT,
+            opacity:1.0,
+            
             isRefreshing: false,
             modalVisible: false,
             focused: false,
@@ -71,6 +81,8 @@ class PeerChat extends React.Component {
         this.renderInputToolbar = this.renderInputToolbar.bind(this);
         
         this._isAlright = null;
+
+        console.log("doc path:", this.props.documentPath);
     }
 
     componentWillMount() {
@@ -99,8 +111,19 @@ class PeerChat extends React.Component {
         console.log("dispatch:", this.props.dispatch);
     }
 
-    componentWillUnmount() {
+    componentDidMount() {
+        AudioRecorder.checkAuthorizationStatus().
+                      then((status)=>{
+                          console.log("audio auth status:", status);
+                          if (status == "undetermined") {
+                              return AudioRecorder.requestAuthorization();
+                          }
+                      })
+                     .then((granted)=>{console.log("audio auth granted")})
+                     .catch((e)=>{console.log("audio auth err:", e)});
+    }
 
+    componentWillUnmount() {
         this._isMounted = false;
     }
 
@@ -380,6 +403,23 @@ class PeerChat extends React.Component {
             this.giftedChat.setMinInputToolbarHeight(44+44);
         }
     }
+
+    handleRecordMode() {
+        if (this.state.mode == MODE_RECORD) {
+            return;
+        }
+
+        this.setState({mode:MODE_RECORD});
+            
+    }
+
+    handleTextMode() {
+        if (this.state.mode == MODE_TEXT) {
+            return;
+        }
+
+        this.setState({mode:MODE_TEXT});
+    }
     
     _renderSendButton() {
         const {isEmoji, focused} = this.state
@@ -501,42 +541,138 @@ class PeerChat extends React.Component {
         );
     }
 
+    renderTextInput(inputToolbarProps) {
+        const {value = '', isEmoji, mode} = this.state;
+        var height = inputToolbarProps.composerHeight + 11;
+        console.log("composer height:", inputToolbarProps.composerHeight);
+        return (
+            <View style={[Styles.inputRow, {height:height}]}>
+                <TouchableOpacity onPress={this.handleRecordMode.bind(this)}>
+                    <Image style={{width:20, height:20, resizeMode:"stretch"}}
+                           source={require("./Images/chatBar_record.png")}/>
+                </TouchableOpacity>
+                
+                <View style={Styles.searchRow}>
+                    <TextInput
+                        ref={(search)=> {this.search = search} }
+                        style={[Styles.searchInput, {height: inputToolbarProps.composerHeight}]}
+                        value={value}
+                        autoFocus={this.state.focused}
+                        editable={true}
+                        keyboardType='default'
+                        returnKeyType='default'
+                        autoCapitalize='none'
+                        autoCorrect={false}
+                        multiline={true}
+                        onChange={inputToolbarProps.onChange}
+                        onFocus={this.handleFocusSearch.bind(this)}
+                        onBlur={this.handleBlurSearch.bind(this)}
+                        onChangeText={this.handleChangeText.bind(this)}
+                        onEndEditing={() => {
+                            }}
+                        onLayout={() => {
+                            }}
+                        underlineColorAndroid='transparent'
+                        onSubmitEditing={() => this.search.focus()}
+                        placeholder={'sendMessage'}
+                    />
+                </View>
+                { this._renderSendButton() }
+            </View>
+        );
+    }
+
+    startRecording() {
+        var audioPath = AudioUtils.DocumentDirectoryPath + "/recording.wav";
+        AudioRecorder.prepareRecordingAtPath(audioPath, {
+            SampleRate: 8000,
+            Channels: 2,
+            AudioEncoding: "lpcm",
+        });
+
+        AudioRecorder.startRecording();
+    }
+
+    stopRecording() {
+        AudioRecorder.stopRecording();
+        var audioPath = AudioUtils.DocumentDirectoryPath + "/recording.wav";
+        var amrPath = AudioUtils.DocumentDirectoryPath + "/recording.amr";
+        OpenCoreAMR.wav2AMR(audioPath, amrPath, function(r) {
+            console.log("result:", r);
+        });
+        
+    }
+    
+    renderReocrdInput(inputToolbarProps) {
+        const {value = '', isEmoji, mode, opacity} = this.state;
+        var height = inputToolbarProps.composerHeight + 11;
+        console.log("composer height:", inputToolbarProps.composerHeight);
+
+
+        
+        var responder = {
+            onStartShouldSetResponder:(evt) => true,
+            onMoveShouldSetResponder: (evt) => true,
+            onResponderGrant: (evt) => {
+                console.log("responder grant");
+                this.setState({opacity:0.3});
+                this.giftedChat.setRecording(true);
+                this.giftedChat.setRecordingText("手指上滑, 取消发送");
+                this.giftedChat.setRecordingColor("transparent");
+                this.startRecording();
+            },
+            onResponderReject: (evt) => {console.log("responder reject")},
+            onResponderMove: (evt) => {
+                console.log("responder move");
+                console.log("event:", evt.nativeEvent);
+
+                if (evt.nativeEvent.locationY < 0) {
+                    this.giftedChat.setRecordingText("松开手指, 取消发送");
+                    this.giftedChat.setRecordingColor("red");                    
+                } else {
+                    this.giftedChat.setRecordingText("手指上滑, 取消发送");
+                    this.giftedChat.setRecordingColor("transparent");
+                }
+            },
+            onResponderRelease: (evt) => {
+                console.log("responder release");
+                this.setState({opacity:1.0});
+                this.giftedChat.setRecording(false);
+                this.stopRecording();
+            },
+            onResponderTerminationRequest: (evt) => true,
+            onResponderTerminate: (evt) => {console.log("responder terminate")},
+            
+        }
+        return (
+            <View style={[Styles.inputRow, {height:height}]}>
+                <TouchableOpacity onPress={this.handleTextMode.bind(this)}>
+                    <Image style={{width:20, height:20, resizeMode:"stretch"}}
+                           source={require("./Images/chatBar_keyboard.png")}/>
+                </TouchableOpacity>
+                
+                <View style={[Styles.searchRow, {backgroundColor:"gainsboro", opacity:opacity}]}>
+                    <View style={{flex:1, alignItems:"center", justifyContent:"center"}}
+                          {...responder}>
+                        <Text>
+                            {"按住说话"}
+                        </Text>
+                    </View>
+                </View>
+                { this._renderSendButton() }
+            </View>
+        );
+    }
+    
     renderInputToolbar(inputToolbarProps) {
         
-        const {value = '', isEmoji} = this.state
+        const {value = '', isEmoji, mode} = this.state
 
         var height = inputToolbarProps.composerHeight + 11;
         console.log("composer height:", inputToolbarProps.composerHeight);
         return (
             <View style={Styles.search}>
-                <View style={[Styles.inputRow, {height:height}]}>
-                    <View style={Styles.searchRow}>
-                        <TextInput
-                            ref={(search)=> {this.search = search} }
-                            style={[Styles.searchInput, {height: inputToolbarProps.composerHeight}]}
-                            value={value}
-                            autoFocus={this.state.focused}
-                            editable={true}
-                            keyboardType='default'
-                            returnKeyType='default'
-                            autoCapitalize='none'
-                            autoCorrect={false}
-                            multiline={true}
-                            onChange={inputToolbarProps.onChange}
-                            onFocus={this.handleFocusSearch.bind(this)}
-                            onBlur={this.handleBlurSearch.bind(this)}
-                            onChangeText={this.handleChangeText.bind(this)}
-                            onEndEditing={() => {
-                                }}
-                            onLayout={() => {
-                                }}
-                            underlineColorAndroid='transparent'
-                            onSubmitEditing={() => this.search.focus()}
-                            placeholder={'sendMessage'}
-                        />
-                    </View>
-                    { this._renderSendButton() }
-                </View>
+                {mode == MODE_TEXT ? this.renderTextInput(inputToolbarProps) : this.renderReocrdInput(inputToolbarProps)}
                 {isEmoji ? this._renderEmoji() : this._renderActions()}
             </View>
         )
