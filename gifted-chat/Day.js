@@ -8,20 +8,21 @@ import {
 import moment from 'moment/min/moment-with-locales.min';
 
 export default class Day extends React.Component {
-  render() {
-    if (!this.props.isSameDay(this.props.currentMessage, this.props.previousMessage)) {
-      return (
-        <View style={[styles.container, this.props.containerStyle]}>
-          <View style={[styles.wrapper, this.props.wrapperStyle]}>
-            <Text style={[styles.text, this.props.textStyle]}>
-              {moment(this.props.currentMessage.createdAt).locale(this.context.getLocale()).format('ll').toUpperCase()}
-            </Text>
-          </View>
-        </View>
-      );
+    render() {
+        console.log("get local:", this.context.getLocal);
+        if (!this.props.isSameDay(this.props.currentMessage, this.props.previousMessage)) {
+            return (
+                <View style={[styles.container, this.props.containerStyle]}>
+                    <View style={[styles.wrapper, this.props.wrapperStyle]}>
+                        <Text style={[styles.text, this.props.textStyle]}>
+                            {moment(this.props.currentMessage.createdAt).locale(this.context.getLocale()).format('ll').toUpperCase()}
+                        </Text>
+                    </View>
+                </View>
+            );
+        }
+        return null;
     }
-    return null;
-  }
 }
 
 const styles = StyleSheet.create({
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
 });
 
 Day.contextTypes = {
-  getLocale: React.PropTypes.func,
+    getLocale: React.PropTypes.func,
 };
 
 Day.defaultProps = {

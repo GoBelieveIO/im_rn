@@ -12,17 +12,36 @@ import {
     LayoutAnimation,
     TouchableOpacity,
     TouchableWithoutFeedback,
+    InteractionManager,
     Animated
 } from 'react-native';
 
 import ImagePicker from 'react-native-image-picker'
 import Emoji from 'react-native-emoji'
 import Swiper from 'react-native-swiper'
+import moment from 'moment/min/moment-with-locales.min';
+import ActionSheet from '@exponent/react-native-action-sheet';
+import dismissKeyboard from 'react-native-dismiss-keyboard';
 import {connect} from 'react-redux'
 import {AudioRecorder, AudioUtils} from 'react-native-audio';
 import {OpenCoreAMR} from 'react-native-amr';
 
-import {GiftedChat, Actions, Bubble} from './gifted-chat'
+
+import Actions from './gifted-chat/Actions';
+import Avatar from './gifted-chat/Avatar';
+import Bubble from './gifted-chat/Bubble';
+import MessageImage from './gifted-chat/MessageImage';
+import MessageText from './gifted-chat/MessageText';
+import Composer from './gifted-chat/Composer';
+import Day from './gifted-chat/Day';
+import InputToolbar from './gifted-chat/InputToolbar';
+import LoadEarlier from './gifted-chat/LoadEarlier';
+import Message from './gifted-chat/Message';
+import MessageContainer from './gifted-chat/MessageContainer';
+import Send from './gifted-chat/Send';
+import Time from './gifted-chat/Time';
+
+
 import CustomActions from './CustomActions'
 import CustomView from './CustomView'
 
@@ -32,15 +51,12 @@ import PeerMessageDB from './PeerMessageDB.js'
 import {setMessages, addMessage, ackMessage} from './actions'
 
 
-
 var spliddit = require('spliddit');
 var emoji = require("./emoji");
 var IMService = require("./im");
 
 const {width, height} = Dimensions.get('window')
 
-const MODE_TEXT = "mode_text";
-const MODE_RECORD = "mode_record";
 
 const options = {
     title: 'Select Avatar',
@@ -58,35 +74,71 @@ class PeerChat extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            messages: [],
             loadEarlier: true,
-            typingText: null,
             isLoadingEarlier: false,
-            actionVisible: false,
+
+            isInitialized: false, // initialization will calculate maxHeight before rendering the chat
             
-            mode:MODE_TEXT,
-            opacity:1.0,
-            
-            isRefreshing: false,
-            modalVisible: false,
-            focused: false,
-            visibleHeight: Metrics.screenHeight,
-            isEmoji: false,
-            value: '',
+            recording: false,
+            recordingText:"",
+            recordingColor:"transparent",
         };
 
-        this._isMounted = false;
-        this.renderBubble = this.renderBubble.bind(this);
         this.onLoadEarlier = this.onLoadEarlier.bind(this);
-        this.renderInputToolbar = this.renderInputToolbar.bind(this);
-        
-        this._isAlright = null;
 
-        console.log("doc path:", this.props.documentPath);
+        // default values
+        this._isMounted = false;
+        this._keyboardHeight = 0;
+        this._bottomOffset = 0;
+        this._maxHeight = null;
+        this._touchStarted = false;
+        this._isFirstLayout = true;
+        this._isTypingDisabled = false;
+        this._locale = 'zh-cn';
+        this._messages = [];
+
+        this.isAnimated = false;
+
+        this.onSend = this.onSend.bind(this);
+        
+        
+        this.onTouchStart = this.onTouchStart.bind(this);
+        this.onTouchMove = this.onTouchMove.bind(this);
+        this.onTouchEnd = this.onTouchEnd.bind(this);
+        this.onKeyboardWillShow = this.onKeyboardWillShow.bind(this);
+        this.onKeyboardWillHide = this.onKeyboardWillHide.bind(this);
+        this.onKeyboardDidShow = this.onKeyboardDidShow.bind(this);
+        this.onKeyboardDidHide = this.onKeyboardDidHide.bind(this);
+        
+        this.invertibleScrollViewProps = {
+            inverted: true,
+            keyboardShouldPersistTaps: "always",
+            onTouchStart: this.onTouchStart,
+            onTouchMove: this.onTouchMove,
+            onTouchEnd: this.onTouchEnd,
+            onKeyboardWillShow: this.onKeyboardWillShow,
+            onKeyboardWillHide: this.onKeyboardWillHide,
+            onKeyboardDidShow: this.onKeyboardDidShow,
+            onKeyboardDidHide: this.onKeyboardDidHide,
+        };
+
     }
 
+    getChildContext() {
+        return {
+            getLocale: this.getLocale.bind(this),
+        };
+    }
+    
+    setLocale(locale) {
+        this._locale = locale;
+    }
+
+    getLocale() {
+        return this._locale;
+    }
+    
     componentWillMount() {
-   
         this._isMounted = true;
         PeerMessageDB.getInstance().getMessages(this.props.receiver,
                                                 (msgs)=>{
@@ -103,6 +155,7 @@ class PeerChat extends React.Component {
                                                             _id:m.sender
                                                         };
                                                     }
+                                                    console.log("set messages:", msgs.length);
                                                     this.props.dispatch(setMessages(msgs));
                                                 },
                                                 (e)=>{});
@@ -207,72 +260,34 @@ class PeerChat extends React.Component {
 
 
 
-    renderBubble(props) {
-        return (
-            <Bubble
-                {...props}
-                wrapperStyle={{
-                    left: {
-                        backgroundColor: '#f0f0f0',
-                    }
-                }}
-            />
-        );
-    }
+    /* renderBubble(props) {
+     *     return (
+     *         <Bubble
+     *             {...props}
+     *             wrapperStyle={{
+     *                 left: {
+     *                     backgroundColor: '#f0f0f0',
+     *                 }
+     *             }}
+     *         />
+     *     );
+     * }*/
 
-    renderCustomView(props) {
-        return (
-            <CustomView
-                {...props}
-            />
-        );
-    }
 
-    
-    handleFocusSearch() {
-        this.setState({
-            isEmoji: false,
-            actionVisible: false,
-            focused: true,
-        })
-        this.giftedChat.setMinInputToolbarHeight(44);
-    }
 
-    handleBlurSearch() {
-        this.setState({focused: false})
-    }
 
-    handleSend() {
-        if (!this.state.value || !this.state.value.trim()) return
-        var text = this.state.value.trim();
+    onSend(text) {
+        if (!text || !text.trim()) {
+            return;
+        }
+        console.log("send text:", text);        
+        text = text.trim();
         this.sendTextMessage(text);
-        this.setState((previousState) => {
-            return {
-                value: '',
-            };
-        });
+        this.scrollToBottom();
     }
 
-    handleChangeText(v) {
-        console.log("text changed:", v);
-        this.setState({
-            value: v,
-        });
-    }
 
     handleImagePicker() {
-        var isEmoji = this.state.isEmoji;
-        this.setState({
-            isEmoji: false,
-            actionVisible: false
-        });
-
-        if (isEmoji) {
-            //emoji state changed
-            this.giftedChat.setMinInputToolbarHeight(44);
-        }
-
-        
         ImagePicker.launchImageLibrary(options, (response) => {
             console.log('Response = ', response);
 
@@ -303,16 +318,6 @@ class PeerChat extends React.Component {
     }
 
     handleCameraPicker() {
-        var isEmoji = this.state.isEmoji;
-        this.setState({
-            isEmoji: false,
-            actionVisible: false
-        });
-        if (isEmoji) {
-            //emoji state changed
-            this.giftedChat.setMinInputToolbarHeight(44);
-        }
-
         // Launch Camera:
         ImagePicker.launchCamera(options, (response) => {
             console.log('Response = ', response);
@@ -348,239 +353,8 @@ class PeerChat extends React.Component {
         console.log("locaiton click");
     }
 
-    handleEmojiOpen() {
-        var isEmoji = this.state.isEmoji;
-        isEmoji = !isEmoji;
-        this.setState({
-            isEmoji: isEmoji,
-            actionVisible: false
-        })
 
-        if (isEmoji) {
-            this.search.blur();
-            this.giftedChat.setMinInputToolbarHeight(44 + 128);
-        } else {
-            this.giftedChat.setMinInputToolbarHeight(44);
-        }
-    }
 
-    handleEmojiClick(v) {
-        var newValue = (this.value || '') + v;
-        this.setState({
-            value: newValue
-        });
-        this.value = newValue;
-    }
-    
-    handleEmojiCancel() {
-        if (!this.state.value) return
-
-        const arr = spliddit(this.state.value);
-        const len = arr.length
-        let newValue = ''
-
-        console.log("value length:", len, this.state.value.length);
-        arr.pop();
-        newValue = arr.join('');
-
-        console.log("new value:", newValue);
-        this.setState({
-            value: newValue
-        })
-        this.value = newValue;
-    }
-
-    onActionsPress() {
-        console.log("on action press");
-        var actionVisible = this.state.actionVisible;
-        if (actionVisible) {
-            return;
-        }
-
-        actionVisible = !actionVisible;
-        this.setState({actionVisible:actionVisible, isEmoji:false});
-        if (actionVisible) {
-            this.giftedChat.setMinInputToolbarHeight(44+44);
-        }
-    }
-
-    handleRecordMode() {
-        if (this.state.mode == MODE_RECORD) {
-            return;
-        }
-
-        this.setState({mode:MODE_RECORD});
-            
-    }
-
-    handleTextMode() {
-        if (this.state.mode == MODE_TEXT) {
-            return;
-        }
-
-        this.setState({mode:MODE_TEXT});
-    }
-    
-    _renderSendButton() {
-        const {isEmoji, focused} = this.state
-
-        return (focused || isEmoji) ? (
-            <View style={{flexDirection:"row", justifyContent:"center", alignItems:"center"}}>
-                <TouchableOpacity style={{padding:5, justifyContent:"center"}} onPress={this.handleEmojiOpen.bind(this)}>
-                    {
-                        isEmoji ? <Image source={Images.iconEmojiActive}/> : <Image source={Images.iconEmoji}/>
-                    }
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={{justifyContent:"center"}}
-                                  onPress={this.handleSend.bind(this)}>
-                    <Text style={Styles.sendText}>{'send'}</Text>
-                </TouchableOpacity>
-            </View>
-        ) : (
-            <View style={{flexDirection:"row", justifyContent:"center", alignItems:"center"}}>
-                <TouchableOpacity style={{padding:5, justifyContent:"center"}} onPress={this.handleEmojiOpen.bind(this)}>
-                    {
-                        isEmoji ? <Image source={Images.iconEmojiActive}/> : <Image source={Images.iconEmoji}/>
-                    }
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                    style={{justifyContent:"center"}}
-                    onPress={this.onActionsPress.bind(this)}>
-                    <View
-                        style={{  borderRadius: 13,
-                                  borderColor: '#b2b2b2',
-                                  borderWidth: 2,
-                                  width:26,
-                                  height:26,                                   
-                                  justifyContent:"center"}}>
-                        <Text style={{  color: '#b2b2b2',
-                                        fontWeight: 'bold',
-                                        fontSize: 16,
-                                                                             
-                                        backgroundColor: 'transparent',
-                                        textAlign: 'center'}}>
-                            +
-                        </Text>
-                    </View>
-                </TouchableOpacity>
-            </View>
-        );
-    }
-
-    _renderEmoji() {
-        const {isEmoji, focused} = this.state
-        const emojiStyle = []
-        const rowIconNum = 7
-        const rowNum = 3
-        const emojis = Object.keys(emoji.map).map((v, k) => {
-            const name = emoji.map[v]
-            return (
-                <TouchableOpacity key={v + k} onPress={() => {
-                        this.handleEmojiClick(v)
-                    }}>
-                    <Text style={[Styles.emoji, emojiStyle]}><Emoji name={name}/></Text>
-                </TouchableOpacity>
-            )
-        })
-        return isEmoji ? (
-            <View style={Styles.emojiRow}>
-                <Swiper style={Styles.wrapper} loop={false}
-                        height={125}
-                        dotStyle={ {bottom: -30} }
-                        activeDotStyle={ {bottom: -30} }
-                >
-                    <View style={Styles.slide}>
-                        <View style={Styles.slideRow}>
-                            {emojis.slice(0, rowIconNum)}
-                        </View>
-                        <View style={Styles.slideRow}>
-                            {emojis.slice(1 * rowIconNum, rowIconNum * 2)}
-                        </View>
-                        <View style={Styles.slideRow}>
-                            {emojis.slice(2 * rowIconNum, rowIconNum * 3 - 1)}
-                            <TouchableOpacity onPress={this.handleEmojiCancel.bind(this)}>
-                                <Text style={[Styles.emoji, emojiStyle]}><Emoji name="arrow_left"/></Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                    <View style={Styles.slide}>
-                        <View style={Styles.slideRow}>
-                            {emojis.slice(3 * rowIconNum - 1, rowIconNum * 4 - 1)}
-                        </View>
-                        <View style={Styles.slideRow}>
-                            {emojis.slice(4 * rowIconNum - 1, rowIconNum * 5 - 1)}
-                        </View>
-                        <View style={Styles.slideRow}>
-                            {emojis.slice(5 * rowIconNum - 1, rowIconNum * 6 - 1)}
-                            <TouchableOpacity onPress={this.handleEmojiCancel.bind(this)}>
-                                <Text style={[Styles.emoji, emojiStyle]}><Emoji name="arrow_left"/></Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </Swiper>
-            </View>
-        ) : null
-    }
-    
-    _renderActions() {
-        const {isEmoji, focused} = this.state
-        return (
-            <View style={Styles.iconRow}>
-                <TouchableOpacity style={Styles.iconTouch} onPress={this.handleCameraPicker.bind(this)}>
-                    <Image source={Images.iconCamera}/>
-                </TouchableOpacity>
-                <TouchableOpacity style={Styles.iconTouch} onPress={this.handleImagePicker.bind(this)}>
-                    <Image source={Images.iconImage}/>
-                </TouchableOpacity>
-                <TouchableOpacity style={Styles.iconTouch} onPress={this.handleLocationClick.bind(this)}>
-                    <Image source={Images.iconEmoji}/>
-                </TouchableOpacity>
-            </View>
-        );
-    }
-
-    renderTextInput(inputToolbarProps) {
-        const {value = '', isEmoji, mode} = this.state;
-        var height = inputToolbarProps.composerHeight + 11;
-        console.log("composer height:", inputToolbarProps.composerHeight);
-        return (
-            <View style={[Styles.inputRow, {height:height}]}>
-                <TouchableOpacity onPress={this.handleRecordMode.bind(this)}>
-                    <Image style={{width:20, height:20, resizeMode:"stretch"}}
-                           source={require("./Images/chatBar_record.png")}/>
-                </TouchableOpacity>
-                
-                <View style={Styles.searchRow}>
-                    <TextInput
-                        ref={(search)=> {this.search = search} }
-                        style={[Styles.searchInput, {height: inputToolbarProps.composerHeight}]}
-                        value={value}
-                        autoFocus={this.state.focused}
-                        editable={true}
-                        keyboardType='default'
-                        returnKeyType='default'
-                        autoCapitalize='none'
-                        autoCorrect={false}
-                        multiline={true}
-                        onChange={inputToolbarProps.onChange}
-                        onFocus={this.handleFocusSearch.bind(this)}
-                        onBlur={this.handleBlurSearch.bind(this)}
-                        onChangeText={this.handleChangeText.bind(this)}
-                        onEndEditing={() => {
-                            }}
-                        onLayout={() => {
-                            }}
-                        underlineColorAndroid='transparent'
-                        onSubmitEditing={() => this.search.focus()}
-                        placeholder={'sendMessage'}
-                    />
-                </View>
-                { this._renderSendButton() }
-            </View>
-        );
-    }
 
     startRecording() {
         var audioPath = AudioUtils.DocumentDirectoryPath + "/recording.wav";
@@ -603,83 +377,9 @@ class PeerChat extends React.Component {
         
     }
     
-    renderReocrdInput(inputToolbarProps) {
-        const {value = '', isEmoji, mode, opacity} = this.state;
-        var height = inputToolbarProps.composerHeight + 11;
-        console.log("composer height:", inputToolbarProps.composerHeight);
 
 
-        
-        var responder = {
-            onStartShouldSetResponder:(evt) => true,
-            onMoveShouldSetResponder: (evt) => true,
-            onResponderGrant: (evt) => {
-                console.log("responder grant");
-                this.setState({opacity:0.3});
-                this.giftedChat.setRecording(true);
-                this.giftedChat.setRecordingText("手指上滑, 取消发送");
-                this.giftedChat.setRecordingColor("transparent");
-                this.startRecording();
-            },
-            onResponderReject: (evt) => {console.log("responder reject")},
-            onResponderMove: (evt) => {
-                console.log("responder move");
-                console.log("event:", evt.nativeEvent);
-
-                if (evt.nativeEvent.locationY < 0) {
-                    this.giftedChat.setRecordingText("松开手指, 取消发送");
-                    this.giftedChat.setRecordingColor("red");                    
-                } else {
-                    this.giftedChat.setRecordingText("手指上滑, 取消发送");
-                    this.giftedChat.setRecordingColor("transparent");
-                }
-            },
-            onResponderRelease: (evt) => {
-                console.log("responder release");
-                this.setState({opacity:1.0});
-                this.giftedChat.setRecording(false);
-                this.stopRecording();
-            },
-            onResponderTerminationRequest: (evt) => true,
-            onResponderTerminate: (evt) => {console.log("responder terminate")},
-            
-        }
-        return (
-            <View style={[Styles.inputRow, {height:height}]}>
-                <TouchableOpacity onPress={this.handleTextMode.bind(this)}>
-                    <Image style={{width:20, height:20, resizeMode:"stretch"}}
-                           source={require("./Images/chatBar_keyboard.png")}/>
-                </TouchableOpacity>
-                
-                <View style={[Styles.searchRow, {backgroundColor:"gainsboro", opacity:opacity}]}>
-                    <View style={{flex:1, alignItems:"center", justifyContent:"center"}}
-                          {...responder}>
-                        <Text>
-                            {"按住说话"}
-                        </Text>
-                    </View>
-                </View>
-                { this._renderSendButton() }
-            </View>
-        );
-    }
-    
-    renderInputToolbar(inputToolbarProps) {
-        
-        const {value = '', isEmoji, mode} = this.state
-
-        var height = inputToolbarProps.composerHeight + 11;
-        console.log("composer height:", inputToolbarProps.composerHeight);
-        return (
-            <View style={Styles.search}>
-                {mode == MODE_TEXT ? this.renderTextInput(inputToolbarProps) : this.renderReocrdInput(inputToolbarProps)}
-                {isEmoji ? this._renderEmoji() : this._renderActions()}
-            </View>
-        )
-    }
-
-
-    render() {
+    render2() {
         return (
             <GiftedChat
                 ref={(giftedChat)=> {this.giftedChat = giftedChat} }
@@ -691,13 +391,264 @@ class PeerChat extends React.Component {
                 user={{
                     _id: this.props.sender, // sent messages should have same user._id
                 }}
-
-                renderBubble={this.renderBubble}
-                renderCustomView={this.renderCustomView}
-                renderInputToolbar={this.renderInputToolbar}
             />
         );
     }
+
+    
+    setRecording(recording) {
+        this.setState({recording:recording});
+    }
+
+    setRecordingText(text) {
+        console.log("set text");
+        this.setState({recordingText:text});
+    }
+    
+    setRecordingColor(color) {
+        console.log("set color");
+        this.setState({recordingColor:color});
+    }
+
+
+    setMaxHeight(height) {
+        this._maxHeight = height;
+    }
+
+    getMaxHeight() {
+        return this._maxHeight;
+    }
+
+    setIsFirstLayout(value) {
+        this._isFirstLayout = value;
+    }
+
+    getIsFirstLayout() {
+        return this._isFirstLayout;
+    }
+    
+    setKeyboardHeight(height) {
+        this._keyboardHeight = height;
+    }
+
+    getKeyboardHeight() {
+        return this._keyboardHeight;
+    }
+
+    
+
+    onKeyboardWillShow(e) {
+        this.setKeyboardHeight(e.endCoordinates ? e.endCoordinates.height : e.end.height);
+        var newMessagesContainerHeight = this.state.messagesContainerHeight - this.getKeyboardHeight();
+        console.log("keyboard will show:", newMessagesContainerHeight);
+        console.log("keyboard height:", e.endCoordinates ? e.endCoordinates.height : e.end.height);
+        if (this.props.isAnimated === true) {
+            Animated.timing(this.state.messagesContainerHeight, {
+                toValue: newMessagesContainerHeight,
+                duration: 210,
+            }).start();
+        } else {
+            this.setState((previousState) => {
+                return {
+                    messagesContainerHeight: newMessagesContainerHeight,
+                };
+            });
+        }
+    }
+
+    onKeyboardWillHide() {
+        var newMessagesContainerHeight = this.state.messagesContainerHeight + this.getKeyboardHeight();
+        this.setKeyboardHeight(0);
+        console.log("keyboard will hide:", newMessagesContainerHeight);
+        if (this.props.isAnimated === true) {
+            Animated.timing(this.state.messagesContainerHeight, {
+                toValue: newMessagesContainerHeight,
+                duration: 210,
+            }).start();
+        } else {
+            this.setState((previousState) => {
+                return {
+                    messagesContainerHeight: newMessagesContainerHeight,
+                };
+            });
+        }
+    }
+
+    onKeyboardDidShow(e) {
+        if (Platform.OS === 'android') {
+            this.onKeyboardWillShow(e);
+        }
+    }
+
+    onKeyboardDidHide(e) {
+        if (Platform.OS === 'android') {
+            this.onKeyboardWillHide(e);
+        }
+    }
+
+    scrollToBottom(animated = true) {
+        this._messageContainerRef.scrollTo({
+            y: 0,
+            animated,
+        });
+    }
+
+    onTouchStart() {
+        this._touchStarted = true;
+    }
+
+    onTouchMove() {
+        this._touchStarted = false;
+    }
+
+    // handle Tap event to dismiss keyboard
+    onTouchEnd() {
+        if (this._touchStarted === true) {
+            dismissKeyboard();
+        }
+        this._touchStarted = false;
+    }
+
+    prepareMessagesContainerHeight(value) {
+        //if (this.props.isAnimated === true) {
+        //    return new Animated.Value(value);
+        //}
+        return value;
+    }
+
+    onInputToolbarHeightChange(h) {
+        console.log("on input tool bar height changed:", h);
+        const newMessagesContainerHeight = this.getMaxHeight() - h - this.getKeyboardHeight();
+        this.setState((previousState) => {
+            return {
+                messagesContainerHeight: newMessagesContainerHeight,
+            };
+        });
+        
+    }
+
+    renderMessages() {
+        console.log("message containser height:", this.state.messagesContainerHeight);
+        const AnimatedView = this.props.isAnimated === true ? Animated.View : View;
+        //    
+        return (
+            <AnimatedView style={{
+                height: this.state.messagesContainerHeight,
+            }}>
+                <MessageContainer
+                    loadEarlier={this.state.loadEarlier}
+                    onLoadEarlier={this.onLoadEarlier}
+                    isLoadingEarlier={this.state.isLoadingEarlier}
+                    user={{
+                        _id: this.props.sender, // sent messages should have same user._id
+                    }}
+                    
+                    invertibleScrollViewProps={this.invertibleScrollViewProps}
+
+                    messages={this.props.messages}
+
+                    ref={component => this._messageContainerRef = component}
+                />
+            </AnimatedView>
+        );
+    }
+
+    
+    
+    renderInputToolbar() {
+        const inputToolbarProps = {
+            ...this.props,
+            text: this.state.text,
+            onSend: this.onSend.bind(this),
+            onHeightChange:this.onInputToolbarHeightChange.bind(this),
+            giftedChat: this,
+        };
+
+        return (
+            <InputToolbar
+                {...inputToolbarProps}
+            />
+        );
+    }
+
+    
+
+    renderRecordView() {
+        const {width, height} = Dimensions.get('window');
+        var left = this.state.recording ? 0 : -width;
+        const {recordingText, recordingColor} = this.state;
+        return (
+            <View style={{backgroundColor:"#dcdcdcaf",
+                          position:"absolute",
+                          top:0,
+                          left:left,
+                          width:width,
+                          height:this.state.messagesContainerHeight,
+                          alignItems:"center",
+                          justifyContent:"center"}}>
+                <Text style={{backgroundColor:recordingColor}}>
+                    {recordingText}
+                </Text>
+            </View>);
+        
+    }
+    
+
+    render() {
+        console.log("render chat...:", Dimensions.get('window'));
+
+        if (this.state.isInitialized === true) {
+
+            console.log("render chat1");
+            return (
+                <ActionSheet ref={component => this._actionSheetRef = component}>
+                    <View
+                        style={{flex:1}}
+                        onLayout={(e) => {
+                                if (Platform.OS === 'android') {
+                                    // fix an issue when keyboard is dismissing during the initialization
+                                    const layout = e.nativeEvent.layout;
+                                    if (this.getMaxHeight() !== layout.height && this.getIsFirstLayout() === true) {
+                                        this.setMaxHeight(layout.height);
+                                        this.setState({
+                                            messagesContainerHeight: this.prepareMessagesContainerHeight(this.getMaxHeight() - 44),
+                                        });
+                                    }
+                                }
+                                if (this.getIsFirstLayout() === true) {
+                                    this.setIsFirstLayout(false);
+                                }
+                            }}>
+                        {this.renderMessages()}
+                        {this.renderRecordView()}
+                        {this.renderInputToolbar()}
+                    </View>
+                </ActionSheet>
+            );
+        }
+
+        console.log("render chat2");
+        return (
+            <View
+            style={{flex:1}}
+            onLayout={(e) => {
+                const layout = e.nativeEvent.layout;
+                this.setMaxHeight(layout.height);
+                console.log("max height:", layout.height);
+                InteractionManager.runAfterInteractions(() => {
+                    this.setState({
+                        isInitialized: true,
+                        text: '',
+                        messagesContainerHeight: (this.getMaxHeight() - 44)
+                    });
+                });
+            }}
+            >
+            </View>
+        );
+    }
+
+    
 }
 
 const styles = StyleSheet.create({
@@ -712,6 +663,11 @@ const styles = StyleSheet.create({
         color: '#aaa',
     },
 });
+
+
+PeerChat.childContextTypes = {
+    getLocale: React.PropTypes.func,
+};
 
 
 PeerChat = connect(function(state){
