@@ -258,24 +258,6 @@ class PeerChat extends React.Component {
     }
 
 
-
-
-    /* renderBubble(props) {
-     *     return (
-     *         <Bubble
-     *             {...props}
-     *             wrapperStyle={{
-     *                 left: {
-     *                     backgroundColor: '#f0f0f0',
-     *                 }
-     *             }}
-     *         />
-     *     );
-     * }*/
-
-
-
-
     onSend(text) {
         if (!text || !text.trim()) {
             return;
@@ -353,9 +335,6 @@ class PeerChat extends React.Component {
         console.log("locaiton click");
     }
 
-
-
-
     startRecording() {
         var audioPath = AudioUtils.DocumentDirectoryPath + "/recording.wav";
         AudioRecorder.prepareRecordingAtPath(audioPath, {
@@ -375,24 +354,6 @@ class PeerChat extends React.Component {
             console.log("result:", r);
         });
         
-    }
-    
-
-
-    render2() {
-        return (
-            <GiftedChat
-                ref={(giftedChat)=> {this.giftedChat = giftedChat} }
-                messages={this.props.messages}
-                loadEarlier={this.state.loadEarlier}
-                onLoadEarlier={this.onLoadEarlier}
-                isLoadingEarlier={this.state.isLoadingEarlier}
-                isAnimated={false}
-                user={{
-                    _id: this.props.sender, // sent messages should have same user._id
-                }}
-            />
-        );
     }
 
     
@@ -627,7 +588,6 @@ class PeerChat extends React.Component {
             );
         }
 
-        console.log("render chat2");
         return (
             <View
             style={{flex:1}}
@@ -642,27 +602,13 @@ class PeerChat extends React.Component {
                         messagesContainerHeight: (this.getMaxHeight() - 44)
                     });
                 });
-            }}
-            >
+            }}>
             </View>
         );
     }
 
     
 }
-
-const styles = StyleSheet.create({
-    footerContainer: {
-        marginTop: 5,
-        marginLeft: 10,
-        marginRight: 10,
-        marginBottom: 10,
-    },
-    footerText: {
-        fontSize: 14,
-        color: '#aaa',
-    },
-});
 
 
 PeerChat.childContextTypes = {

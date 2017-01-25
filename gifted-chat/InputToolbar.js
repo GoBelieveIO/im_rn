@@ -27,17 +27,16 @@ var emoji = require("../emoji");
 const MODE_TEXT = "mode_text";
 const MODE_RECORD = "mode_record";
 
-
-
-// Min and max heights of ToolbarInput and Composer
-// Needed for Composer auto grow and ScrollView animation
-// TODO move these values to Constants.js (also with used colors #b2b2b2)
+//输入框初始高度
 const MIN_COMPOSER_HEIGHT = Platform.select({
     ios: 33,
     android: 41,
 });
 const MAX_COMPOSER_HEIGHT = 100;
-const MIN_INPUT_TOOLBAR_HEIGHT = 44;//44
+const MIN_INPUT_TOOLBAR_HEIGHT = 44;
+
+const ACTION_BUTTON_HEIGHT = 40;
+const EMOJI_HEIGHT = 128;
 
 export default class InputToolbar extends React.Component {
 
@@ -75,7 +74,7 @@ export default class InputToolbar extends React.Component {
         actionVisible = !actionVisible;
         this.setState({actionVisible:actionVisible, isEmoji:false});
         if (actionVisible) {
-            this.actionBarHeight = 44;
+            this.actionBarHeight = ACTION_BUTTON_HEIGHT;
             this.onHeightChange();
         }
     }
@@ -85,14 +84,15 @@ export default class InputToolbar extends React.Component {
         isEmoji = !isEmoji;
         this.setState({
             isEmoji: isEmoji,
-            actionVisible: false
+            actionVisible: false,
+            mode:MODE_TEXT
         })
 
         if (isEmoji) {
             if (this.search) {
                 this.search.blur();
             }
-            this.actionBarHeight = 128;
+            this.actionBarHeight = EMOJI_HEIGHT;
         } else {
             this.actionBarHeight = 0;
         }
@@ -149,35 +149,45 @@ export default class InputToolbar extends React.Component {
     }
 
     handleImagePicker() {
-        var isEmoji = this.state.isEmoji;
         this.setState({
             isEmoji: false,
             actionVisible: false
         });
 
-        if (isEmoji) {
-            //emoji state changed
-            this.actionBarHeight = 0;
-            this.onHeightChange();
-        }
+        this.actionBarHeight = 0;
+        this.onHeightChange();
+
+
+        this.props.giftedChat.handleImagePicker();
     }
 
     handleCameraPicker() {
-        var isEmoji = this.state.isEmoji;
+
         this.setState({
             isEmoji: false,
             actionVisible: false
         });
-        if (isEmoji) {
-            //emoji state changed
-            this.actionBarHeight = 0;
-            this.onHeightChange();
-        }
+
+        this.actionBarHeight = 0;
+        this.onHeightChange();
+
+
+        this.props.giftedChat.handleCameraPicker();
     }
 
     
     handleLocationClick() {
         console.log("locaiton click");
+
+        this.setState({
+            isEmoji: false,
+            actionVisible: false
+        });
+
+        this.actionBarHeight = 0;
+        this.onHeightChange();
+        
+        this.props.giftedChat.handleLocationClick();
     }
 
     handleRecordMode() {
@@ -395,7 +405,7 @@ export default class InputToolbar extends React.Component {
                 this.props.giftedChat.setRecording(true);
                 this.props.giftedChat.setRecordingText("手指上滑, 取消发送");
                 this.props.giftedChat.setRecordingColor("transparent");
-                //this.startRecording();
+                this.props.giftedChat.startRecording();
             },
             onResponderReject: (evt) => {console.log("responder reject")},
             onResponderMove: (evt) => {
@@ -414,7 +424,7 @@ export default class InputToolbar extends React.Component {
                 console.log("responder release");
                 this.setState({opacity:1.0});
                 this.props.giftedChat.setRecording(false);
-                //this.stopRecording();
+                this.props.giftedChat.stopRecording();
             },
             onResponderTerminationRequest: (evt) => true,
             onResponderTerminate: (evt) => {console.log("responder terminate")},
