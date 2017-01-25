@@ -34,7 +34,7 @@ import MessageImage from './gifted-chat/MessageImage';
 import MessageText from './gifted-chat/MessageText';
 import Composer from './gifted-chat/Composer';
 import Day from './gifted-chat/Day';
-import InputToolbar from './gifted-chat/InputToolbar';
+import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './gifted-chat/InputToolbar';
 import LoadEarlier from './gifted-chat/LoadEarlier';
 import Message from './gifted-chat/Message';
 import MessageContainer from './gifted-chat/MessageContainer';
@@ -88,6 +88,7 @@ class PeerChat extends React.Component {
 
         // default values
         this._isMounted = false;
+        this._inputToolbarHeight = MIN_INPUT_TOOLBAR_HEIGHT;
         this._keyboardHeight = 0;
         this._bottomOffset = 0;
         this._maxHeight = null;
@@ -400,7 +401,7 @@ class PeerChat extends React.Component {
 
     onKeyboardWillShow(e) {
         this.setKeyboardHeight(e.endCoordinates ? e.endCoordinates.height : e.end.height);
-        var newMessagesContainerHeight = this.state.messagesContainerHeight - this.getKeyboardHeight();
+        var newMessagesContainerHeight = this.getMaxHeight() - this._inputToolbarHeight - this.getKeyboardHeight();
         console.log("keyboard will show:", newMessagesContainerHeight);
         console.log("keyboard height:", e.endCoordinates ? e.endCoordinates.height : e.end.height);
         if (this.props.isAnimated === true) {
@@ -418,8 +419,8 @@ class PeerChat extends React.Component {
     }
 
     onKeyboardWillHide() {
-        var newMessagesContainerHeight = this.state.messagesContainerHeight + this.getKeyboardHeight();
         this.setKeyboardHeight(0);
+        var newMessagesContainerHeight = this.getMaxHeight() - this._inputToolbarHeight - this.getKeyboardHeight();
         console.log("keyboard will hide:", newMessagesContainerHeight);
         if (this.props.isAnimated === true) {
             Animated.timing(this.state.messagesContainerHeight, {
@@ -479,7 +480,8 @@ class PeerChat extends React.Component {
 
     onInputToolbarHeightChange(h) {
         console.log("on input tool bar height changed:", h);
-        const newMessagesContainerHeight = this.getMaxHeight() - h - this.getKeyboardHeight();
+        this._inputToolbarHeight = h;
+        const newMessagesContainerHeight = this.getMaxHeight() - this._inputToolbarHeight - this.getKeyboardHeight();
         this.setState((previousState) => {
             return {
                 messagesContainerHeight: newMessagesContainerHeight,

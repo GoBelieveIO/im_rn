@@ -33,7 +33,7 @@ const MIN_COMPOSER_HEIGHT = Platform.select({
     android: 41,
 });
 const MAX_COMPOSER_HEIGHT = 100;
-const MIN_INPUT_TOOLBAR_HEIGHT = 44;
+export const MIN_INPUT_TOOLBAR_HEIGHT = 44;
 
 const ACTION_BUTTON_HEIGHT = 40;
 const EMOJI_HEIGHT = 128;
@@ -195,8 +195,13 @@ export default class InputToolbar extends React.Component {
             return;
         }
 
-        this.setState({mode:MODE_RECORD});
-        
+        const {isEmoji, actionVisible} = this.state;
+        this.setState({isEmoji:false, actionVisible:false, mode:MODE_RECORD});
+
+        if (isEmoji || actionVisible) {
+            this.actionBarHeight = 0;
+            this.onHeightChange();
+        }
     }
 
     handleTextMode() {
