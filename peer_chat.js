@@ -638,7 +638,13 @@ class PeerChat extends React.Component {
         AudioRecorder.startRecording();
     }
 
-    stopRecording() {
+    stopRecording(canceled) {
+        AudioRecorder.stopRecording();
+        
+        if (canceled) {
+            return;
+        }
+
         var now = new Date();
         var duration = now.getTime() - this.recordingBegin.getTime();
         duration = Math.floor(duration/1000);
@@ -650,8 +656,6 @@ class PeerChat extends React.Component {
         }
 
         
-        AudioRecorder.stopRecording();
-
         var self = this;
         var id = UUID.v1();
         var audioPath = AudioUtils.DocumentDirectoryPath + "/recording.wav";

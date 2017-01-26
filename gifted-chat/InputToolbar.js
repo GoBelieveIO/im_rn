@@ -429,7 +429,14 @@ export default class InputToolbar extends React.Component {
                 console.log("responder release");
                 this.setState({opacity:1.0});
                 this.props.giftedChat.setRecording(false);
-                this.props.giftedChat.stopRecording();
+
+                var canceled;
+                if (evt.nativeEvent.locationY < 0) {
+                    canceled = true;
+                } else {
+                    canceled = false;
+                }
+                this.props.giftedChat.stopRecording(canceled);
             },
             onResponderTerminationRequest: (evt) => true,
             onResponderTerminate: (evt) => {console.log("responder terminate")},
