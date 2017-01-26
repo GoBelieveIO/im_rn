@@ -11,7 +11,7 @@ export default class MessageImage extends React.Component {
       <View style={[styles.container, this.props.containerStyle]}>
         <Image
           style={[styles.image, this.props.imageStyle]}
-          source={{uri: this.props.currentMessage.image}}
+          source={{uri: this.props.currentMessage.image.url}}
         />
       </View>
     );

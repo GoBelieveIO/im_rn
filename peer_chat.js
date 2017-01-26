@@ -13,62 +13,33 @@ import {
     TouchableOpacity,
     TouchableWithoutFeedback,
     InteractionManager,
+    Clipboard,
     Animated
 } from 'react-native';
 
+
 import ImagePicker from 'react-native-image-picker'
-import Emoji from 'react-native-emoji'
-import Swiper from 'react-native-swiper'
-import moment from 'moment/min/moment-with-locales.min';
 import ActionSheet from '@exponent/react-native-action-sheet';
 import dismissKeyboard from 'react-native-dismiss-keyboard';
 import {connect} from 'react-redux'
 import {AudioRecorder, AudioUtils} from 'react-native-audio';
 import {OpenCoreAMR} from 'react-native-amr';
+var Toast = require('react-native-toast')
+var UUID = require('react-native-uuid');
+var Sound = require('react-native-sound');
+var RNFS = require('react-native-fs');
 
-
-import Actions from './gifted-chat/Actions';
-import Avatar from './gifted-chat/Avatar';
-import Bubble from './gifted-chat/Bubble';
-import MessageImage from './gifted-chat/MessageImage';
-import MessageText from './gifted-chat/MessageText';
-import Composer from './gifted-chat/Composer';
-import Day from './gifted-chat/Day';
 import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './gifted-chat/InputToolbar';
 import LoadEarlier from './gifted-chat/LoadEarlier';
-import Message from './gifted-chat/Message';
 import MessageContainer from './gifted-chat/MessageContainer';
-import Send from './gifted-chat/Send';
-import Time from './gifted-chat/Time';
 
-
-import CustomActions from './CustomActions'
-import CustomView from './CustomView'
-
-import Styles from './Styles/MessageScreenStyle'
-import {Images, Colors, Metrics} from './Themes'
 import PeerMessageDB from './PeerMessageDB.js'
 import {setMessages, addMessage, ackMessage} from './actions'
 
-
-var spliddit = require('spliddit');
-var emoji = require("./emoji");
 var IMService = require("./im");
 
-const {width, height} = Dimensions.get('window')
 
-
-const options = {
-    title: 'Select Avatar',
-    customButtons: [
-        {name: 'fb', title: 'Choose Photo from Facebook'},
-    ],
-    storageOptions: {
-        skipBackup: true,
-        path: 'images'
-    }
-}
-
+const API_URL = "http://api.gobelieve.io";
 
 class PeerChat extends React.Component {
     constructor(props) {
@@ -123,10 +94,13 @@ class PeerChat extends React.Component {
             onKeyboardDidHide: this.onKeyboardDidHide,
         };
 
+        console.log("token:", this.props.token);
+
     }
 
     getChildContext() {
         return {
+            actionSheet: () => this._actionSheetRef,
             getLocale: this.getLocale.bind(this),
         };
     }
@@ -141,38 +115,47 @@ class PeerChat extends React.Component {
     
     componentWillMount() {
         this._isMounted = true;
-        PeerMessageDB.getInstance().getMessages(this.props.receiver,
-                                                (msgs)=>{
-                                                    for (var i in msgs) {
-                                                        var m = msgs[i];
-                                                        var obj = JSON.parse(m.content);
-                                                        var t = new Date();
-                                                        t.setTime(m.timestamp*1000);
+        var db = PeerMessageDB.getInstance();
+        db.getMessages(this.props.receiver,
+                       (msgs)=>{
+                           for (var i in msgs) {
+                               var m = msgs[i];
+                               var obj = JSON.parse(m.content);
+                               var t = new Date();
+                               t.setTime(m.timestamp*1000);
 
-                                                        m._id = m.id;
-                                                        m.text = obj.text;
-                                                        m.createdAt = t;
-                                                        m.user = {
-                                                            _id:m.sender
-                                                        };
-                                                    }
-                                                    console.log("set messages:", msgs.length);
-                                                    this.props.dispatch(setMessages(msgs));
-                                                },
-                                                (e)=>{});
+                               m._id = m.id;
 
-
-        console.log("dispatch:", this.props.dispatch);
+                               console.log("obj:", obj);
+                               if (obj.text) {
+                                   m.text = obj.text;
+                               } else if (obj.image2) {
+                                   m.image = obj.image2
+                               } else if (obj.audio) {
+                                   console.log("auido message....");
+                                   m.audio = obj.audio;
+                               } else if (obj.location) {
+                                   m.location = obj.location;
+                               }
+                               m.createdAt = t;
+                               m.user = {
+                                   _id:m.sender
+                               };
+                           }
+                           console.log("set messages:", msgs.length);
+                           this.props.dispatch(setMessages(msgs));
+                       },
+                       (e)=>{});
     }
 
     componentDidMount() {
-        AudioRecorder.checkAuthorizationStatus().
-                      then((status)=>{
-                          console.log("audio auth status:", status);
-                          if (status == "undetermined") {
-                              return AudioRecorder.requestAuthorization();
-                          }
-                      })
+        AudioRecorder.checkAuthorizationStatus()
+                     .then((status)=>{
+                         console.log("audio auth status:", status);
+                         if (status == "undetermined") {
+                             return AudioRecorder.requestAuthorization();
+                         }
+                     })
                      .then((granted)=>{console.log("audio auth granted")})
                      .catch((e)=>{console.log("audio auth err:", e)});
     }
@@ -207,6 +190,101 @@ class PeerChat extends React.Component {
         now = Math.floor(now);
         return now;
     }
+
+    uploadAudio(filePath) {
+        var url = API_URL + "/v2/audios";
+        var formData = new FormData();
+        console.log("uri:", filePath);
+
+        var s = filePath.split("/");
+        if (s.length == 0) {
+            return;
+        }
+
+        var fileName = s[s.length-1];
+        formData.append('file', {uri: filePath, name:fileName});
+        let options = {};
+        options.body = formData;
+        options.method = 'post';
+        options.headers = {
+            "Authorization":"Bearer " + this.props.token,
+            'Content-Type': 'multipart/form-data',
+        };
+        return fetch(url, options)
+            .then((response) => {
+                return Promise.all([response.status, response.json()]);
+            })
+            .then((values)=>{
+                var status = values[0];
+                var respJson = values[1];
+                if (status != 200) {
+                    console.log("upload image fail:", respJson);
+                    Promise.reject(respJson);
+                    return;
+                }
+                console.log("upload image success:", respJson);
+                return respJson.src_url;
+            });
+    }
+    
+    sendAudioMessage(file, duration) {
+        console.log("send audio:", file, "duration:", duration);
+        var obj = {audio: {file:file, duration:duration}};
+        var content = JSON.stringify(obj);
+        var sender = this.props.sender;
+        var receiver = this.props.receiver;
+        var now = this.getNow();
+        var message = {
+            sender:sender,
+            receiver:receiver,
+            content: content,
+            flags:0,
+            timestamp:now,
+
+            audio: obj.audio,
+            createdAt: new Date(),
+            user: {
+                _id: this.props.sender
+            }
+        };
+
+        var self = this;
+        var db = PeerMessageDB.getInstance();
+        var p = new Promise((resolve, reject) => {
+            db.insertMessage(message, this.props.receiver,
+                             function(rowid) {
+                                 console.log("row id:", rowid);
+                                 resolve(rowid);
+                             },
+                             function(err) {
+                                 reject(err);
+                             });
+            
+        });
+        p.then((rowid) => {
+            message.id = rowid;
+            message._id = rowid;
+
+            self.props.dispatch(addMessage(message));
+            self.scrollToBottom();
+
+            return this.uploadAudio(file);
+            
+        }).then((url)=> {
+            console.log("audio url:", url);
+            var obj = {audio: {url:url, duration:duration}};
+            var content = JSON.stringify(obj);
+            message.content = content;
+
+            var im = IMService.instance;
+            if (im.connectState == IMService.STATE_CONNECTED) {
+                im.sendPeerMessage(message);
+            }
+            var obj = {audio: {url:url, file:file, duration:duration}};
+            var content = JSON.stringify(obj);
+            message.content = content;
+        })
+    }
     
     sendTextMessage(text) {
         var obj = {"text": text};
@@ -214,51 +292,187 @@ class PeerChat extends React.Component {
         var sender = this.props.sender;
         var receiver = this.props.receiver;
         var now = this.getNow();
-        var message = {sender:sender, receiver:receiver, content: textMsg, flags:0, timestamp:now, msgLocalID:1};
+        var message = {
+            sender:sender,
+            receiver:receiver,
+            content: textMsg,
+            flags:0,
+            timestamp:now,
+            
+            text: text,
+            createdAt: new Date(),
+            user: {
+                _id: this.props.sender
+            }
+        };
 
         var self = this;
-        PeerMessageDB.getInstance().insertMessage(message, this.props.receiver,
-                                                  function(rowid) {
-                                                      console.log("row id:", rowid);
-                                                      message.id = rowid;
-                                                      message._id = rowid;
-                                                      message.text = text;
-                                                      message.createAt = new Date();
-                                                      message.user = {
-                                                          _id: self.props.sender
-                                                      }
-
-                                                      self.props.dispatch(addMessage(message));
-                                                      self.setState({
-                                                          value: '',
-                                                      });
-
-                                                      var im = IMService.instance;
-                                                      if (im.connectState == IMService.STATE_CONNECTED) {
-                                                          im.sendPeerMessage(message);
-                                                      }
-                                                  },
-                                                  function(err) {
+        var db = PeerMessageDB.getInstance();
+        db.insertMessage(message, this.props.receiver,
+                         function(rowid) {
+                             console.log("row id:", rowid);
+                             message.id = rowid;
+                             message._id = rowid;
+                          
+                             self.props.dispatch(addMessage(message));
+                             self.setState({
+                                 value: '',
+                             });
+                             self.scrollToBottom();
+                             var im = IMService.instance;
+                             if (im.connectState == IMService.STATE_CONNECTED) {
+                                 im.sendPeerMessage(message);
+                             }
+                         },
+                         function(err) {
                                                       
-                                                  });
+                         });
     }
 
+
+    uploadImage(uri, fileName) {
+        var url = API_URL + "/v2/images";
+        var formData = new FormData();
+        console.log("uri:", uri);
+        formData.append('file', {uri: uri, name:fileName});
+        let options = {};
+        options.body = formData;
+        options.method = 'post';
+        options.headers = {
+            "Authorization":"Bearer " + this.props.token,
+            'Content-Type': 'multipart/form-data',
+        };
+        return fetch(url, options)
+            .then((response) => {
+                return Promise.all([response.status, response.json()]);
+            })
+            .then((values)=>{
+                var status = values[0];
+                var respJson = values[1];
+                if (status != 200) {
+                    console.log("upload image fail:", respJson);
+                    Promise.reject(respJson);
+                    return;
+                }
+                console.log("upload image success:", respJson);
+                return respJson.src_url;
+            });
+    }
+
+
+    
+    /*example:
+       { fileSize: 185223,
+       origURL: 'assets-library://asset/asset.JPG?id=99D53A1F-FEEF-40E1-8BB3-7DD55A43C8B7&ext=JPG',
+       longitude: -14.538611666666666,
+       fileName: 'IMG_0004.JPG',
+       data: '/9j/4AAQSkZJRgABAQAASAB',
+       width: 1668,
+       height: 2500,
+       latitude: 64.752895,
+       timestamp: '2012-08-08T21:29:49Z',
+       uri: 'file:///Users/houxh/Library/Developer/CoreSimulator/Devices/5E9048B4-F283-41C2-A57F-518B9A987EC1/data/Containers/Data/Application/A20D6751-7004-4CEF-8CE7-B4708431CAD1/Documents/images/71CC88A8-3699-4116-B44F-AD0313A8165E.jpg',
+       isVertical: true }*/
     sendImageMessage(image) {
-        /*example:
-         { fileSize: 185223,
-        origURL: 'assets-library://asset/asset.JPG?id=99D53A1F-FEEF-40E1-8BB3-7DD55A43C8B7&ext=JPG',
-        longitude: -14.538611666666666,
-        fileName: 'IMG_0004.JPG',
-        data: '/9j/4AAQSkZJRgABAQAASAB',
-        width: 1668,
-        height: 2500,
-        latitude: 64.752895,
-        timestamp: '2012-08-08T21:29:49Z',
-        uri: 'file:///Users/houxh/Library/Developer/CoreSimulator/Devices/5E9048B4-F283-41C2-A57F-518B9A987EC1/data/Containers/Data/Application/A20D6751-7004-4CEF-8CE7-B4708431CAD1/Documents/images/71CC88A8-3699-4116-B44F-AD0313A8165E.jpg',
-           isVertical: true }*/
+        var uri;
+        if (Platform.OS === 'ios') {
+            uri = image.uri.replace('file://', '');
+        } else {
+            uri = image.uri;
+        }
+
+        console.log("send image message:", image.uri);
+        var obj = {image2: {url:uri, width:image.width, height:image.height}};
+        var content = JSON.stringify(obj);
+        var sender = this.props.sender;
+        var receiver = this.props.receiver;
+        var now = this.getNow();
+        var message = {
+            sender:sender,
+            receiver:receiver,
+            content: content,
+            flags:0,
+            timestamp:now,
+
+            image: obj.image2,
+            createdAt: new Date(),
+            user: {
+                _id: this.props.sender
+            }
+        };
+
+        var self = this;
+        var db = PeerMessageDB.getInstance();
+
+        var p = new Promise((resolve, reject) => {
+            db.insertMessage(message, this.props.receiver,
+                             function(rowid) {
+                                 console.log("row id:", rowid);
+                                 resolve(rowid);
+                             },
+                             function(err) {
+                                 reject(err);
+                             });
+            
+        });
+        p.then((rowid) => {
+            message.id = rowid;
+            message._id = rowid;
+
+            self.props.dispatch(addMessage(message));
+            return message;
+        }).then((message) => {
+            return this.uploadImage(image.uri, image.fileName);
+        }).then((url) => {
+            console.log("upload image success url:", url);
+            var im = IMService.instance;
+            im.sendPeerMessage(message);
+        });
     }
 
+    sendLocationImage(longitude, latitude) {
+        console.log("longitude:" + longitude + " latitude:" + latitude);
+        
+        var obj = {location: {longitude:longitude, latitude:latitude}};
+        var content = JSON.stringify(obj);
+        var sender = this.props.sender;
+        var receiver = this.props.receiver;
+        var now = this.getNow();
+        var message = {
+            sender:sender,
+            receiver:receiver,
+            content: content,
+            flags:0,
+            timestamp:now,
 
+            location: {
+                longitude:longitude,
+                latitude:latitude
+            },
+            createdAt: new Date(),
+            user: {
+                _id: this.props.sender
+            }
+        };
+        
+        var self = this;
+        var db = PeerMessageDB.getInstance();
+        db.insertMessage(message, this.props.receiver,
+                         function(rowid) {
+                             console.log("row id:", rowid);
+                             message.id = rowid;
+                             message._id = rowid;
+
+                             self.props.dispatch(addMessage(message));
+                             self.scrollToBottom();
+                         },
+                         function(err) {
+
+                         });
+        
+        
+    }
+    
     onSend(text) {
         if (!text || !text.trim()) {
             return;
@@ -266,11 +480,17 @@ class PeerChat extends React.Component {
         console.log("send text:", text);        
         text = text.trim();
         this.sendTextMessage(text);
-        this.scrollToBottom();
     }
 
 
     handleImagePicker() {
+        const options = {
+            maxWidth:1024,
+            storageOptions: {
+                skipBackup: true,
+                path: 'images'
+            }
+        }
         ImagePicker.launchImageLibrary(options, (response) => {
             console.log('Response = ', response);
 
@@ -284,23 +504,20 @@ class PeerChat extends React.Component {
                 console.log('User tapped custom button: ', response.customButton);
             }
             else {
-                // You can display the image using either data...
-                //const source = {uri: 'data:image/jpeg;base64,' + response.data, isStatic: true};
-
-                // or a reference to the platform specific asset location
-                let source = null;
-                if (Platform.OS === 'ios') {
-                    source = {uri: response.uri.replace('file://', ''), isStatic: true};
-                } else {
-                    source = {uri: response.uri, isStatic: true};
-                }
-                console.log("image picker response:", response);         
                 this.sendImageMessage(response)
             }
         });
     }
 
     handleCameraPicker() {
+        const options = {
+            maxWidth:1024,
+            storageOptions: {
+                skipBackup: true,
+                path: 'images'
+            }
+        }
+        
         // Launch Camera:
         ImagePicker.launchCamera(options, (response) => {
             console.log('Response = ', response);
@@ -315,28 +532,102 @@ class PeerChat extends React.Component {
                 console.log('User tapped custom button: ', response.customButton);
             }
             else {
-                // You can display the image using either data...
-                //const source = {uri: 'data:image/jpeg;base64,' + response.data, isStatic: true};
-
-                // or a reference to the platform specific asset location
-                let source = null;
-                if (Platform.OS === 'ios') {
-                    source = {uri: response.uri.replace('file://', ''), isStatic: true};
-                } else {
-                    source = {uri: response.uri, isStatic: true};
-                }
-
-                console.log("camera picker response:", response);
                 this.sendImageMessage(response);
             }
         });
     }
 
+    
+
     handleLocationClick() {
         console.log("locaiton click");
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                this.sendLocationImage(position.coords.longitude,
+                                       position.coords.latitude);
+            },
+            (error) => alert(error.message),
+            {enableHighAccuracy: true, timeout: 20000, maximumAge: 1000}
+        );
+
     }
 
+    onMessageLongPress(message) {
+        console.log("on message long press:", message);
+        if (message.text) {
+            const options = [
+                'Copy Text',
+                'Cancel',
+            ];
+            const cancelButtonIndex = options.length - 1;
+            this._actionSheetRef.showActionSheetWithOptions({
+                options,
+                cancelButtonIndex,
+            }, (buttonIndex) => {
+                switch (buttonIndex) {
+                    case 0:
+                        Clipboard.setString(message.text);
+                        break;
+                }
+            });
+        }
+    }
+
+    
+    onMessagePress(message) {
+        console.log("on message press:", message);
+        if (message.audio && message.audio.file) {
+            if (this.player) {
+                this.player.stop();
+                this.player.release();
+                this.player = null;
+                if (this.playingMessage.id == message.id) {
+                    return;
+                }
+            }
+
+            var wavFile = message.audio.file + ".wav";
+            RNFS.exists(wavFile)
+                .then(() =>  {
+                    console.log("playing message...:", wavFile);
+
+                    return new Promise((resolve, reject) => {
+                        var player = new Sound(wavFile, null);
+                        player.prepare((error) => {
+                            if (error) {
+                                console.log('failed to load the sound', error);
+                                reject(error);
+                                return;
+                            }
+                            resolve(player);
+                        });
+                    });
+                })
+                .then((player) => {
+                    this.playingMessage = message;
+                    this.player = player
+                    this.player.play((success)=> {
+                        console.log("play:", message.audio.file + ".wav",
+                                    "result:", success);
+                        
+                        this.player.release();
+                        this.player = null;
+                        this.playingMessage = null;
+                    });
+                });
+        }
+    }
+    
     startRecording() {
+        if (this.player) {
+            this.player.stop();
+            this.player.release();
+            this.player = null;
+            this.playingMessage = null;
+        }
+        
+        this.recordingBegin = new Date();
         var audioPath = AudioUtils.DocumentDirectoryPath + "/recording.wav";
         AudioRecorder.prepareRecordingAtPath(audioPath, {
             SampleRate: 8000,
@@ -348,13 +639,44 @@ class PeerChat extends React.Component {
     }
 
     stopRecording() {
-        AudioRecorder.stopRecording();
-        var audioPath = AudioUtils.DocumentDirectoryPath + "/recording.wav";
-        var amrPath = AudioUtils.DocumentDirectoryPath + "/recording.amr";
-        OpenCoreAMR.wav2AMR(audioPath, amrPath, function(r) {
-            console.log("result:", r);
-        });
+        var now = new Date();
+        var duration = now.getTime() - this.recordingBegin.getTime();
+        duration = Math.floor(duration/1000);
+
+        if (duration < 1) {
+            console.log("record time too short");
+            Toast.showLongBottom.bind(null, '录音时间太短了')
+            return;
+        }
+
         
+        AudioRecorder.stopRecording();
+
+        var self = this;
+        var id = UUID.v1();
+        var audioPath = AudioUtils.DocumentDirectoryPath + "/recording.wav";
+        var path = AudioUtils.DocumentDirectoryPath + "/audios";
+        var wavPath = path + "/" + id + ".wav";
+        var amrPath = path + "/" + id;
+        RNFS.mkdir(path)
+            .then(() => {
+                console.log("move file");
+                return RNFS.moveFile(audioPath, wavPath);
+            })
+            .then(() => {
+                return new Promise((resolve, reject) => {
+                    OpenCoreAMR.wav2AMR(wavPath, amrPath, function(err) {
+                        if (err) {
+                            console.log("wav 2 arm err:", err);
+                            return reject(err);
+                        }
+                        resolve();
+                    });
+                });
+            })
+            .then(() => {
+                self.sendAudioMessage(amrPath, duration);
+            });
     }
 
     
@@ -493,7 +815,6 @@ class PeerChat extends React.Component {
     renderMessages() {
         console.log("message containser height:", this.state.messagesContainerHeight);
         const AnimatedView = this.props.isAnimated === true ? Animated.View : View;
-        //    
         return (
             <AnimatedView style={{
                 height: this.state.messagesContainerHeight,
@@ -508,6 +829,8 @@ class PeerChat extends React.Component {
                     
                     invertibleScrollViewProps={this.invertibleScrollViewProps}
 
+                    onMessageLongPress={this.onMessageLongPress.bind(this)}
+                    onMessagePress={this.onMessagePress.bind(this)}
                     messages={this.props.messages}
 
                     ref={component => this._messageContainerRef = component}
@@ -520,8 +843,6 @@ class PeerChat extends React.Component {
     
     renderInputToolbar() {
         const inputToolbarProps = {
-            ...this.props,
-            text: this.state.text,
             onSend: this.onSend.bind(this),
             onHeightChange:this.onInputToolbarHeightChange.bind(this),
             giftedChat: this,
@@ -561,8 +882,6 @@ class PeerChat extends React.Component {
         console.log("render chat...:", Dimensions.get('window'));
 
         if (this.state.isInitialized === true) {
-
-            console.log("render chat1");
             return (
                 <ActionSheet ref={component => this._actionSheetRef = component}>
                     <View
@@ -600,8 +919,7 @@ class PeerChat extends React.Component {
                 InteractionManager.runAfterInteractions(() => {
                     this.setState({
                         isInitialized: true,
-                        text: '',
-                        messagesContainerHeight: (this.getMaxHeight() - 44)
+                        messagesContainerHeight: (this.getMaxHeight() - MIN_INPUT_TOOLBAR_HEIGHT)
                     });
                 });
             }}>
@@ -614,6 +932,7 @@ class PeerChat extends React.Component {
 
 
 PeerChat.childContextTypes = {
+    actionSheet: React.PropTypes.func,
     getLocale: React.PropTypes.func,
 };
 

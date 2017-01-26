@@ -57,7 +57,7 @@ export default class App extends Component {
                 console.log("access token:", value);
                 im.accessToken = value;
                 im.start();
-
+                self.token = value;
                 self.db = SQLite.openDatabase({name:"gobelieve.db", createFromLocation : 1},
                                               function() {
                                                   console.log("db open success");
@@ -116,21 +116,33 @@ export default class App extends Component {
         console.log("handle peer message:", message, msgObj);
         
         var self = this;
-        PeerMessageDB.getInstance().insertMessage(message, cid,
-                                                  function(rowid) {
-                                                      message.id = rowid;
-                                                      message._id = rowid;
-                                                      message.text = msgObj.text;
-                                                      message.createAt = new Date();
-                                                      message.user = {
-                                                          _id: message.sender
-                                                      }
+        var db = PeerMessageDB.getInstance();
+        db.insertMessage(message, cid,
+                         function(rowid) {
+                             message.id = rowid;
+                             message._id = rowid;
+                             if (msgObj.text) {
+                                 message.text = msgObj.text;
+                             } else if (msgObj.image2) {
+                                 message.image = msgObj.image2
+                             } else if (msgObj.audio) {
+                                 message.audio = msgObj.auido;
+                             } else if (msgObj.location) {
+                                 message.location = msgObj.location;
+                             }
 
-                                                      self.store.dispatch(addMessage(message));                                                      
-                                                  },
-                                                  function(err) {
+                             var t = new Date();
+                             t.setTime(message.timestamp*1000);
+                             message.createdAt = t;
+                             message.user = {
+                                 _id: message.sender
+                             }
+
+                             self.store.dispatch(addMessage(message));                                                      
+                         },
+                         function(err) {
                                                       
-                                                  });
+                         });
     
     }
 
@@ -180,6 +192,7 @@ export default class App extends Component {
         if (this.state.access_token) {
             initialRoute = routes[1];
         }
+        var self = this;
         var renderScene = function(route, navigator) {
             if (route.index == "login") {
                 return <Login navigator={navigator}/>
@@ -187,7 +200,8 @@ export default class App extends Component {
                 console.log("render chat");
                 return <PeerChat navigator={navigator}
                                  sender={route.sender}
-                                 receiver={route.receiver}/>
+                                 receiver={route.receiver}
+                                 token={self.token} />
             } else {
                 console.log("eeeeeeeeeeeeee");
             }

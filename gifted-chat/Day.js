@@ -9,7 +9,6 @@ import moment from 'moment/min/moment-with-locales.min';
 
 export default class Day extends React.Component {
     render() {
-        console.log("get local:", this.context.getLocal);
         if (!this.props.isSameDay(this.props.currentMessage, this.props.previousMessage)) {
             return (
                 <View style={[styles.container, this.props.containerStyle]}>
