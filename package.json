@@ -16,6 +16,7 @@
     "react-native-engine.io-client": "^1.6.12",
     "react-native-fs": "^2.1.0-rc.1",
     "react-native-image-picker": "^0.25.1",
+    "react-native-maps": "^0.13.0",
     "react-native-nav": "^1.1.4",
     "react-native-sound": "github:richmonkey/react-native-sound",
     "react-native-sqlite-storage": "^3.1.3",

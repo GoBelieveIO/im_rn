@@ -14,6 +14,8 @@ import {
     TouchableWithoutFeedback,
     InteractionManager,
     Clipboard,
+    Easing,
+    UIManager,
     Animated
 } from 'react-native';
 
@@ -28,6 +30,10 @@ var UUID = require('react-native-uuid');
 var Sound = require('react-native-sound');
 var RNFS = require('react-native-fs');
 import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
+
+if (Platform.OS === 'android') {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './gifted-chat/InputToolbar';
 import LoadEarlier from './gifted-chat/LoadEarlier';
@@ -53,6 +59,9 @@ class PeerChat extends React.Component {
             recording: false,
             recordingText:"",
             recordingColor:"transparent",
+
+            //isInitialized:true,
+            //messagesContainerHeight:new Animated.Value(400),
         };
 
         this.onLoadEarlier = this.onLoadEarlier.bind(this);
@@ -69,10 +78,7 @@ class PeerChat extends React.Component {
         this._locale = 'zh-cn';
         this._messages = [];
 
-        this.isAnimated = false;
-
         this.onSend = this.onSend.bind(this);
-        
         
         this.onTouchStart = this.onTouchStart.bind(this);
         this.onTouchMove = this.onTouchMove.bind(this);
@@ -124,8 +130,10 @@ class PeerChat extends React.Component {
                                                               this.props.dispatch(addMessage(message));
                                                               this.scrollToBottom();
                                                           });
-        
+
+
         var db = PeerMessageDB.getInstance();
+
         db.getMessages(this.props.receiver,
                        (msgs)=>{
                            for (var i in msgs) {
@@ -858,39 +866,39 @@ class PeerChat extends React.Component {
 
     onKeyboardWillShow(e) {
         this.setKeyboardHeight(e.endCoordinates ? e.endCoordinates.height : e.end.height);
-        var newMessagesContainerHeight = this.getMaxHeight() - this._inputToolbarHeight - this.getKeyboardHeight();
-        console.log("keyboard will show:", newMessagesContainerHeight);
+
+        this.inputToolbar.actionBarHeight = 0;
+        var newMessagesContainerHeight = this.getMaxHeight() - this.inputToolbar.getToolbarHeight() - this.getKeyboardHeight();
+        console.log("keyboard will show:", e);
         console.log("keyboard height:", e.endCoordinates ? e.endCoordinates.height : e.end.height);
-        if (this.props.isAnimated === true) {
-            Animated.timing(this.state.messagesContainerHeight, {
-                toValue: newMessagesContainerHeight,
-                duration: 210,
-            }).start();
-        } else {
-            this.setState((previousState) => {
-                return {
-                    messagesContainerHeight: newMessagesContainerHeight,
-                };
-            });
+
+
+        if (e.duration > 0) {
+            LayoutAnimation.configureNext(LayoutAnimation.create(
+                e.duration,
+                LayoutAnimation.Types[e.easing]
+            ));
         }
+        this.setState({
+            messagesContainerHeight:new Animated.Value(newMessagesContainerHeight)
+        });
     }
 
-    onKeyboardWillHide() {
+    onKeyboardWillHide(e) {
         this.setKeyboardHeight(0);
-        var newMessagesContainerHeight = this.getMaxHeight() - this._inputToolbarHeight - this.getKeyboardHeight();
-        console.log("keyboard will hide:", newMessagesContainerHeight);
-        if (this.props.isAnimated === true) {
-            Animated.timing(this.state.messagesContainerHeight, {
-                toValue: newMessagesContainerHeight,
-                duration: 210,
-            }).start();
-        } else {
-            this.setState((previousState) => {
-                return {
-                    messagesContainerHeight: newMessagesContainerHeight,
-                };
-            });
+        var newMessagesContainerHeight = this.getMaxHeight() - this.inputToolbar.getToolbarHeight() - this.getKeyboardHeight();
+        console.log("keyboard will hide:", e)
+
+        if (e.duration > 0) {
+            LayoutAnimation.configureNext(LayoutAnimation.create(
+                e.duration,
+                LayoutAnimation.Types[e.easing]
+            ));
         }
+        
+        this.setState({
+            messagesContainerHeight:new Animated.Value(newMessagesContainerHeight)
+        });
     }
 
     onKeyboardDidShow(e) {
@@ -924,36 +932,52 @@ class PeerChat extends React.Component {
     onTouchEnd() {
         if (this._touchStarted === true) {
             dismissKeyboard();
+            this.inputToolbar.dismiss();
         }
         this._touchStarted = false;
     }
 
     prepareMessagesContainerHeight(value) {
-        //if (this.props.isAnimated === true) {
-        //    return new Animated.Value(value);
-        //}
-        return value;
+        var v = new Animated.Value(value);
+        console.log("prepare message container height:", v);
+        return v;
     }
 
     onInputToolbarHeightChange(h) {
+        if (this._inputToolbarHeight == h) {
+            return;
+        }
         console.log("on input tool bar height changed:", h);
         this._inputToolbarHeight = h;
         const newMessagesContainerHeight = this.getMaxHeight() - this._inputToolbarHeight - this.getKeyboardHeight();
-        this.setState((previousState) => {
-            return {
-                messagesContainerHeight: newMessagesContainerHeight,
-            };
+
+        console.log("new message container height:",
+                    newMessagesContainerHeight);
+
+        //LayoutAnimation.configureNext(100, LayoutAnimation.Presets.linear);
+
+        //LayoutAnimation.configureNext(LayoutAnimation.create(
+        //300,
+        //LayoutAnimation.Types['keyboard']
+//));
+
+        
+        LayoutAnimation.configureNext(LayoutAnimation.create(
+            100,
+            LayoutAnimation.Types.linear,
+            LayoutAnimation.Properties.opacity
+        ));
+        
+        this.setState({
+            messagesContainerHeight:new Animated.Value(newMessagesContainerHeight)
         });
+
         
     }
 
     renderMessages() {
-        console.log("message containser height:", this.state.messagesContainerHeight);
-        const AnimatedView = this.props.isAnimated === true ? Animated.View : View;
         return (
-            <AnimatedView style={{
-                height: this.state.messagesContainerHeight,
-            }}>
+            <Animated.View style={{height: this.state.messagesContainerHeight }}>
                 <MessageContainer
                     loadEarlier={this.state.loadEarlier}
                     onLoadEarlier={this.onLoadEarlier}
@@ -970,34 +994,34 @@ class PeerChat extends React.Component {
 
                     ref={component => this._messageContainerRef = component}
                 />
-            </AnimatedView>
+            </Animated.View>
         );
     }
 
-    
     
     renderInputToolbar() {
         const inputToolbarProps = {
             onSend: this.onSend.bind(this),
             onHeightChange:this.onInputToolbarHeightChange.bind(this),
             giftedChat: this,
+            
         };
 
         return (
             <InputToolbar
+                ref={(input) => this.inputToolbar = input}
                 {...inputToolbarProps}
             />
         );
     }
 
-    
 
     renderRecordView() {
         const {width, height} = Dimensions.get('window');
         var left = this.state.recording ? 0 : -width;
         const {recordingText, recordingColor} = this.state;
         return (
-            <View style={{backgroundColor:"#dcdcdcaf",
+            <Animated.View style={{backgroundColor:"#dcdcdcaf",
                           position:"absolute",
                           top:0,
                           left:left,
@@ -1008,34 +1032,35 @@ class PeerChat extends React.Component {
                 <Text style={{backgroundColor:recordingColor}}>
                     {recordingText}
                 </Text>
-            </View>);
+            </Animated.View>);
         
     }
-    
 
     render() {
-        console.log("render chat...:", Dimensions.get('window'));
-
         if (this.state.isInitialized === true) {
+            var onViewLayout = (e) => {
+                if (Platform.OS === 'android') {
+                    // fix an issue when keyboard is dismissing during the initialization
+                    const layout = e.nativeEvent.layout;
+                    if (this.getMaxHeight() !== layout.height &&
+                        this.getIsFirstLayout() === true) {
+                        this.setMaxHeight(layout.height);
+
+                        var t = this.prepareMessagesContainerHeight(this.getMaxHeight() - 44);
+                        this.setState({
+                            messagesContainerHeight: t
+                        });
+                    }
+                }
+                if (this.getIsFirstLayout() === true) {
+                    this.setIsFirstLayout(false);
+                }
+            };
             return (
                 <ActionSheet ref={component => this._actionSheetRef = component}>
                     <View
                         style={{flex:1}}
-                        onLayout={(e) => {
-                                if (Platform.OS === 'android') {
-                                    // fix an issue when keyboard is dismissing during the initialization
-                                    const layout = e.nativeEvent.layout;
-                                    if (this.getMaxHeight() !== layout.height && this.getIsFirstLayout() === true) {
-                                        this.setMaxHeight(layout.height);
-                                        this.setState({
-                                            messagesContainerHeight: this.prepareMessagesContainerHeight(this.getMaxHeight() - 44),
-                                        });
-                                    }
-                                }
-                                if (this.getIsFirstLayout() === true) {
-                                    this.setIsFirstLayout(false);
-                                }
-                            }}>
+                        onLayout={onViewLayout}>
                         {this.renderMessages()}
                         {this.renderRecordView()}
                         {this.renderInputToolbar()}
@@ -1044,20 +1069,22 @@ class PeerChat extends React.Component {
             );
         }
 
-        return (
-            <View
-            style={{flex:1}}
-            onLayout={(e) => {
-                const layout = e.nativeEvent.layout;
-                this.setMaxHeight(layout.height);
-                console.log("max height:", layout.height);
-                InteractionManager.runAfterInteractions(() => {
-                    this.setState({
-                        isInitialized: true,
-                        messagesContainerHeight: (this.getMaxHeight() - MIN_INPUT_TOOLBAR_HEIGHT)
-                    });
+        var onViewLayout = (e) => {
+            const layout = e.nativeEvent.layout;
+            this.setMaxHeight(layout.height);
+            console.log("max height:", layout.height);
+            InteractionManager.runAfterInteractions(() => {
+                var t = this.prepareMessagesContainerHeight(this.getMaxHeight() - MIN_INPUT_TOOLBAR_HEIGHT);
+                var self = this;
+                this.setState({
+                    isInitialized: true,
+                    messagesContainerHeight: t
                 });
-            }}>
+            });
+        };
+        return (
+            <View style={{flex:1}}
+                  onLayout={onViewLayout} >
             </View>
         );
     }

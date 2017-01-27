@@ -55,6 +55,25 @@ export default class InputToolbar extends React.Component {
     }
 
 
+    getToolbarHeight() {
+        var h = this.composerHeight + (MIN_INPUT_TOOLBAR_HEIGHT - MIN_COMPOSER_HEIGHT) + this.actionBarHeight;
+        return h;
+    }
+    
+    dismiss() {
+        const {isEmoji, actionVisible} = this.state;
+        
+        this.setState({
+            isEmoji: false,
+            actionVisible: false,
+        })
+
+        if (isEmoji || actionVisible) {
+            this.actionBarHeight = 0;
+            this.onHeightChange();
+        }
+    }
+    
     handleSend() {
         this.props.onSend(this.state.value);
         if (this.composerHeight != MIN_COMPOSER_HEIGHT) {
@@ -93,11 +112,13 @@ export default class InputToolbar extends React.Component {
                 this.search.blur();
             }
             this.actionBarHeight = EMOJI_HEIGHT;
+            this.onHeightChange();
         } else {
             this.actionBarHeight = 0;
+            if (this.search) {
+                this.search.focus();
+            }
         }
-
-        this.onHeightChange();
     }
 
     handleEmojiClick(v) {
@@ -132,12 +153,13 @@ export default class InputToolbar extends React.Component {
             actionVisible: false,
             focused: true,
         })
-        this.actionBarHeight = 0;
-        this.onHeightChange();
+        //this.actionBarHeight = 0;
+        //this.onHeightChange();
     }
 
     handleBlurSearch() {
-        this.setState({focused: false})
+        this.setState({focused: false});
+        //this.actionBarHeight = 0;
     }
 
     
@@ -372,7 +394,7 @@ export default class InputToolbar extends React.Component {
                         autoFocus={this.state.focused}
                         editable={true}
                         keyboardType='default'
-                        returnKeyType='default'
+                        returnKeyType='send'
                         autoCapitalize='none'
                         autoCorrect={false}
                         multiline={true}
@@ -399,7 +421,6 @@ export default class InputToolbar extends React.Component {
     renderReocrdInput() {
         const {value = '', isEmoji, mode, opacity} = this.state;
         var height = this.composerHeight + 11;
-        console.log("composer height:", this.composerHeight);
         
         var responder = {
             onStartShouldSetResponder:(evt) => true,

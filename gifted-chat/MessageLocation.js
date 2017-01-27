@@ -3,15 +3,22 @@ import {
     Image,
     View,
     Linking,
-    MapView,
     Platform,
     StyleSheet,
     TouchableOpacity,
 } from 'react-native';
 
+import MapView from 'react-native-maps';
+
 export default class MessageLocation extends React.Component {
     render() {
-
+        var region = {
+            latitude: 37.78825,
+            longitude: -122.4324,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+        };
+        
         return (
             <TouchableOpacity style={styles.container} onPress={() => {
                     const url = Platform.select({
@@ -28,14 +35,7 @@ export default class MessageLocation extends React.Component {
                 }}>
                 <MapView
                     style={styles.mapView}
-                    region={{
-                        latitude: this.props.currentMessage.location.latitude,
-                        longitude: this.props.currentMessage.location.longitude,
-                    }}
-                    annotations={[{
-                            latitude: this.props.currentMessage.location.latitude,
-                            longitude: this.props.currentMessage.location.longitude,
-                        }]}
+                    region={region}
                     scrollEnabled={false}
                     zoomEnabled={false}
                 />
