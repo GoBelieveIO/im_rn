@@ -17,7 +17,6 @@ import {
     Animated
 } from 'react-native';
 
-
 import ImagePicker from 'react-native-image-picker'
 import ActionSheet from '@exponent/react-native-action-sheet';
 import dismissKeyboard from 'react-native-dismiss-keyboard';
@@ -28,6 +27,7 @@ var Toast = require('react-native-toast')
 var UUID = require('react-native-uuid');
 var Sound = require('react-native-sound');
 var RNFS = require('react-native-fs');
+import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
 
 import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './gifted-chat/InputToolbar';
 import LoadEarlier from './gifted-chat/LoadEarlier';
@@ -115,6 +115,16 @@ class PeerChat extends React.Component {
     
     componentWillMount() {
         this._isMounted = true;
+        var im = IMService.instance;
+        im.addObserver(this);
+
+        this.listener = RCTDeviceEventEmitter.addListener('peer_message',
+                                                          (message)=>{
+                                                              this.downloadAudio(message);
+                                                              this.props.dispatch(addMessage(message));
+                                                              this.scrollToBottom();
+                                                          });
+        
         var db = PeerMessageDB.getInstance();
         db.getMessages(this.props.receiver,
                        (msgs)=>{
@@ -130,6 +140,13 @@ class PeerChat extends React.Component {
                                if (obj.text) {
                                    m.text = obj.text;
                                } else if (obj.image2) {
+                                   if (obj.image2.fileName) {
+                                       if (Platform.OS === 'ios') {
+                                           var uri = AudioUtils.DocumentDirectoryPath + "/images/" + obj.image2.fileName;
+                                           obj.image2.url = uri;
+                                           console.log("image uri:", uri);
+                                       }
+                                   }
                                    m.image = obj.image2
                                } else if (obj.audio) {
                                    console.log("auido message....");
@@ -137,10 +154,15 @@ class PeerChat extends React.Component {
                                } else if (obj.location) {
                                    m.location = obj.location;
                                }
+                               m.uuid = obj.uuid;
+                               
                                m.createdAt = t;
                                m.user = {
                                    _id:m.sender
                                };
+
+
+                               this.downloadAudio(m);
                            }
                            console.log("set messages:", msgs.length);
                            this.props.dispatch(setMessages(msgs));
@@ -161,7 +183,50 @@ class PeerChat extends React.Component {
     }
 
     componentWillUnmount() {
+        var im = IMService.instance;
+        im.removeObserver(this);
+
+        this.listener.remove();
         this._isMounted = false;
+    }
+
+    downloadAudio(message) {
+        if (!message.audio) {
+            return;
+        }
+        if (!message.uuid) {
+            return;
+        }
+
+        var amrPath = this.getAMRPath(message.uuid);
+        var wavPath = this.getWAVPath(message.uuid);
+
+        RNFS.exists(wavPath)
+            .then((exists) =>  {
+                if (exists) {
+                    return;
+                }
+                if (!message.audio.url) {
+                    return;
+                }
+                console.log("audio url:", message.audio.url);
+                var r = RNFS.downloadFile({
+                    fromUrl:message.audio.url,
+                    toFile:amrPath
+                });
+
+                
+                r.promise.then((result) => {
+                    console.log("download result:", result);
+                    if (result.statusCode == 200) {
+                        OpenCoreAMR.amr2WAV(amrPath, wavPath, function(err) {
+                            if (err) {
+                                console.log("amr 2 wav err:", err);
+                            }
+                        });
+                    }
+                });
+            });
     }
 
     onLoadEarlier() {
@@ -226,10 +291,24 @@ class PeerChat extends React.Component {
                 return respJson.src_url;
             });
     }
+
+    getWAVPath(id) {
+        var path = AudioUtils.DocumentDirectoryPath + "/audios";
+        var wavPath = path + "/" + id + ".wav";
+        return wavPath;
+    }
     
-    sendAudioMessage(file, duration) {
-        console.log("send audio:", file, "duration:", duration);
-        var obj = {audio: {file:file, duration:duration}};
+    getAMRPath(id) {
+        var path = AudioUtils.DocumentDirectoryPath + "/audios";
+        var amrPath = path + "/" + id;
+        return amrPath;
+    }
+    
+    sendAudioMessage(id, duration) {
+        var wavPath = this.getWAVPath(id);
+        var amrPath = this.getAMRPath(id);
+        console.log("send audio:", id, "duration:", duration);
+        var obj = {audio: {duration:duration}, uuid:id};
         var content = JSON.stringify(obj);
         var sender = this.props.sender;
         var receiver = this.props.receiver;
@@ -268,11 +347,11 @@ class PeerChat extends React.Component {
             self.props.dispatch(addMessage(message));
             self.scrollToBottom();
 
-            return this.uploadAudio(file);
+            return this.uploadAudio(amrPath);
             
         }).then((url)=> {
             console.log("audio url:", url);
-            var obj = {audio: {url:url, duration:duration}};
+            var obj = {audio: {url:url, duration:duration}, uuid:id};
             var content = JSON.stringify(obj);
             message.content = content;
 
@@ -280,14 +359,14 @@ class PeerChat extends React.Component {
             if (im.connectState == IMService.STATE_CONNECTED) {
                 im.sendPeerMessage(message);
             }
-            var obj = {audio: {url:url, file:file, duration:duration}};
-            var content = JSON.stringify(obj);
             message.content = content;
+            //todo save url to db
         })
     }
     
     sendTextMessage(text) {
-        var obj = {"text": text};
+        var id = UUID.v1();
+        var obj = {uuid:id, "text": text};
         var textMsg = JSON.stringify(obj);
         var sender = this.props.sender;
         var receiver = this.props.receiver;
@@ -375,14 +454,29 @@ class PeerChat extends React.Component {
        isVertical: true }*/
     sendImageMessage(image) {
         var uri;
+        var fileName;
         if (Platform.OS === 'ios') {
             uri = image.uri.replace('file://', '');
+            var imagePath = AudioUtils.DocumentDirectoryPath + "/images/";
+            fileName = uri.substr(imagePath.length);
+            console.log("fileName:", fileName);
         } else {
             uri = image.uri;
+            fileName = "";
         }
 
         console.log("send image message:", image.uri);
-        var obj = {image2: {url:uri, width:image.width, height:image.height}};
+        var id = UUID.v1();
+        var obj = {
+            image2: {
+                url:uri,
+                fileName:fileName,
+                width:image.width,
+                height:image.height
+            },
+            uuid:id
+        };
+        
         var content = JSON.stringify(obj);
         var sender = this.props.sender;
         var receiver = this.props.receiver;
@@ -425,15 +519,36 @@ class PeerChat extends React.Component {
             return this.uploadImage(image.uri, image.fileName);
         }).then((url) => {
             console.log("upload image success url:", url);
+            var obj = {
+                image2: {
+                    url:url,
+                    width:image.width,
+                    height:image.height
+                },
+                uuid:id,
+            };
+            
+            var content = JSON.stringify(obj);
+            message.content = content;
             var im = IMService.instance;
             im.sendPeerMessage(message);
+
+            //todo save url
         });
     }
 
     sendLocationImage(longitude, latitude) {
         console.log("longitude:" + longitude + " latitude:" + latitude);
+
+        var id = UUID.v1();
+        var obj = {
+            location:{
+                longitude:longitude,
+                latitude:latitude
+            },
+            uuid:id
+        };
         
-        var obj = {location: {longitude:longitude, latitude:latitude}};
         var content = JSON.stringify(obj);
         var sender = this.props.sender;
         var receiver = this.props.receiver;
@@ -444,11 +559,8 @@ class PeerChat extends React.Component {
             content: content,
             flags:0,
             timestamp:now,
-
-            location: {
-                longitude:longitude,
-                latitude:latitude
-            },
+            
+            location: obj.location,
             createdAt: new Date(),
             user: {
                 _id: this.props.sender
@@ -577,23 +689,36 @@ class PeerChat extends React.Component {
     
     onMessagePress(message) {
         console.log("on message press:", message);
-        if (message.audio && message.audio.file) {
-            if (this.player) {
+        if (message.audio && message.uuid) {
+
+            //停止正在播放的消息
+            if (this.player && this.playingMessage.id == message.id) {
                 this.player.stop();
                 this.player.release();
                 this.player = null;
-                if (this.playingMessage.id == message.id) {
-                    return;
-                }
+                this.playingMessage = null;
+                return;
             }
-
-            var wavFile = message.audio.file + ".wav";
+            
+            var wavFile = this.getWAVPath(message.uuid);
             RNFS.exists(wavFile)
-                .then(() =>  {
+                .then((exists) =>  {
+                    if (!exists) {
+                        return Promise.reject("wav file non exists");
+                    }
+
+                    if (this.player) {
+                        this.player.stop();
+                        this.player.release();
+                        this.player = null;
+                        this.playingMessage = null;
+                    }
+                    
                     console.log("playing message...:", wavFile);
 
                     return new Promise((resolve, reject) => {
                         var player = new Sound(wavFile, null);
+                        Sound.enable(true);
                         player.prepare((error) => {
                             if (error) {
                                 console.log('failed to load the sound', error);
@@ -615,6 +740,9 @@ class PeerChat extends React.Component {
                         this.player = null;
                         this.playingMessage = null;
                     });
+                })
+                .catch((err) => {
+                    console.log("error:", err);
                 });
         }
     }
@@ -679,7 +807,10 @@ class PeerChat extends React.Component {
                 });
             })
             .then(() => {
-                self.sendAudioMessage(amrPath, duration);
+                self.sendAudioMessage(id, duration);
+            })
+            .catch((err) => {
+                console.log("error:", err);
             });
     }
 

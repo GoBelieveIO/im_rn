@@ -76,7 +76,12 @@ export default class Login extends Component {
                     im.accessToken = responseJson.token;
                     console.log("access token:", im.accessToken);
                     im.start();
-                    var route = {index: "chat", sender:sender, receiver:receiver};
+                    var route = {
+                        index: "chat",
+                        sender:sender,
+                        receiver:receiver,
+                        token:responseJson.token
+                    };
                     navigator.push(route);
                 } else {
                     console.log(responseJson.meta.message);

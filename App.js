@@ -28,6 +28,7 @@ import PeerChat from "./peer_chat";
 import { createStore } from 'redux'
 import { Provider } from 'react-redux'
 import PeerMessageDB from './PeerMessageDB.js';
+import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter'
 
 import {setConversation, setMessages, addMessage, ackMessage} from './actions'
 
@@ -101,19 +102,28 @@ export default class App extends Component {
     }
 
     handlePeerMessage(message) {
-        var conv = this.store.getState().conversation;
-        if (!conv) {
-            return;
-        }
-        var cid = conv.cid;
-        if (message.sender != cid && 
-            message.receiver != cid) {
-            return;
-        }
-
-        message.flags = 0;
-        var msgObj = JSON.parse(message.content);
         console.log("handle peer message:", message, msgObj);
+        message.flags = 0;
+        
+        var msgObj = JSON.parse(message.content);
+
+        if (msgObj.text) {
+            message.text = msgObj.text;
+        } else if (msgObj.image2) {
+            message.image = msgObj.image2
+        } else if (msgObj.audio) {
+            message.audio = msgObj.audio;
+        } else if (msgObj.location) {
+            message.location = msgObj.location;
+        }
+        message.uuid = msgObj.uuid;
+        
+        var t = new Date();
+        t.setTime(message.timestamp*1000);
+        message.createdAt = t;
+        message.user = {
+            _id: message.sender
+        }
         
         var self = this;
         var db = PeerMessageDB.getInstance();
@@ -121,24 +131,7 @@ export default class App extends Component {
                          function(rowid) {
                              message.id = rowid;
                              message._id = rowid;
-                             if (msgObj.text) {
-                                 message.text = msgObj.text;
-                             } else if (msgObj.image2) {
-                                 message.image = msgObj.image2
-                             } else if (msgObj.audio) {
-                                 message.audio = msgObj.auido;
-                             } else if (msgObj.location) {
-                                 message.location = msgObj.location;
-                             }
-
-                             var t = new Date();
-                             t.setTime(message.timestamp*1000);
-                             message.createdAt = t;
-                             message.user = {
-                                 _id: message.sender
-                             }
-
-                             self.store.dispatch(addMessage(message));                                                      
+                             RCTDeviceEventEmitter.emit('peer_message', message);
                          },
                          function(err) {
                                                       
