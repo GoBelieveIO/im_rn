@@ -48,6 +48,7 @@ export default class Login extends Component {
 
     startIM(sender, receiver) {
         console.log("start im");
+        var self = this;
         var navigator = this.props.navigator;
         var url = "http://demo.gobelieve.io/auth/token";
         var obj = {
@@ -73,14 +74,8 @@ export default class Login extends Component {
                     im.accessToken = responseJson.token;
                     console.log("access token:", im.accessToken);
                     im.start();
-                    
-                    var route = {
-                        index: "chat",
-                        sender:sender,
-                        receiver:receiver,
-                        token:responseJson.token
-                    };
-                    //navigator.push(route);
+                    self.props.app.uid = sender;
+                
                     navigator.push({
                         title:"Chat",
                         screen:"demo.PeerChat",

@@ -240,28 +240,43 @@ export default class InputToolbar extends React.Component {
         const {isEmoji, focused} = this.state
 
         return (focused || isEmoji) ? (
-            <View style={{flexDirection:"row", justifyContent:"center", alignItems:"center"}}>
-                <TouchableOpacity style={{padding:5, justifyContent:"center"}} onPress={this.handleEmojiOpen.bind(this)}>
+            <View style={{alignSelf:"stretch",
+                          flexDirection:"row",
+                          justifyContent:"center",
+                          alignItems:"center"}}>
+                <TouchableOpacity style={{paddingLeft:5,
+                                          paddingRight:5,
+                                          alignSelf:"stretch",
+                                          justifyContent:"center"}}
+                                  onPress={this.handleEmojiOpen.bind(this)}>
                     {
                         isEmoji ? <Image source={Images.iconEmojiActive}/> : <Image source={Images.iconEmoji}/>
                     }
                 </TouchableOpacity>
                 
-                <TouchableOpacity style={{justifyContent:"center"}}
+                <TouchableOpacity style={{alignSelf:"stretch",
+                                          justifyContent:"center"}}
                                   onPress={this.handleSend.bind(this)}>
                     <Text style={Styles.sendText}>{'send'}</Text>
                 </TouchableOpacity>
             </View>
         ) : (
-            <View style={{flexDirection:"row", justifyContent:"center", alignItems:"center"}}>
-                <TouchableOpacity style={{padding:5, justifyContent:"center"}} onPress={this.handleEmojiOpen.bind(this)}>
+            <View style={{alignSelf:"stretch",
+                          flexDirection:"row",
+                          justifyContent:"center",
+                          alignItems:"center"}}>
+                <TouchableOpacity style={{paddingLeft:5,
+                                          paddingRight:5,
+                                          alignSelf:"stretch",
+                                          justifyContent:"center"}}
+                                  onPress={this.handleEmojiOpen.bind(this)}>
                     {
                         isEmoji ? <Image source={Images.iconEmojiActive}/> : <Image source={Images.iconEmoji}/>
                     }
                 </TouchableOpacity>
                 
                 <TouchableOpacity
-                    style={{justifyContent:"center"}}
+                    style={{alignSelf:"stretch", justifyContent:"center"}}
                     onPress={this.onActionsPress.bind(this)}>
                     <View
                         style={{  borderRadius: 13,
@@ -381,7 +396,9 @@ export default class InputToolbar extends React.Component {
         console.log("composer height:", this.composerHeight);
         return (
             <View style={[Styles.inputRow, {height:height}]}>
-                <TouchableOpacity onPress={this.handleRecordMode.bind(this)}>
+                <TouchableOpacity style={{alignSelf:"stretch",
+                                          justifyContent:"center"}}
+                                  onPress={this.handleRecordMode.bind(this)}>
                     <Image style={{width:20, height:20, resizeMode:"stretch"}}
                            source={require("../Images/chatBar_record.png")}/>
                 </TouchableOpacity>
@@ -465,7 +482,9 @@ export default class InputToolbar extends React.Component {
         }
         return (
             <View style={[Styles.inputRow, {height:height}]}>
-                <TouchableOpacity onPress={this.handleTextMode.bind(this)}>
+                <TouchableOpacity style={{alignSelf:"stretch",
+                                          justifyContent:"center"}}
+                    onPress={this.handleTextMode.bind(this)}>
                     <Image style={{width:20, height:20, resizeMode:"stretch"}}
                            source={require("../Images/chatBar_keyboard.png")}/>
                 </TouchableOpacity>

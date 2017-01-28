@@ -73,6 +73,8 @@ var app = {
         }
         
         var self = this;
+
+        var cid = (this.uid == message.sender) ? message.receiver : message.sender;
         var db = PeerMessageDB.getInstance();
         db.insertMessage(message, cid,
                          function(rowid) {
@@ -150,11 +152,12 @@ var app = {
                     navBarSubtitleTextColor: '#ff0000',
                     navBarButtonColor: '#ffffff',
                     statusBarTextColorScheme: 'light'
-                }
+                },
             },
+            passProps: {
+                app:this
+            }
         });
-
-
     },
 }
 

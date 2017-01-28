@@ -305,6 +305,7 @@ class PeerChat extends React.Component {
             timestamp:now,
 
             audio: obj.audio,
+            uuid: obj.uuid,
             createdAt: new Date(),
             user: {
                 _id: this.props.sender
@@ -338,7 +339,8 @@ class PeerChat extends React.Component {
             var obj = {audio: {url:url, duration:duration}, uuid:id};
             var content = JSON.stringify(obj);
             message.content = content;
-
+            message.audio = obj.audio;
+            
             var im = IMService.instance;
             if (im.connectState == IMService.STATE_CONNECTED) {
                 im.sendPeerMessage(message);
@@ -717,7 +719,7 @@ class PeerChat extends React.Component {
                     this.playingMessage = message;
                     this.player = player
                     this.player.play((success)=> {
-                        console.log("play:", message.audio.file + ".wav",
+                        console.log("play:", message.uuid,
                                     "result:", success);
                         
                         this.player.release();
