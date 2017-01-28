@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 
 import shallowequal from 'shallowequal';
-import InvertibleScrollView from 'react-native-invertible-scroll-view';
+import InfiniteScrollView from './InfiniteScrollView.js';
 import md5 from 'md5';
 import LoadEarlier from './LoadEarlier';
 import Message from './Message';
@@ -16,8 +16,6 @@ export default class MessageContainer extends React.Component {
     super(props);
 
     this.renderRow = this.renderRow.bind(this);
-    this.renderFooter = this.renderFooter.bind(this);
-    this.renderLoadEarlier = this.renderLoadEarlier.bind(this);
     this.renderScrollComponent = this.renderScrollComponent.bind(this);
 
     const dataSource = new ListView.DataSource({
@@ -28,7 +26,7 @@ export default class MessageContainer extends React.Component {
 
     const messagesData = this.prepareMessages(props.messages);
     this.state = {
-      dataSource: dataSource.cloneWithRows(messagesData.blob, messagesData.keys)
+        dataSource: dataSource.cloneWithRows(messagesData.blob, messagesData.keys),
     };
   }
 
@@ -71,30 +69,6 @@ export default class MessageContainer extends React.Component {
     });
   }
 
-  renderFooter() {
-    if (this.props.renderFooter) {
-      const footerProps = {
-        ...this.props,
-      };
-      return this.props.renderFooter(footerProps);
-    }
-    return null;
-  }
-
-  renderLoadEarlier() {
-    if (this.props.loadEarlier === true) {
-      const loadEarlierProps = {
-        ...this.props,
-      };
-      if (this.props.renderLoadEarlier) {
-        return this.props.renderLoadEarlier(loadEarlierProps);
-      }
-      return (
-        <LoadEarlier {...loadEarlierProps}/>
-      );
-    }
-    return null;
-  }
 
   scrollTo(options) {
     this._invertibleScrollViewRef.scrollTo(options);
@@ -127,13 +101,15 @@ export default class MessageContainer extends React.Component {
   renderScrollComponent(props) {
     const invertibleScrollViewProps = this.props.invertibleScrollViewProps;
     return (
-      <InvertibleScrollView
-        {...props}
-        {...invertibleScrollViewProps}
-        ref={component => this._invertibleScrollViewRef = component}
-      />
+       <InfiniteScrollView
+           {...props}
+           {...invertibleScrollViewProps}
+           ref={component => this._invertibleScrollViewRef = component}
+       />
     );
   }
+
+
 
   render() {
     return (
@@ -148,9 +124,10 @@ export default class MessageContainer extends React.Component {
           dataSource={this.state.dataSource}
 
           renderRow={this.renderRow}
-          renderHeader={this.renderFooter}
-          renderFooter={this.renderLoadEarlier}
           renderScrollComponent={this.renderScrollComponent}
+
+          canLoadMore={this.props.canLoadMore}
+          onLoadMoreAsync={this.props.onLoadMoreAsync}
         />
       </View>
     );
@@ -160,16 +137,11 @@ export default class MessageContainer extends React.Component {
 MessageContainer.defaultProps = {
   messages: [],
   user: {},
-  renderFooter: null,
   renderMessage: null,
-  onLoadEarlier: () => {
-  },
 };
 
 MessageContainer.propTypes = {
   messages: React.PropTypes.array,
   user: React.PropTypes.object,
-  renderFooter: React.PropTypes.func,
   renderMessage: React.PropTypes.func,
-  onLoadEarlier: React.PropTypes.func,
 };

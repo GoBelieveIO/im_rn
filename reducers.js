@@ -38,6 +38,8 @@ function messagesReducer(state = [], action) {
             return action.messages;
         case "add_message":
             return [action.message].concat(state);
+        case "insert_messages":
+            return state.concat(action.messages);
         case "ack_message":
             var index = -1;
             for (var i = 0; i < state.length; i++) {

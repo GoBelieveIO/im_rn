@@ -36,11 +36,10 @@ if (Platform.OS === 'android') {
 }
 
 import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './gifted-chat/InputToolbar';
-import LoadEarlier from './gifted-chat/LoadEarlier';
 import MessageContainer from './gifted-chat/MessageContainer';
 
 import PeerMessageDB from './PeerMessageDB.js'
-import {setMessages, addMessage, ackMessage} from './actions'
+import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
 
 var IMService = require("./im");
 
@@ -52,22 +51,15 @@ class PeerChat extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            loadEarlier: true,
-            isLoadingEarlier: false,
-
             isInitialized: false, // initialization will calculate maxHeight before rendering the chat
             
             recording: false,
             recordingText:"",
             recordingColor:"transparent",
 
-            //isInitialized:true,
-            //messagesContainerHeight:new Animated.Value(400),
+            canLoadMoreContent:true,
         };
 
-        this.onLoadEarlier = this.onLoadEarlier.bind(this);
-
-        // default values
         this._isMounted = false;
         this._inputToolbarHeight = MIN_INPUT_TOOLBAR_HEIGHT;
         this._keyboardHeight = 0;
@@ -79,6 +71,7 @@ class PeerChat extends React.Component {
         this._locale = 'zh-cn';
         this._messages = [];
 
+        this._loadMoreContentAsync = this._loadMoreContentAsync.bind(this);
         this.onSend = this.onSend.bind(this);
         
         this.onTouchStart = this.onTouchStart.bind(this);
@@ -139,38 +132,7 @@ class PeerChat extends React.Component {
                        (msgs)=>{
                            for (var i in msgs) {
                                var m = msgs[i];
-                               var obj = JSON.parse(m.content);
-                               var t = new Date();
-                               t.setTime(m.timestamp*1000);
-
-                               m._id = m.id;
-
-                               console.log("obj:", obj);
-                               if (obj.text) {
-                                   m.text = obj.text;
-                               } else if (obj.image2) {
-                                   if (obj.image2.fileName) {
-                                       if (Platform.OS === 'ios') {
-                                           var uri = AudioUtils.DocumentDirectoryPath + "/images/" + obj.image2.fileName;
-                                           obj.image2.url = uri;
-                                           console.log("image uri:", uri);
-                                       }
-                                   }
-                                   m.image = obj.image2
-                               } else if (obj.audio) {
-                                   console.log("auido message....");
-                                   m.audio = obj.audio;
-                               } else if (obj.location) {
-                                   m.location = obj.location;
-                               }
-                               m.uuid = obj.uuid;
-                               
-                               m.createdAt = t;
-                               m.user = {
-                                   _id:m.sender
-                               };
-
-
+                               this.parseMessageContent(m);
                                this.downloadAudio(m);
                            }
                            console.log("set messages:", msgs.length);
@@ -199,6 +161,38 @@ class PeerChat extends React.Component {
         this._isMounted = false;
     }
 
+    parseMessageContent(m) {
+        var obj = JSON.parse(m.content);
+        var t = new Date();
+        t.setTime(m.timestamp*1000);
+
+        m._id = m.id;
+
+        console.log("obj:", obj);
+        if (obj.text) {
+            m.text = obj.text;
+        } else if (obj.image2) {
+            if (obj.image2.fileName) {
+                if (Platform.OS === 'ios') {
+                    var uri = AudioUtils.DocumentDirectoryPath + "/images/" + obj.image2.fileName;
+                    obj.image2.url = uri;
+                    console.log("image uri:", uri);
+                }
+            }
+            m.image = obj.image2
+        } else if (obj.audio) {
+            console.log("auido message....");
+            m.audio = obj.audio;
+        } else if (obj.location) {
+            m.location = obj.location;
+        }
+        m.uuid = obj.uuid;
+        
+        m.createdAt = t;
+        m.user = {
+            _id:m.sender
+        };
+    }
     downloadAudio(message) {
         if (!message.audio) {
             return;
@@ -238,25 +232,6 @@ class PeerChat extends React.Component {
             });
     }
 
-    onLoadEarlier() {
-        this.setState((previousState) => {
-            return {
-                isLoadingEarlier: true,
-            };
-        });
-
-        setTimeout(() => {
-            if (this._isMounted === true) {
-                this.setState((previousState) => {
-                    return {
-                        messages: GiftedChat.prepend(previousState.messages, []),
-                        loadEarlier: false,
-                        isLoadingEarlier: false,
-                    };
-                });
-            }
-        }, 1000); // simulating network
-    }
 
     getNow() {
         var now = new Date();
@@ -954,14 +929,6 @@ class PeerChat extends React.Component {
 
         console.log("new message container height:",
                     newMessagesContainerHeight);
-
-        //LayoutAnimation.configureNext(100, LayoutAnimation.Presets.linear);
-
-        //LayoutAnimation.configureNext(LayoutAnimation.create(
-        //300,
-        //LayoutAnimation.Types['keyboard']
-//));
-
         
         LayoutAnimation.configureNext(LayoutAnimation.create(
             100,
@@ -976,13 +943,50 @@ class PeerChat extends React.Component {
         
     }
 
+    _loadMoreContentAsync = async () => {
+        if (this.props.messages.length == 0) {
+            return;
+        }
+        var m = this.props.messages[this.props.messages.length - 1];
+
+        console.log("load more content...:", m.id);
+        var p = new Promise((resolve, reject) => {
+            var db = PeerMessageDB.getInstance();
+            db.getEarlierMessages(this.props.receiver, m.id,
+                                  (messages) => {
+                                      resolve(messages);
+                                  },
+                                  (err) => {
+                                      reject(err);
+                                  });
+        });
+
+        messages = await p;
+
+        if (messages.length == 0) {
+            this.setState({
+                canLoadMoreContent:false
+            })
+            return;
+        }
+        for (var i in messages) {
+            var m = messages[i];
+            this.parseMessageContent(m);
+            this.downloadAudio(m);
+        }
+
+        this.props.dispatch(insertMessages(messages));
+        return;
+    }
+    
     renderMessages() {
         return (
             <Animated.View style={{height: this.state.messagesContainerHeight }}>
                 <MessageContainer
-                    loadEarlier={this.state.loadEarlier}
-                    onLoadEarlier={this.onLoadEarlier}
-                    isLoadingEarlier={this.state.isLoadingEarlier}
+
+                    canLoadMore={this.state.canLoadMoreContent}
+                    onLoadMoreAsync={this._loadMoreContentAsync}
+                    
                     user={{
                         _id: this.props.sender, // sent messages should have same user._id
                     }}

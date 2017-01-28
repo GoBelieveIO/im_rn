@@ -7,7 +7,7 @@ export const MESSAGE_FLAG_SENDING = 32;
 export const MESSAGE_FLAG_LISTENED = 64;
 
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 var instance = null;
 export default class PeerMessageDB {
     static getInstance() {
@@ -42,8 +42,8 @@ export default class PeerMessageDB {
 
     //获取最近聊天记录
     getMessages(uid, successCB, errCB) {
-        var sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message  WHERE peer = ? ORDER BY id DESC LIMIT 20";
-        this.db.executeSql(sql, [uid],
+        var sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message  WHERE peer = ? ORDER BY id DESC LIMIT ?";
+        this.db.executeSql(sql, [uid, PAGE_SIZE],
                            function(result) {
                                console.log("get messages:", result);
                                var msgs = [];
@@ -61,9 +61,9 @@ export default class PeerMessageDB {
     }
 
     getEarlierMessages(uid, msgID, successCB, errCB) {
-        var sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE peer = ? AND id < ? ORDER BY id DESC LIMIT 20";
-        this.db.executeSql(sql, [uid, msgID],
-                           function() {
+        var sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE peer = ? AND id < ? ORDER BY id DESC LIMIT ?";
+        this.db.executeSql(sql, [uid, msgID, PAGE_SIZE],
+                           function(result) {
                                console.log("get messages:", result);
                                var msgs = [];
                                for (var i = 0; i < result.rows.length; i++) {

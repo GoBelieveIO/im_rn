@@ -11,6 +11,7 @@ export const SET_CONVERSATION = "set_conversation";
 
 export const SET_MESSAGES = "set_messages";
 export const ADD_MESSAGE = "add_message";
+export const INSERT_MESSAGES = "insert_messages";
 export const ACK_MESSAGE = "ack_message";
 
 
@@ -63,6 +64,13 @@ export function addMessage(message) {
     return {
         type:ADD_MESSAGE,
         message:message
+    }
+}
+
+export function insertMessages(messages) {
+    return {
+        type:INSERT_MESSAGES,
+        messages:messages
     }
 }
 
