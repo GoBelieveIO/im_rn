@@ -46,6 +46,7 @@ var IMService = require("./im");
 
 
 const API_URL = "http://api.gobelieve.io";
+const NAVIGATIONBAR_HEIGHT = 64;
 
 class PeerChat extends React.Component {
     constructor(props) {
@@ -1059,7 +1060,7 @@ class PeerChat extends React.Component {
             return (
                 <ActionSheet ref={component => this._actionSheetRef = component}>
                     <View
-                        style={{flex:1}}
+                        style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1}}
                         onLayout={onViewLayout}>
                         {this.renderMessages()}
                         {this.renderRecordView()}
@@ -1083,7 +1084,7 @@ class PeerChat extends React.Component {
             });
         };
         return (
-            <View style={{flex:1}}
+            <View style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1}}
                   onLayout={onViewLayout} >
             </View>
         );
