@@ -17,8 +17,6 @@ export default create({
         borderTopColor: Colors.coolGrey50
     },
     inputRow: {
-        paddingLeft: 8,
-        paddingRight: 8,
         flexDirection: 'row',
         backgroundColor: Colors.white1,
         justifyContent: 'center',

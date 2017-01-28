@@ -153,13 +153,10 @@ export default class InputToolbar extends React.Component {
             actionVisible: false,
             focused: true,
         })
-        //this.actionBarHeight = 0;
-        //this.onHeightChange();
     }
 
     handleBlurSearch() {
         this.setState({focused: false});
-        //this.actionBarHeight = 0;
     }
 
     
@@ -255,7 +252,8 @@ export default class InputToolbar extends React.Component {
                 </TouchableOpacity>
                 
                 <TouchableOpacity style={{alignSelf:"stretch",
-                                          justifyContent:"center"}}
+                                          justifyContent:"center",
+                                          paddingRight:8}}
                                   onPress={this.handleSend.bind(this)}>
                     <Text style={Styles.sendText}>{'send'}</Text>
                 </TouchableOpacity>
@@ -276,7 +274,9 @@ export default class InputToolbar extends React.Component {
                 </TouchableOpacity>
                 
                 <TouchableOpacity
-                    style={{alignSelf:"stretch", justifyContent:"center"}}
+                    style={{alignSelf:"stretch",
+                            justifyContent:"center",
+                            paddingRight:8}}
                     onPress={this.onActionsPress.bind(this)}>
                     <View
                         style={{  borderRadius: 13,
@@ -389,7 +389,8 @@ export default class InputToolbar extends React.Component {
         this.onHeightChange();
 
     }
-    
+
+  
     renderTextInput() {
         const {value = '', isEmoji, mode} = this.state;
         var height = this.composerHeight + 11;
@@ -397,7 +398,8 @@ export default class InputToolbar extends React.Component {
         return (
             <View style={[Styles.inputRow, {height:height}]}>
                 <TouchableOpacity style={{alignSelf:"stretch",
-                                          justifyContent:"center"}}
+                                          justifyContent:"center",
+                                          paddingLeft:8}}
                                   onPress={this.handleRecordMode.bind(this)}>
                     <Image style={{width:20, height:20, resizeMode:"stretch"}}
                            source={require("../Images/chatBar_record.png")}/>
@@ -411,7 +413,7 @@ export default class InputToolbar extends React.Component {
                         autoFocus={this.state.focused}
                         editable={true}
                         keyboardType='default'
-                        returnKeyType='send'
+                        returnKeyType='default'
                         autoCapitalize='none'
                         autoCorrect={false}
                         multiline={true}
@@ -419,13 +421,8 @@ export default class InputToolbar extends React.Component {
                         onFocus={this.handleFocusSearch.bind(this)}
                         onBlur={this.handleBlurSearch.bind(this)}
                         onChangeText={this.handleChangeText.bind(this)}
-                        onEndEditing={() => {
-                            }}
-                        onLayout={() => {
-                            }}
                         underlineColorAndroid='transparent'
-                        onSubmitEditing={() => this.search.focus()}
-                        placeholder={'sendMessage'}
+                        placeholder={'输入新消息'}
                     />
                 </View>
                 { this._renderSendButton() }
@@ -483,7 +480,8 @@ export default class InputToolbar extends React.Component {
         return (
             <View style={[Styles.inputRow, {height:height}]}>
                 <TouchableOpacity style={{alignSelf:"stretch",
-                                          justifyContent:"center"}}
+                                          justifyContent:"center",
+                                          paddingLeft:8}}
                     onPress={this.handleTextMode.bind(this)}>
                     <Image style={{width:20, height:20, resizeMode:"stretch"}}
                            source={require("../Images/chatBar_keyboard.png")}/>
