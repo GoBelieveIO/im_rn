@@ -16,9 +16,6 @@ import {
 
 import { NativeModules, NativeAppEventEmitter } from 'react-native';
 
-
-import PeerChat from "./peer_chat";
-
 var IMService = require("./im");
 var im = IMService.instance;
 

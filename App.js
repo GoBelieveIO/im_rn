@@ -24,7 +24,7 @@ import {
 import { NativeModules, NativeAppEventEmitter } from 'react-native';
 
 import Login from "./login";
-import PeerChat from "./peer_chat";
+import PeerChat from "./PeerChat";
 import { createStore } from 'redux'
 import { Provider } from 'react-redux'
 import PeerMessageDB from './PeerMessageDB.js';
