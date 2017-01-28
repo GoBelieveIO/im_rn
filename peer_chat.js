@@ -45,7 +45,7 @@ var IMService = require("./im");
 
 
 const API_URL = "http://api.gobelieve.io";
-const NAVIGATIONBAR_HEIGHT = 64;
+const NAVIGATIONBAR_HEIGHT = 0;
 
 class PeerChat extends React.Component {
     constructor(props) {
@@ -64,7 +64,7 @@ class PeerChat extends React.Component {
         this._inputToolbarHeight = MIN_INPUT_TOOLBAR_HEIGHT;
         this._keyboardHeight = 0;
         this._bottomOffset = 0;
-        this._maxHeight = null;
+        this._maxHeight = 0;
         this._touchStarted = false;
         this._isFirstLayout = true;
         this._isTypingDisabled = false;
@@ -838,8 +838,6 @@ class PeerChat extends React.Component {
         return this._keyboardHeight;
     }
 
-    
-
     onKeyboardWillShow(e) {
         this.setKeyboardHeight(e.endCoordinates ? e.endCoordinates.height : e.end.height);
 
@@ -1042,6 +1040,10 @@ class PeerChat extends React.Component {
     }
 
     render() {
+        const {width, height} = Dimensions.get('window');
+
+
+   
         if (this.state.isInitialized === true) {
             var onViewLayout = (e) => {
                 if (Platform.OS === 'android') {
@@ -1052,6 +1054,7 @@ class PeerChat extends React.Component {
                         this.setMaxHeight(layout.height);
 
                         var t = this.prepareMessagesContainerHeight(this.getMaxHeight() - 44);
+                        console.log("set message container height:", t);
                         this.setState({
                             messagesContainerHeight: t
                         });
@@ -1076,11 +1079,16 @@ class PeerChat extends React.Component {
 
         var onViewLayout = (e) => {
             const layout = e.nativeEvent.layout;
+            if (layout.height == 0) {
+                return;
+            }
             this.setMaxHeight(layout.height);
             console.log("max height:", layout.height);
             InteractionManager.runAfterInteractions(() => {
                 var t = this.prepareMessagesContainerHeight(this.getMaxHeight() - MIN_INPUT_TOOLBAR_HEIGHT);
                 var self = this;
+
+                console.log("set message container height:", t);
                 this.setState({
                     isInitialized: true,
                     messagesContainerHeight: t

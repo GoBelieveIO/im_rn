@@ -39,69 +39,16 @@ var appReducers = require('./reducers');
 var IMService = require("./im");
 var im = IMService.instance;
 
-
-export default class App extends Component {
-    constructor(props) {
-        super(props);
-        this.handleConnectivityChange = this.handleConnectivityChange.bind(this);
-        this.handleAppStateChange = this.handleAppStateChange.bind(this);
+import {Navigation} from 'react-native-navigation';
 
 
-        this.store = createStore(appReducers);
-
-        var self = this;
-        AsyncStorage.getItem("access_token", function(err, value) {
-            if (err) {
-                console.log("get access token err:", err);
-                self.setState({loading:false});
-            } else if (value) {
-                console.log("access token:", value);
-                im.accessToken = value;
-                im.start();
-                self.token = value;
-                self.db = SQLite.openDatabase({name:"gobelieve.db", createFromLocation : 1},
-                                              function() {
-                                                  console.log("db open success");
-                                              },
-                                              function(err) {
-                                                  console.log("db open error:", err);
-                                              });
-                PeerMessageDB.getInstance().setDB(self.db);
-                
-                self.setState({loading:false, access_token:value});
-
-                var conv = {
-                    cid: 2,
-                    unread: 0
-                };
-                
-                self.store.dispatch(setConversation(conv));
-            } else {
-                self.setState({loading:false});                
-            }
-        });
-        this.state = {
-            loading:true,
-            access_token:""
-        };
-
-    }
+var app = {
+    registerScreens: function() {
+        Navigation.registerComponent('demo.Login', () => Login, this.store, Provider);
+        Navigation.registerComponent('demo.PeerChat', () => PeerChat, this.store, Provider);
+    },
     
-    componentDidMount() {
-        AppState.addEventListener('change', this.handleAppStateChange);
-        var im = IMService.instance;
-        im.startReachabilityNotifier();
-        im.addObserver(this);
-    }
-
-    componentWillUnmount() {
-        AppState.removeEventListener('change', this.handleAppStateChange);
-        
-        var im = IMService.instance;
-        im.removeObserver(this);
-    }
-
-    handlePeerMessage(message) {
+    handlePeerMessage: function(message) {
         console.log("handle peer message:", message, msgObj);
         message.flags = 0;
         
@@ -134,12 +81,12 @@ export default class App extends Component {
                              RCTDeviceEventEmitter.emit('peer_message', message);
                          },
                          function(err) {
-                                                      
+                             
                          });
-    
-    }
+        
+    },
 
-    handleMessageACK(msgID, uid) {
+    handleMessageACK: function(msgID, uid) {
         console.log("handle message ack");
         var conv = this.store.getState().conversation;
         if (!conv) {
@@ -151,97 +98,64 @@ export default class App extends Component {
         }
 
         this.store.dispatch(ackMessage(msgID));
-    }
+    },
 
 
-    handleConnectivityChange(reach) {
+    handleConnectivityChange: function(reach) {
         console.log('connectivity change: ' + reach);
-    }
+    },
 
-    handleAppStateChange(currentAppState) {
+    handleAppStateChange: function(currentAppState) {
         console.log("app state:", currentAppState);
         if (currentAppState == "background") {
             im.enterBackground();
         } else if (currentAppState == "active") {
             im.enterForeground();
         }
-    }
+    },
 
-    renderLoading() {
-        return (
-            <View>
-                
-            </View>
-        )
+    startApp: function() {
+        this.store = createStore(appReducers);
+    
         
-    }
-    renderNavigator() {
-        const routes = [
-            {index: "login"},
-            {index: "chat", sender:1, receiver:2}
-        ];
 
-        var initialRoute = routes[0];
-        if (this.state.access_token) {
-            initialRoute = routes[1];
-        }
-        var self = this;
-        var renderScene = function(route, navigator) {
-            if (route.index == "login") {
-                return <Login navigator={navigator}/>
-            } else if (route.index == "chat") {
-                console.log("render chat");
-                return <PeerChat navigator={navigator}
-                                 sender={route.sender}
-                                 receiver={route.receiver}
-                                 token={self.token} />
-            } else {
-                console.log("eeeeeeeeeeeeee");
-            }
-        }
-
-        return (
-            <Provider store={this.store}>
-                <Navigator ref={(nav) => { this.navigator = nav; }} 
-                           initialRoute={initialRoute}
-                           renderScene={renderScene}
-                           configureScene={(route, routeStack) =>
-                               Navigator.SceneConfigs.FloatFromRight}
-                           navigationBar={
-                               <Navigator.NavigationBar
-                             routeMapper={{
-                                 LeftButton: (route, navigator, index, navState) =>
-                                     {
-                                         if (route.index === "login") {
-                                             return null;
-                                         } else {
-                                             return (
-                                                 <TouchableHighlight onPress={() => navigator.pop()}>
-                                                     <Text>Back</Text>
-                                                 </TouchableHighlight>
-                                             );
-                                         }
+        var db = SQLite.openDatabase({name:"gobelieve.db", createFromLocation : 1},
+                                     function() {
+                                         console.log("db open success");
                                      },
-                                 RightButton: (route, navigator, index, navState) =>
-                                     { return (<Text>Done</Text>); },
-                                 Title: (route, navigator, index, navState) =>
-                                     { return (<Text>Awesome Nav Bar</Text>); },
-                             }}
-                             style={{backgroundColor: 'gray'}}/>
-                               
-                                         }/>
-            </Provider>
-        );
-    }
+                                     function(err) {
+                                         console.log("db open error:", err);
+                                     });
+        PeerMessageDB.getInstance().setDB(db);
 
-    render() {
-        if (this.state.loading) {
-            return this.renderLoading();
-        } else {
-            return this.renderNavigator();
-        }
-    }
+        this.db = db;
+        
 
+        
+   
+        
+        AppState.addEventListener('change', this.handleAppStateChange.bind(this));
+        var im = IMService.instance;
+        im.startReachabilityNotifier();
+        im.addObserver(this);
+
+        this.registerScreens();
+        Navigation.startSingleScreenApp({
+            screen: {
+                screen: 'demo.Login',
+                title: 'Login',
+                navigatorStyle: {
+                    navBarBackgroundColor: '#4dbce9',
+                    navBarTextColor: '#ffff00',
+                    navBarSubtitleTextColor: '#ff0000',
+                    navBarButtonColor: '#ffffff',
+                    statusBarTextColorScheme: 'light'
+                }
+            },
+        });
+
+
+    },
 }
 
-
+app.startApp();
