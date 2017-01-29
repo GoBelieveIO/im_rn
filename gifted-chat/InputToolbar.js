@@ -122,11 +122,10 @@ export default class InputToolbar extends React.Component {
     }
 
     handleEmojiClick(v) {
-        var newValue = (this.value || '') + v;
+        var newValue = (this.state.value || '') + v;
         this.setState({
             value: newValue
         });
-        this.value = newValue;
     }
     
     handleEmojiCancel() {
@@ -162,9 +161,19 @@ export default class InputToolbar extends React.Component {
     
     handleChangeText(v) {
         console.log("text changed:", v);
-        this.setState({
-            value: v,
-        });
+
+        if (v.length > 0 && v[v.length-1] == '\n') {
+            this.props.onSend(v);
+            if (this.composerHeight != MIN_COMPOSER_HEIGHT) {
+                this.composerHeight = MIN_COMPOSER_HEIGHT;
+                this.onHeightChange();
+            }
+            this.setState({value: ''});
+        } else {
+            this.setState({
+                value: v,
+            });
+        }
     }
 
     handleImagePicker() {
@@ -232,72 +241,6 @@ export default class InputToolbar extends React.Component {
     }
     
 
-    
-    _renderSendButton() {
-        const {isEmoji, focused} = this.state
-
-        return (focused || isEmoji) ? (
-            <View style={{alignSelf:"stretch",
-                          flexDirection:"row",
-                          justifyContent:"center",
-                          alignItems:"center"}}>
-                <TouchableOpacity style={{paddingLeft:5,
-                                          paddingRight:5,
-                                          alignSelf:"stretch",
-                                          justifyContent:"center"}}
-                                  onPress={this.handleEmojiOpen.bind(this)}>
-                    {
-                        isEmoji ? <Image source={Images.iconEmojiActive}/> : <Image source={Images.iconEmoji}/>
-                    }
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={{alignSelf:"stretch",
-                                          justifyContent:"center",
-                                          paddingRight:8}}
-                                  onPress={this.handleSend.bind(this)}>
-                    <Text style={Styles.sendText}>{'send'}</Text>
-                </TouchableOpacity>
-            </View>
-        ) : (
-            <View style={{alignSelf:"stretch",
-                          flexDirection:"row",
-                          justifyContent:"center",
-                          alignItems:"center"}}>
-                <TouchableOpacity style={{paddingLeft:5,
-                                          paddingRight:5,
-                                          alignSelf:"stretch",
-                                          justifyContent:"center"}}
-                                  onPress={this.handleEmojiOpen.bind(this)}>
-                    {
-                        isEmoji ? <Image source={Images.iconEmojiActive}/> : <Image source={Images.iconEmoji}/>
-                    }
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                    style={{alignSelf:"stretch",
-                            justifyContent:"center",
-                            paddingRight:8}}
-                    onPress={this.onActionsPress.bind(this)}>
-                    <View
-                        style={{  borderRadius: 13,
-                                  borderColor: '#b2b2b2',
-                                  borderWidth: 2,
-                                  width:26,
-                                  height:26,                                   
-                                  justifyContent:"center"}}>
-                        <Text style={{  color: '#b2b2b2',
-                                        fontWeight: 'bold',
-                                        fontSize: 16,
-                                        
-                                        backgroundColor: 'transparent',
-                                        textAlign: 'center'}}>
-                            +
-                        </Text>
-                    </View>
-                </TouchableOpacity>
-            </View>
-        );
-    }
 
     _renderEmoji() {
         const {isEmoji, focused} = this.state
@@ -384,12 +327,11 @@ export default class InputToolbar extends React.Component {
             newComposerHeight = MIN_COMPOSER_HEIGHT;
         }
 
-        this.composerHeight = newComposerHeight;
-
-        this.onHeightChange();
-
+        if (this.composerHeight != newComposerHeight) {
+            this.composerHeight = newComposerHeight;
+            this.onHeightChange();
+        }
     }
-
   
     renderTextInput() {
         const {value = '', isEmoji, mode} = this.state;
@@ -413,7 +355,7 @@ export default class InputToolbar extends React.Component {
                         autoFocus={this.state.focused}
                         editable={true}
                         keyboardType='default'
-                        returnKeyType='default'
+                        returnKeyType='send'
                         autoCapitalize='none'
                         autoCorrect={false}
                         multiline={true}
@@ -425,6 +367,7 @@ export default class InputToolbar extends React.Component {
                         placeholder={'输入新消息'}
                     />
                 </View>
+                { this._renderEmojiButton() }
                 { this._renderSendButton() }
             </View>
         );
@@ -499,6 +442,59 @@ export default class InputToolbar extends React.Component {
             </View>
         );
     }
+
+    _renderEmojiButton() {
+        const {isEmoji} = this.state;
+        return (
+            <TouchableOpacity style={{paddingLeft:5,
+                                      paddingRight:5,
+                                      alignSelf:"stretch",
+                                      justifyContent:"center"}}
+                              onPress={this.handleEmojiOpen.bind(this)}>
+                {
+                    isEmoji ? <Image source={Images.iconEmojiActive}/> : <Image source={Images.iconEmoji}/>
+                }
+            </TouchableOpacity>
+        )
+    }
+    
+    _renderSendButton() {
+        const {focused, value} = this.state
+
+        return (focused || value.length > 0) ? (
+            <TouchableOpacity style={{alignSelf:"stretch",
+                                      justifyContent:"center",
+                                      paddingRight:8}}
+                              onPress={this.handleSend.bind(this)}>
+                <Text style={Styles.sendText}>{'send'}</Text>
+            </TouchableOpacity>
+
+        ) : (
+            <TouchableOpacity
+                style={{alignSelf:"stretch",
+                        justifyContent:"center",
+                        paddingRight:8}}
+                onPress={this.onActionsPress.bind(this)}>
+                <View
+                    style={{  borderRadius: 13,
+                              borderColor: '#b2b2b2',
+                              borderWidth: 2,
+                              width:26,
+                              height:26,                                   
+                              justifyContent:"center"}}>
+                    <Text style={{  color: '#b2b2b2',
+                                    fontWeight: 'bold',
+                                    fontSize: 16,
+                                    
+                                    backgroundColor: 'transparent',
+                                    textAlign: 'center'}}>
+                        +
+                    </Text>
+                </View>
+            </TouchableOpacity>
+        );
+    }
+
     
     render() {
         var inputToolbarProps = this.props;
