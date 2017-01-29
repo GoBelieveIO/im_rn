@@ -26,6 +26,54 @@ export default class PeerMessageDB {
         this.db = db;
         console.log("set db....");
     }
+
+    getMessage(msgID) {
+        var p = new Promise((resolve, reject) => {
+            this.db.executeSql("SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE id= ?",
+                               [msgID],
+                               function(result) {
+                                   console.log("tt:", result);
+                                   if (result.rows.length > 0) {
+                                       var row = result.rows.item(0);
+                                       console.log("get message result:", row);
+                                       resolve(row);
+                                   } else {
+                                       reject("invalid msgid");
+                                   }
+                               },
+                               function(error) {
+                                   reject(error);
+                               });
+        });
+        return p;
+    }
+    
+    getConversations() {
+        var p = new Promise((resolve, reject) => {
+            this.db.executeSql("SELECT MAX(id) as id, peer FROM peer_message GROUP BY peer",
+                               [],
+                               function(result) {
+                                   resolve(result);
+                               },
+                               function(error) {
+                                   reject(error);
+                               })
+
+        });
+        return p.then((result) => {
+            var arr = [];
+            for (var i = 0; i < result.rows.length; i++) {
+                var row = result.rows.item(i);
+                console.log("row:", row);
+                var msgID = row.id;
+                var p = this.getMessage(msgID);
+                arr = arr.concat(p);
+            }
+
+            return Promise.all(arr);
+        });
+    }
+
     
     insertMessage(msg, uid, successCB, errCB) {
         console.log("uid:", uid);

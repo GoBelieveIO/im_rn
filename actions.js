@@ -2,6 +2,7 @@
 //会话列表
 export const SET_CONVERSATIONS = "set_conversations";
 export const ADD_CONVERSATION = "add_conversation";
+export const UPDATE_CONVERSATION = "update_conversation";
 export const SET_UNREAD = "set_unread";
 export const SET_LATEST_MESSAGE = "set_latest_message";
 
@@ -29,6 +30,14 @@ export function addConversation(conv) {
     return {
         type:ADD_CONVERSATION,
         conversation:conv
+    };
+}
+
+export function updateConversation(conv, index) {
+    return {
+        type:UPDATE_CONVERSATION,
+        conversation:conv,
+        index:index
     };
 }
 

@@ -35,10 +35,11 @@ if (Platform.OS === 'android') {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+console.log("document path:", AudioUtils.DocumentDirectoryPath);
+
 import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './gifted-chat/InputToolbar';
 import MessageContainer from './gifted-chat/MessageContainer';
 
-import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
 
 var IMService = require("./im");
 
@@ -256,8 +257,7 @@ export default class Chat extends React.Component {
             message.id = rowid;
             message._id = rowid;
 
-            self.props.dispatch(addMessage(message));
-            self.scrollToBottom();
+            this.addMessage(message);
 
             return this.uploadAudio(amrPath);
             
@@ -298,12 +298,10 @@ export default class Chat extends React.Component {
         p.then((rowid)=> {
             message.id = rowid;
             message._id = rowid;
-            
-            self.props.dispatch(addMessage(message));
+            self.addMessage(message);
             self.setState({
                 value: '',
             });
-            self.scrollToBottom();
             self.sendMessage(message);
         });
     }
@@ -402,8 +400,8 @@ export default class Chat extends React.Component {
         p.then((rowid) => {
             message.id = rowid;
             message._id = rowid;
-
-            self.props.dispatch(addMessage(message));
+            self.addMessage(message);
+            
             return message;
         }).then((message) => {
             return this.uploadImage(image.uri, image.fileName);
@@ -463,10 +461,8 @@ export default class Chat extends React.Component {
             message.id = rowid;
             message._id = rowid;
 
-            self.props.dispatch(addMessage(message));
-            self.scrollToBottom();
-
-            self.sendMessage(message);
+            this.addMessage(message);
+            this.sendMessage(message);
         });
     }
     
@@ -837,7 +833,10 @@ export default class Chat extends React.Component {
         });
     }
 
-
+    addMessage(message) {
+        console.log("add message not implement");            
+    }
+    
     saveMessage(message) {
         console.log("save message not implement");        
     }

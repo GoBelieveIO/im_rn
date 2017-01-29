@@ -4,6 +4,7 @@ import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
 
 import PeerMessageDB from './PeerMessageDB.js'
 import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
+import {updateConversation} from './actions'
 
 var IMService = require("./im");
 
@@ -86,6 +87,35 @@ class PeerChat extends Chat {
         };
     }
 
+    addMessage(message) {
+        this.props.dispatch(addMessage(message));
+        var conv = {
+            id:this.props.receiver,
+            cid:this.props.receiver,
+            name:""+this.props.receiver,
+            unread:0,
+            message:message,
+            timestamp:message.timestamp,
+            
+        }
+        var msgObj = JSON.parse(message.content);
+        if (msgObj.text) {
+            conv.content = msgObj.text;
+        } else if (msgObj.image2) {
+            conv.content = "一张图片";
+        } else if (msgObj.audio) {
+            conv.content = "语音"
+        } else if (msgObj.location) {
+            conv.content = "位置";
+        } else {
+            conv.content = "";
+        }
+        this.props.dispatch(updateConversation(conv));
+        
+        this.scrollToBottom();
+    }
+
+    
     saveMessage(message) {
         var db = PeerMessageDB.getInstance();
         var p = new Promise((resolve, reject) => {
@@ -145,7 +175,6 @@ class PeerChat extends Chat {
         return;
     }
 }
-
 
 
 PeerChat = connect(function(state){

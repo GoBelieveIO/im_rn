@@ -18,34 +18,35 @@ import {
     NetInfo,
     AppState,
     View,
-    AsyncStorage
+    AsyncStorage,
+    NativeModules,
+    NativeAppEventEmitter,
 } from 'react-native';
+import { createStore } from 'redux'
+import { Provider } from 'react-redux'
+import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter'
+import {Navigation} from 'react-native-navigation';
+var SQLite = require('react-native-sqlite-storage');
+SQLite.enablePromise(false);
 
-import { NativeModules, NativeAppEventEmitter } from 'react-native';
+import PeerMessageDB from './PeerMessageDB.js';
+import {setConversation, setMessages, addMessage, ackMessage} from './actions'
+import {addConversation, updateConversation} from "./actions";
 
 import Login from "./login";
 import PeerChat from "./PeerChat";
-import { createStore } from 'redux'
-import { Provider } from 'react-redux'
-import PeerMessageDB from './PeerMessageDB.js';
-import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter'
-
-import {setConversation, setMessages, addMessage, ackMessage} from './actions'
-
-var SQLite = require('react-native-sqlite-storage');
-SQLite.enablePromise(false);
+import Conversation from './Conversation';
 
 var appReducers = require('./reducers');
 var IMService = require("./im");
 var im = IMService.instance;
 
-import {Navigation} from 'react-native-navigation';
-
-
 var app = {
     registerScreens: function() {
         Navigation.registerComponent('demo.Login', () => Login, this.store, Provider);
         Navigation.registerComponent('demo.PeerChat', () => PeerChat, this.store, Provider);
+
+        Navigation.registerComponent('demo.Conversation', () => Conversation, this.store, Provider);
     },
     
     handlePeerMessage: function(message) {
@@ -72,8 +73,6 @@ var app = {
             _id: message.sender
         }
         
-        var self = this;
-
         var cid = (this.uid == message.sender) ? message.receiver : message.sender;
         var db = PeerMessageDB.getInstance();
         db.insertMessage(message, cid,
@@ -85,7 +84,55 @@ var app = {
                          function(err) {
                              
                          });
+
+
+        var state = this.store.getState();
+        console.log("state conversations:", state.conversations);
+        var index = -1;        
+        for (var i in state.conversations) {
+            var conv = state.conversations[i];
+            if (conv.cid == cid) {
+                index = i;
+                break;
+            }
+        }
+
+        var conv;
+        if (index != -1) {
+            var c = state.conversations[index];
+            var newConv = Object.assign({}, c);
+            if (cid == message.sender) {
+                newConv.unread = conv.unread + 1;
+            }
+            conv = newConv;
+        } else {
+            conv = {
+                id:cid,
+                cid:cid,
+                name:"" + cid,
+                unread:0,
+            };
+            if (cid == message.sender) {
+                conv.unread = 1;
+            }
+        }
+
+        conv.message = message;
+        conv.timestamp = message.timestamp;
+        if (msgObj.text) {
+            conv.content = msgObj.text;
+        } else if (msgObj.image2) {
+            conv.content = "一张图片";
+        } else if (msgObj.audio) {
+            conv.content = "语音"
+        } else if (msgObj.location) {
+            conv.content = "位置";
+        } else {
+            conv.content = "";
+        }
         
+        console.log("new conv:", newConv);
+        this.store.dispatch(updateConversation(conv, index));
     },
 
     handleMessageACK: function(msgID, uid) {
@@ -131,9 +178,6 @@ var app = {
         PeerMessageDB.getInstance().setDB(db);
 
         this.db = db;
-        
-
-        
    
         
         AppState.addEventListener('change', this.handleAppStateChange.bind(this));

@@ -23,6 +23,7 @@ export default class Login extends Component {
     constructor(props) {
         super(props);
         this.state = {sender:"", receiver:""};
+        console.log("this props:", this.props);
     }
     
     componentDidMount() {
@@ -77,11 +78,10 @@ export default class Login extends Component {
                     self.props.app.uid = sender;
                 
                     navigator.push({
-                        title:"Chat",
-                        screen:"demo.PeerChat",
+                        title:"对话",
+                        screen:"demo.Conversation",
                         passProps:{
-                            sender:sender,
-                            receiver:receiver,
+                            uid:sender,
                             token:responseJson.token
                         },
                     });

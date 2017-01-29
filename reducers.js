@@ -17,6 +17,26 @@ function conversationsReducer(state=[], action) {
             return action.conversations;
         case "add_conversation":
             return [action.conversation].concat(state);
+        case 'update_conversation': 
+            var index = action.index;
+            var conv = action.conversation;
+            if (!index || index == -1) {
+                index = -1;
+                for (var i in state) {
+                    var c = state[i];
+                    if (conv.cid == c.cid) {
+                        index = i;
+                        break;
+                    }
+                }
+            }
+
+            if (index != -1) {
+                return [...state.slice(0, index), conv, ...state.slice(index+1, state.length)];
+            } else {
+                return [conv].concat(state)
+            }
+            
         case "set_unread":
             var convs = state.map(function(conv) {
                 if (conv.cid == action.cid) {
