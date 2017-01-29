@@ -33,7 +33,7 @@ import PeerMessageDB from './PeerMessageDB.js';
 import {setConversation, setMessages, addMessage, ackMessage} from './actions'
 import {addConversation, updateConversation} from "./actions";
 
-import Login from "./login";
+import Login from "./Login";
 import PeerChat from "./PeerChat";
 import Conversation from './Conversation';
 
