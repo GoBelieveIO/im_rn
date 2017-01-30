@@ -62,7 +62,6 @@ export default class Chat extends React.Component {
             canLoadMoreContent:true,
         };
 
-        this._inputToolbarHeight = MIN_INPUT_TOOLBAR_HEIGHT;
         this._keyboardHeight = 0;
         this._bottomOffset = 0;
         this._maxHeight = 0;
@@ -795,7 +794,7 @@ export default class Chat extends React.Component {
 
         this.inputToolbar.actionBarHeight = 0;
         var newMessagesContainerHeight = this.getMaxHeight() - this.inputToolbar.getToolbarHeight() - this.getKeyboardHeight();
-        console.log("keyboard will show:", e);
+        console.log("keyboard will show:", e, newMessagesContainerHeight);
         console.log("keyboard height:", e.endCoordinates ? e.endCoordinates.height : e.end.height);
 
 
@@ -813,7 +812,8 @@ export default class Chat extends React.Component {
     onKeyboardWillHide(e) {
         this.setKeyboardHeight(0);
         var newMessagesContainerHeight = this.getMaxHeight() - this.inputToolbar.getToolbarHeight() - this.getKeyboardHeight();
-        console.log("keyboard will hide:", e)
+
+        console.log("keyboard will hide:", e, newMessagesContainerHeight, this.getMaxHeight(), this.inputToolbar.getToolbarHeight(), this.getKeyboardHeight());
 
         if (e && e.duration && e.duration > 0) {
             LayoutAnimation.configureNext(LayoutAnimation.create(
@@ -870,12 +870,8 @@ export default class Chat extends React.Component {
     }
 
     onInputToolbarHeightChange(h) {
-        if (this._inputToolbarHeight == h) {
-            return;
-        }
         console.log("on input tool bar height changed:", h);
-        this._inputToolbarHeight = h;
-        const newMessagesContainerHeight = this.getMaxHeight() - this._inputToolbarHeight - this.getKeyboardHeight();
+        const newMessagesContainerHeight = this.getMaxHeight() - this.inputToolbar.getToolbarHeight() - this.getKeyboardHeight();
 
         console.log("new message container height:",
                     newMessagesContainerHeight);

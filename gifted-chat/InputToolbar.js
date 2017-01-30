@@ -56,6 +56,7 @@ export default class InputToolbar extends React.Component {
         };
 
         this.composerHeight = MIN_COMPOSER_HEIGHT;
+        this.actionBarHeight = 0;
     }
 
 
@@ -228,7 +229,8 @@ export default class InputToolbar extends React.Component {
         }
 
         const {isEmoji, actionVisible} = this.state;
-        this.setState({isEmoji:false, actionVisible:false, mode:MODE_RECORD});
+        this.setState({isEmoji:false, actionVisible:false,
+                       focused:false, mode:MODE_RECORD});
 
         if (isEmoji || actionVisible) {
             this.actionBarHeight = 0;
