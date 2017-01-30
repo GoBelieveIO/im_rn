@@ -17,7 +17,7 @@ import {
 import { NativeModules, NativeAppEventEmitter } from 'react-native';
 import Spinner from 'react-native-loading-spinner-overlay';
 
-var IMService = require("./im");
+var IMService = require("./chat/im");
 var im = IMService.instance;
 
 export default class Login extends Component {

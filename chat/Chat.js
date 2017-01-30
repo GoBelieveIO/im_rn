@@ -39,8 +39,8 @@ if (Platform.OS === 'android') {
 
 console.log("document path:", AudioUtils.DocumentDirectoryPath);
 
-import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './gifted-chat/InputToolbar';
-import MessageContainer from './gifted-chat/MessageContainer';
+import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './InputToolbar';
+import MessageContainer from './MessageContainer';
 
 
 var IMService = require("./im");

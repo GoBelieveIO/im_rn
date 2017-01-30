@@ -13,7 +13,7 @@ import MessageAudio from './MessageAudio';
 import MessageLocation from './MessageLocation';
 import Time from './Time';
 
-import {MESSAGE_FLAG_FAILURE} from '../PeerMessageDB';
+import {MESSAGE_FLAG_FAILURE} from './PeerMessageDB';
 
 export default class Bubble extends React.Component {
     constructor(props) {
@@ -102,7 +102,7 @@ export default class Bubble extends React.Component {
             if (this.props.currentMessage.flags & MESSAGE_FLAG_FAILURE) {
                 return (
                     <Image style={{alignSelf:"flex-end", width:20, height:20}}
-                           source={require('../Images/MessageSendError.png')}>
+                           source={require('./Images/MessageSendError.png')}>
                     </Image>
                 );
             }

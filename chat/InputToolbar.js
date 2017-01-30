@@ -18,11 +18,11 @@ import {
 
 import Emoji from 'react-native-emoji'
 import Swiper from 'react-native-swiper'
-import {Images, Colors, Metrics} from '../Themes'
-import Styles from '../Styles/MessageScreenStyle'
+import {Images, Colors, Metrics} from './Themes'
+import Styles from './Styles/MessageScreenStyle'
 
 var spliddit = require('spliddit');
-var emoji = require("../emoji");
+var emoji = require("./emoji");
 
 const MODE_TEXT = "mode_text";
 const MODE_RECORD = "mode_record";
@@ -350,7 +350,7 @@ export default class InputToolbar extends React.Component {
                                           paddingLeft:8}}
                                   onPress={this.handleRecordMode.bind(this)}>
                     <Image style={{width:20, height:20, resizeMode:"stretch"}}
-                           source={require("../Images/chatBar_record.png")}/>
+                           source={require("./Images/chatBar_record.png")}/>
                 </TouchableOpacity>
                 
                 <View style={Styles.searchRow}>
@@ -435,7 +435,7 @@ export default class InputToolbar extends React.Component {
                                           paddingLeft:8}}
                     onPress={this.handleTextMode.bind(this)}>
                     <Image style={{width:20, height:20, resizeMode:"stretch"}}
-                           source={require("../Images/chatBar_keyboard.png")}/>
+                           source={require("./Images/chatBar_keyboard.png")}/>
                 </TouchableOpacity>
                 
                 <View style={[Styles.searchRow, {backgroundColor:"gainsboro", opacity:opacity}]}>

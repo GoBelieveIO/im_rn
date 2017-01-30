@@ -14,7 +14,7 @@ export default class MessageAudio extends React.Component {
         return (
             <View style={styles.container}>
                 <Image style={{width:20, height:20}}
-                       source={outgoing ? require("../Images/SenderVoiceNodePlaying.png") :require("../Images/ReceiverVoiceNodePlaying.png")}>
+                       source={outgoing ? require("./Images/SenderVoiceNodePlaying.png") :require("./Images/ReceiverVoiceNodePlaying.png")}>
                 </Image>
             </View>
         );

@@ -14,12 +14,12 @@ import {connect} from 'react-redux'
 import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
 import moment from 'moment/min/moment-with-locales.min';
 
-import {setConversations, setUnread} from './actions'
+import {setConversations, setUnread} from './chat/actions'
 
-var IMService = require("./im");
+var IMService = require("./chat/im");
 
-import PeerMessageDB from './PeerMessageDB';
-import GroupMessageDB from './GroupMessageDB';
+import PeerMessageDB from './chat/PeerMessageDB';
+import GroupMessageDB from './chat/GroupMessageDB';
 
 class Conversation extends React.Component {
     constructor(props) {

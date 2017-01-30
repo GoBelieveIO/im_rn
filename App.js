@@ -29,18 +29,19 @@ import {Navigation} from 'react-native-navigation';
 var SQLite = require('react-native-sqlite-storage');
 SQLite.enablePromise(false);
 
-import PeerMessageDB from './PeerMessageDB';
-import GroupMessageDB from './GroupMessageDB';
-import {setConversation, setMessages, addMessage, ackMessage} from './actions'
-import {addConversation, updateConversation} from "./actions";
+import PeerMessageDB from './chat/PeerMessageDB';
+import GroupMessageDB from './chat/GroupMessageDB';
+import {setMessages, addMessage, ackMessage} from './chat/actions'
+import {addConversation, updateConversation} from "./chat/actions";
+import {setConversation} from './chat/actions';
 
 import Login from "./Login";
-import PeerChat from "./PeerChat";
-import GroupChat from "./GroupChat"
+import PeerChat from "./chat/PeerChat";
+import GroupChat from "./chat/GroupChat"
 import Conversation from './Conversation';
 
-var appReducers = require('./reducers');
-var IMService = require("./im");
+var appReducers = require('./chat/reducers');
+var IMService = require("./chat/im");
 var im = IMService.instance;
 
 var app = {
