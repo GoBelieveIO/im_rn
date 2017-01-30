@@ -107,10 +107,9 @@ export default class Login extends Component {
                         marginTop:44,
                         marginLeft:8,
                         marginRight:8,
-                        height: 26,
                         borderWidth: 0.5,
                         borderColor: '#0f0f0f',
-                        height: 35}}
+                    }}
                     keyboardType="numeric"
                     placeholder="发送者id"
                     value={this.state.sender}
@@ -124,10 +123,9 @@ export default class Login extends Component {
                         marginTop:44,
                         marginLeft:8,
                         marginRight:8,
-                        height: 26,
                         borderWidth: 0.5,
                         borderColor: '#0f0f0f',
-                        height: 35}}
+                    }}
                     keyboardType="numeric"
                     placeholder="接受者id"
                     value={this.state.receiver}

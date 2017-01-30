@@ -77,12 +77,12 @@ IMService.prototype.removeObserver = function(ob) {
 
 IMService.prototype.startReachabilityNotifier = function() {
     NetInfo.fetch().done((reach) => {
-        if (reach == 'wifi' || reach == 'cell') {
+        if (reach && (reach.toLowerCase() == 'wifi' || reach.toLowerCase() == 'cell')) {
             this.reachable = true;
         } else {
             this.reachable = false;
         }
-        console.log("reachable:" + reach);
+        console.log("reachable:", reach, this.reachable);
     });
 
     //never remove listener
@@ -94,7 +94,9 @@ IMService.prototype.startReachabilityNotifier = function() {
 
 IMService.prototype.handleConnectivityChange = function(reach) {
     console.log("connectivity changed:" + reach);
-    this.reachable = (reach == 'wifi' || reach == 'cell');
+    this.reachable = reach && (reach.toLowerCase() == 'wifi' || reach.toLowerCase() == 'cell');
+
+    console.log("reachable:", reach, this.reachable);
     if (this.reachable) {
         if (!this.stopped && !this.isBackground) {
             console.log("reconnect im service");

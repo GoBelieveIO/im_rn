@@ -33,7 +33,11 @@ const MIN_COMPOSER_HEIGHT = Platform.select({
     android: 41,
 });
 const MAX_COMPOSER_HEIGHT = 100;
-export const MIN_INPUT_TOOLBAR_HEIGHT = 44;
+
+export const MIN_INPUT_TOOLBAR_HEIGHT = Platform.select({
+    ios: 44,
+    android: 54,
+});
 
 const ACTION_BUTTON_HEIGHT = 40;
 const EMOJI_HEIGHT = 128;

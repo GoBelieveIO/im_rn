@@ -4,7 +4,8 @@ import React, {
   PropTypes,
 } from 'react';
 import {
-  ScrollView,
+    Platform,
+    ScrollView,
     View,
     StyleSheet
 } from 'react-native';
@@ -31,7 +32,10 @@ export default class InfiniteScrollView extends React.Component {
   };
 
   static defaultProps = {
-    distanceToLoadMore: -50,
+    distanceToLoadMore: Platform.select({
+        ios: -50,
+        android: 54,
+    }),
     canLoadMore: false,
     scrollEventThrottle: 100,
     renderLoadingIndicator: () => <DefaultLoadingIndicator />,

@@ -24,7 +24,9 @@ import ActionSheet from '@exponent/react-native-action-sheet';
 import dismissKeyboard from 'react-native-dismiss-keyboard';
 import {connect} from 'react-redux'
 import {AudioRecorder, AudioUtils} from 'react-native-audio';
+
 import {OpenCoreAMR} from 'react-native-amr';
+
 var Toast = require('react-native-toast')
 var UUID = require('react-native-uuid');
 var Sound = require('react-native-sound');
@@ -161,11 +163,13 @@ export default class Chat extends React.Component {
                 r.promise.then((result) => {
                     console.log("download result:", result);
                     if (result.statusCode == 200) {
-                        OpenCoreAMR.amr2WAV(amrPath, wavPath, function(err) {
-                            if (err) {
-                                console.log("amr 2 wav err:", err);
-                            }
-                        });
+                        if (Platform.OS == 'ios') {
+                            OpenCoreAMR.amr2WAV(amrPath, wavPath, function(err) {
+                                if (err) {
+                                    console.log("amr 2 wav err:", err);
+                                }
+                            });
+                        }
                     }
                 });
             });
@@ -190,7 +194,7 @@ export default class Chat extends React.Component {
         }
 
         var fileName = s[s.length-1];
-        formData.append('file', {uri: filePath, name:fileName});
+        formData.append('file', {uri: "file://" + filePath, name:fileName, type:"audio/amr-nb"});
         let options = {};
         options.body = formData;
         options.method = 'post';
@@ -207,8 +211,7 @@ export default class Chat extends React.Component {
                 var respJson = values[1];
                 if (status != 200) {
                     console.log("upload image fail:", respJson);
-                    Promise.reject(respJson);
-                    return;
+                    return Promise.reject(respJson);
                 }
                 console.log("upload image success:", respJson);
                 return respJson.src_url;
@@ -310,14 +313,13 @@ export default class Chat extends React.Component {
     uploadImage(uri, fileName) {
         var url = API_URL + "/v2/images";
         var formData = new FormData();
-        console.log("uri:", uri);
-        formData.append('file', {uri: uri, name:fileName});
+        formData.append('file', {uri: uri, name:fileName, type:"image/jpeg"});
         let options = {};
         options.body = formData;
-        options.method = 'post';
+        options.method = 'POST';
         options.headers = {
+            'Content-Type': 'multipart/form-data; boundary=6ff46e0b6b5148d984f148b6542e5a5d',
             "Authorization":"Bearer " + this.props.token,
-            'Content-Type': 'multipart/form-data',
         };
         return fetch(url, options)
             .then((response) => {
@@ -355,12 +357,15 @@ export default class Chat extends React.Component {
         var fileName;
         if (Platform.OS === 'ios') {
             uri = image.uri.replace('file://', '');
+
+            //ios xcode每次run时，document目录都会变化
             var imagePath = AudioUtils.DocumentDirectoryPath + "/images/";
             fileName = uri.substr(imagePath.length);
             console.log("fileName:", fileName);
         } else {
             uri = image.uri;
             fileName = "";
+            console.log("fileName:", fileName);
         }
 
         console.log("send image message:", image.uri);
@@ -420,6 +425,8 @@ export default class Chat extends React.Component {
             message.content = content;
             self.sendMessage(message);
             //todo save url
+        }).catch((err) => {
+            console.log("upload image err:", err);
         });
     }
 
@@ -577,12 +584,17 @@ export default class Chat extends React.Component {
                 this.playingMessage = null;
                 return;
             }
-            
-            var wavFile = this.getWAVPath(message.uuid);
-            RNFS.exists(wavFile)
+
+            var audioFile;
+            if (Platform.OS == 'android') {
+                audioFile = this.getAMRPath(message.uuid);
+            } else {
+                audioFile = this.getWAVPath(message.uuid);
+            }
+            RNFS.exists(audioFile)
                 .then((exists) =>  {
                     if (!exists) {
-                        return Promise.reject("wav file non exists");
+                        return Promise.reject("audio file non exists");
                     }
 
                     if (this.player) {
@@ -592,10 +604,10 @@ export default class Chat extends React.Component {
                         this.playingMessage = null;
                     }
                     
-                    console.log("playing message...:", wavFile);
+                    console.log("playing message...:", audioFile);
 
                     return new Promise((resolve, reject) => {
-                        var player = new Sound(wavFile, null);
+                        var player = new Sound(audioFile, null);
                         Sound.enable(true);
                         player.prepare((error) => {
                             if (error) {
@@ -622,6 +634,7 @@ export default class Chat extends React.Component {
                 .catch((err) => {
                     console.log("error:", err);
                 });
+
         }
     }
     
@@ -634,11 +647,19 @@ export default class Chat extends React.Component {
         }
         
         this.recordingBegin = new Date();
-        var audioPath = AudioUtils.DocumentDirectoryPath + "/recording.wav";
+        
+        var fileName = Platform.select({
+            ios: "recording.wav",
+            android: "recording.amr",
+        });
+        var audioPath = AudioUtils.DocumentDirectoryPath + "/" + fileName;
         AudioRecorder.prepareRecordingAtPath(audioPath, {
             SampleRate: 8000,
             Channels: 2,
-            AudioEncoding: "lpcm",
+            AudioEncoding: Platform.select({
+                ios: "lpcm",
+                android: "amr_nb",
+            }),
         });
 
         AudioRecorder.startRecording();
@@ -664,32 +685,54 @@ export default class Chat extends React.Component {
         
         var self = this;
         var id = UUID.v1();
-        var audioPath = AudioUtils.DocumentDirectoryPath + "/recording.wav";
-        var path = AudioUtils.DocumentDirectoryPath + "/audios";
-        var wavPath = path + "/" + id + ".wav";
-        var amrPath = path + "/" + id;
-        RNFS.mkdir(path)
-            .then(() => {
-                console.log("move file");
-                return RNFS.moveFile(audioPath, wavPath);
-            })
-            .then(() => {
-                return new Promise((resolve, reject) => {
-                    OpenCoreAMR.wav2AMR(wavPath, amrPath, function(err) {
-                        if (err) {
-                            console.log("wav 2 arm err:", err);
-                            return reject(err);
-                        }
-                        resolve();
+
+
+        var fileName = Platform.select({
+            ios: "recording.wav",
+            android: "recording.amr",
+        });
+        var audioPath = AudioUtils.DocumentDirectoryPath + "/" + fileName;
+        if (Platform.OS == 'android') {
+            var path = AudioUtils.DocumentDirectoryPath + "/audios";
+            var amrPath = path + "/" + id;
+            RNFS.mkdir(path)
+                .then(() => {
+                    console.log("move file");
+                    return RNFS.moveFile(audioPath, amrPath);
+                })
+                .then(() => {
+                    self.sendAudioMessage(id, duration);
+                })
+                .catch((err) => {
+                    console.log("error:", err);
+                });            
+        } else {
+            var path = AudioUtils.DocumentDirectoryPath + "/audios";
+            var wavPath = path + "/" + id + ".wav";
+            var amrPath = path + "/" + id;
+            RNFS.mkdir(path)
+                .then(() => {
+                    console.log("move file");
+                    return RNFS.moveFile(audioPath, wavPath);
+                })
+                .then(() => {
+                    return new Promise((resolve, reject) => {
+                        OpenCoreAMR.wav2AMR(wavPath, amrPath, function(err) {
+                            if (err) {
+                                console.log("wav 2 arm err:", err);
+                                return reject(err);
+                            }
+                            resolve();
+                        });
                     });
+                })
+                .then(() => {
+                    self.sendAudioMessage(id, duration);
+                })
+                .catch((err) => {
+                    console.log("error:", err);
                 });
-            })
-            .then(() => {
-                self.sendAudioMessage(id, duration);
-            })
-            .catch((err) => {
-                console.log("error:", err);
-            });
+        }
     }
 
     
@@ -741,7 +784,7 @@ export default class Chat extends React.Component {
         console.log("keyboard height:", e.endCoordinates ? e.endCoordinates.height : e.end.height);
 
 
-        if (e.duration > 0) {
+        if (e && e.duration && e.duration > 0) {
             LayoutAnimation.configureNext(LayoutAnimation.create(
                 e.duration,
                 LayoutAnimation.Types[e.easing]
@@ -757,7 +800,7 @@ export default class Chat extends React.Component {
         var newMessagesContainerHeight = this.getMaxHeight() - this.inputToolbar.getToolbarHeight() - this.getKeyboardHeight();
         console.log("keyboard will hide:", e)
 
-        if (e.duration > 0) {
+        if (e && e.duration && e.duration > 0) {
             LayoutAnimation.configureNext(LayoutAnimation.create(
                 e.duration,
                 LayoutAnimation.Types[e.easing]
