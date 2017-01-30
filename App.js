@@ -29,12 +29,14 @@ import {Navigation} from 'react-native-navigation';
 var SQLite = require('react-native-sqlite-storage');
 SQLite.enablePromise(false);
 
-import PeerMessageDB from './PeerMessageDB.js';
+import PeerMessageDB from './PeerMessageDB';
+import GroupMessageDB from './GroupMessageDB';
 import {setConversation, setMessages, addMessage, ackMessage} from './actions'
 import {addConversation, updateConversation} from "./actions";
 
 import Login from "./Login";
 import PeerChat from "./PeerChat";
+import GroupChat from "./GroupChat"
 import Conversation from './Conversation';
 
 var appReducers = require('./reducers');
@@ -45,7 +47,7 @@ var app = {
     registerScreens: function() {
         Navigation.registerComponent('demo.Login', () => Login, this.store, Provider);
         Navigation.registerComponent('demo.PeerChat', () => PeerChat, this.store, Provider);
-
+        Navigation.registerComponent('demo.GroupChat', () => GroupChat, this.store, Provider);
         Navigation.registerComponent('demo.Conversation', () => Conversation, this.store, Provider);
     },
     
@@ -73,7 +75,7 @@ var app = {
             _id: message.sender
         }
         
-        var cid = (this.uid == message.sender) ? message.receiver : message.sender;
+        var cid = (this.uid == message.sender) ? message.receiver : message.sender;        
         var db = PeerMessageDB.getInstance();
         db.insertMessage(message, cid,
                          function(rowid) {
@@ -86,6 +88,7 @@ var app = {
                          });
 
 
+        cid = "p_" + cid;
         var state = this.store.getState();
         console.log("state conversations:", state.conversations);
         var index = -1;        
@@ -109,7 +112,7 @@ var app = {
             conv = {
                 id:cid,
                 cid:cid,
-                name:"" + cid,
+                name:cid,
                 unread:0,
             };
             if (cid == message.sender) {
@@ -135,20 +138,121 @@ var app = {
         this.store.dispatch(updateConversation(conv, index));
     },
 
-    handleMessageACK: function(msgID, uid) {
+    handleMessageACK: function(msg) {
         console.log("handle message ack");
         var conv = this.store.getState().conversation;
         if (!conv) {
             return;
         }
         var cid = conv.cid;
-        if (uid != cid) {
+        if ("p_" + msg.receiver != cid) {
             return;
         }
 
-        this.store.dispatch(ackMessage(msgID));
+        this.store.dispatch(ackMessage(msg.id));
     },
 
+
+    handleGroupMessage: function(message) {
+        console.log("handle group message:", message, msgObj);
+        message.flags = 0;
+        
+        var msgObj = JSON.parse(message.content);
+
+        if (msgObj.text) {
+            message.text = msgObj.text;
+        } else if (msgObj.image2) {
+            message.image = msgObj.image2
+        } else if (msgObj.audio) {
+            message.audio = msgObj.audio;
+        } else if (msgObj.location) {
+            message.location = msgObj.location;
+        }
+        message.uuid = msgObj.uuid;
+        
+        var t = new Date();
+        t.setTime(message.timestamp*1000);
+        message.createdAt = t;
+        message.user = {
+            _id: message.sender
+        }
+        
+  
+        var db = GroupMessageDB.getInstance();
+        db.insertMessage(message,
+                         function(rowid) {
+                             message.id = rowid;
+                             message._id = rowid;
+                             RCTDeviceEventEmitter.emit('group_message', message);
+                         },
+                         function(err) {
+                             
+                         });
+
+        var cid =  "g_" + message.receiver;
+        var state = this.store.getState();
+        console.log("state conversations:", state.conversations);
+        var index = -1;        
+        for (var i in state.conversations) {
+            var conv = state.conversations[i];
+            if (conv.cid == cid) {
+                index = i;
+                break;
+            }
+        }
+
+        var conv;
+        if (index != -1) {
+            var c = state.conversations[index];
+            var newConv = Object.assign({}, c);
+            if (cid == message.sender) {
+                newConv.unread = conv.unread + 1;
+            }
+            conv = newConv;
+        } else {
+            conv = {
+                id:cid,
+                cid:cid,
+                name:cid,
+                unread:0,
+            };
+            if (cid == message.sender) {
+                conv.unread = 1;
+            }
+        }
+
+        conv.message = message;
+        conv.timestamp = message.timestamp;
+        if (msgObj.text) {
+            conv.content = msgObj.text;
+        } else if (msgObj.image2) {
+            conv.content = "一张图片";
+        } else if (msgObj.audio) {
+            conv.content = "语音"
+        } else if (msgObj.location) {
+            conv.content = "位置";
+        } else {
+            conv.content = "";
+        }
+        
+        console.log("new conv:", newConv);
+        this.store.dispatch(updateConversation(conv, index));
+    },
+
+    handleGroupMessageACK: function(msg) {
+        console.log("handle group message ack");
+        var conv = this.store.getState().conversation;
+        if (!conv) {
+            return;
+        }
+        var cid = conv.cid;
+        if ("g_" + msg.receiver != cid) {
+            return;
+        }
+
+        this.store.dispatch(ackMessage(msg.id));
+    },
+    
 
     handleConnectivityChange: function(reach) {
         console.log('connectivity change: ' + reach);
@@ -165,9 +269,7 @@ var app = {
 
     startApp: function() {
         this.store = createStore(appReducers);
-    
         
-
         var db = SQLite.openDatabase({name:"gobelieve.db", createFromLocation : 1},
                                      function() {
                                          console.log("db open success");
@@ -176,9 +278,9 @@ var app = {
                                          console.log("db open error:", err);
                                      });
         PeerMessageDB.getInstance().setDB(db);
+        GroupMessageDB.getInstance().setDB(db);
 
         this.db = db;
-   
         
         AppState.addEventListener('change', this.handleAppStateChange.bind(this));
         var im = IMService.instance;

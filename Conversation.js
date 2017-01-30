@@ -18,7 +18,8 @@ import {setConversations, setUnread} from './actions'
 
 var IMService = require("./im");
 
-import PeerMessageDB from './PeerMessageDB.js';
+import PeerMessageDB from './PeerMessageDB';
+import GroupMessageDB from './GroupMessageDB';
 
 class Conversation extends React.Component {
     constructor(props) {
@@ -35,40 +36,89 @@ class Conversation extends React.Component {
     componentWillMount() {
         var db = PeerMessageDB.getInstance();
         
-        db.getConversations()
-          .then((messages) => {
-              var convs = [];
-              for (var i in messages) {
-                  var m = messages[i];
-                  console.log("m:", m, "uid:", this.props.uid);
-                  var cid = (m.sender == this.props.uid) ? m.receiver : m.sender;
-                  var conv = {
-                      id:cid,
-                      cid:cid,
-                      name:"" + cid,
-                      timestamp:m.timestamp,
-                      unread:0,
-                      message:m,
-                  }
-                  var msgObj = JSON.parse(m.content);
-                  if (msgObj.text) {
-                      conv.content = msgObj.text;
-                  } else if (msgObj.image2) {
-                      conv.content = "一张图片";
-                  } else if (msgObj.audio) {
-                      conv.content = "语音"
-                  } else if (msgObj.location) {
-                      conv.content = "位置";
-                  } else {
-                      conv.content = "";
-                  }
-                  
-                  convs = convs.concat(conv);
-              }
+        var p1 = db.getConversations()
+                   .then((messages) => {
+                       var convs = [];
+                       for (var i in messages) {
+                           var m = messages[i];
+                           console.log("m:", m, "uid:", this.props.uid);
+                           var cid = (m.sender == this.props.uid) ? m.receiver : m.sender;
+                           cid = "p_" + cid;
+                           var conv = {
+                               id:cid,
+                               cid:cid,
+                               name:cid,
+                               timestamp:m.timestamp,
+                               unread:0,
+                               message:m,
+                           }
+                           var msgObj = JSON.parse(m.content);
+                           if (msgObj.text) {
+                               conv.content = msgObj.text;
+                           } else if (msgObj.image2) {
+                               conv.content = "一张图片";
+                           } else if (msgObj.audio) {
+                               conv.content = "语音"
+                           } else if (msgObj.location) {
+                               conv.content = "位置";
+                           } else {
+                               conv.content = "";
+                           }
+                           
+                           convs = convs.concat(conv);
+                       }
 
-              console.log("conversations:", convs);
-              this.props.dispatch(setConversations(convs));
-          });
+                       console.log("conversations:", convs);
+                       return convs;
+
+                   });
+
+
+
+        db = GroupMessageDB.getInstance();
+        
+        var p2 = db.getConversations()
+                   .then((messages) => {
+                       var convs = [];
+                       for (var i in messages) {
+                           var m = messages[i];
+                           m.receiver = m.group_id;
+                           
+                           var cid = "g_" + m.receiver;
+                           var conv = {
+                               id:cid,
+                               cid:cid,
+                               name:cid,
+                               timestamp:m.timestamp,
+                               unread:0,
+                               message:m,
+                           }
+                           var msgObj = JSON.parse(m.content);
+                           if (msgObj.text) {
+                               conv.content = msgObj.text;
+                           } else if (msgObj.image2) {
+                               conv.content = "一张图片";
+                           } else if (msgObj.audio) {
+                               conv.content = "语音"
+                           } else if (msgObj.location) {
+                               conv.content = "位置";
+                           } else {
+                               conv.content = "";
+                           }
+                           
+                           convs = convs.concat(conv);
+                       }
+
+                       console.log("conversations:", convs);
+                       return convs
+                   });
+
+        Promise.all([p1, p2]).then((results) => {
+            var convs = results[0].concat(results[1]);
+            this.props.dispatch(setConversations(convs));
+        }).catch((err) => {
+            
+        })
 
     }
     
@@ -87,15 +137,29 @@ class Conversation extends React.Component {
         function onPress() {
             console.log("row data:", conv);
 
-            navigator.push({
-                title:"Chat",
-                screen:"demo.PeerChat",
-                passProps:{
-                    sender:self.props.uid,
-                    receiver:conv.cid,
-                    token:self.props.token,
-                },
-            });
+            if (conv.cid.startsWith("p_")) {
+                var uid = parseInt(conv.cid.substr(2));
+                navigator.push({
+                    title:"Chat",
+                    screen:"demo.PeerChat",
+                    passProps:{
+                        sender:self.props.uid,
+                        receiver:uid,
+                        token:self.props.token,
+                    },
+                });
+            } else if (conv.cid.startsWith("g_")) {
+                var gid = parseInt(conv.cid.substr(2));
+                navigator.push({
+                    title:"Chat",
+                    screen:"demo.GroupChat",
+                    passProps:{
+                        sender:self.props.uid,
+                        receiver:gid,
+                        token:self.props.token,
+                    },
+                });                
+            }
         }
 
         var t = new Date();

@@ -141,37 +141,48 @@ export default class Chat extends React.Component {
         if (!message.uuid) {
             return;
         }
-
+        if (!message.audio.url) {
+            return;
+        }
+        console.log("audio url:", message.audio.url);
+        
         var amrPath = this.getAMRPath(message.uuid);
         var wavPath = this.getWAVPath(message.uuid);
+
 
         RNFS.exists(wavPath)
             .then((exists) =>  {
                 if (exists) {
-                    return;
+                    return Promise.reject("exists");
                 }
-                if (!message.audio.url) {
-                    return;
-                }
-                console.log("audio url:", message.audio.url);
+                return;
+            })
+            .then(() => {
+                var path = AudioUtils.DocumentDirectoryPath + "/audios";
+                return RNFS.mkdir(path);
+            })
+            .then(() => {
                 var r = RNFS.downloadFile({
                     fromUrl:message.audio.url,
                     toFile:amrPath
                 });
 
-                
-                r.promise.then((result) => {
-                    console.log("download result:", result);
-                    if (result.statusCode == 200) {
-                        if (Platform.OS == 'ios') {
-                            OpenCoreAMR.amr2WAV(amrPath, wavPath, function(err) {
-                                if (err) {
-                                    console.log("amr 2 wav err:", err);
-                                }
-                            });
-                        }
+                return r.promise;
+            })
+            .then((result) => {
+                console.log("download result:", result);
+                if (result.statusCode == 200) {
+                    if (Platform.OS == 'ios') {
+                        OpenCoreAMR.amr2WAV(amrPath, wavPath, function(err) {
+                            if (err) {
+                                console.log("amr 2 wav err:", err);
+                            }
+                        });
                     }
-                });
+                }
+            })
+            .catch((err)=> {
+                console.log("err:", err);
             });
     }
 

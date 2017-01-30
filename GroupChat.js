@@ -2,15 +2,16 @@ import React from 'react';
 import {connect} from 'react-redux'
 import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
 
-import PeerMessageDB from './PeerMessageDB.js'
+import GroupMessageDB from './GroupMessageDB.js'
 import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
-import {setUnread, updateConversation, setConversation} from './actions'
+import {setUnread, updateConversation} from './actions'
+import {setConversation} from './actions';
 
 var IMService = require("./im");
 
 import Chat from './Chat';
 
-class PeerChat extends Chat {
+class GroupChat extends Chat {
     constructor(props) {
         super(props);
     }
@@ -21,7 +22,7 @@ class PeerChat extends Chat {
         var im = IMService.instance;
         im.addObserver(this);
 
-        this.listener = RCTDeviceEventEmitter.addListener('peer_message',
+        this.listener = RCTDeviceEventEmitter.addListener('group_message',
                                                           (message)=>{
                                                               this.downloadAudio(message);
                                                               this.props.dispatch(addMessage(message));
@@ -29,12 +30,13 @@ class PeerChat extends Chat {
                                                           });
 
 
-        var db = PeerMessageDB.getInstance();
+        var db = GroupMessageDB.getInstance();
 
         db.getMessages(this.props.receiver,
                        (msgs)=>{
                            for (var i in msgs) {
                                var m = msgs[i];
+                               m.receiver = m.group_id;
                                this.parseMessageContent(m);
                                this.downloadAudio(m);
                            }
@@ -43,7 +45,7 @@ class PeerChat extends Chat {
                        },
                        (e)=>{});
 
-        this.props.dispatch(setConversation({cid:"p_" + this.props.receiver}));
+        this.props.dispatch(setConversation({cid:"g_" + this.props.receiver}));        
     }
 
 
@@ -55,7 +57,7 @@ class PeerChat extends Chat {
 
         this.listener.remove();
 
-        this.props.dispatch(setUnread("p_" + this.props.receiver, 0));
+        this.props.dispatch(setUnread("g_" + this.props.receiver, 0));
         this.props.dispatch(setConversation({}));
     }
 
@@ -95,9 +97,9 @@ class PeerChat extends Chat {
     addMessage(message) {
         this.props.dispatch(addMessage(message));
         var conv = {
-            id:"p_" + this.props.receiver,
-            cid:"p_" + this.props.receiver,
-            name:"p_" + this.props.receiver,
+            id:"g_" + this.props.receiver,
+            cid:"g_" + this.props.receiver,
+            name:"g_" + this.props.receiver,
             unread:0,
             message:message,
             timestamp:message.timestamp,
@@ -122,9 +124,9 @@ class PeerChat extends Chat {
 
     
     saveMessage(message) {
-        var db = PeerMessageDB.getInstance();
+        var db = GroupMessageDB.getInstance();
         var p = new Promise((resolve, reject) => {
-            db.insertMessage(message, this.props.receiver,
+            db.insertMessage(message, 
                              function(rowid) {
                                  console.log("row id:", rowid);
                                  resolve(rowid);
@@ -140,7 +142,7 @@ class PeerChat extends Chat {
     sendMessage(message) {
         var im = IMService.instance;
         if (im.connectState == IMService.STATE_CONNECTED) {
-            im.sendPeerMessage(message);
+            im.sendGroupMessage(message);
         }
     }
 
@@ -152,7 +154,7 @@ class PeerChat extends Chat {
 
         console.log("load more content...:", m.id);
         var p = new Promise((resolve, reject) => {
-            var db = PeerMessageDB.getInstance();
+            var db = GroupMessageDB.getInstance();
             db.getEarlierMessages(this.props.receiver, m.id,
                                   (messages) => {
                                       resolve(messages);
@@ -182,8 +184,8 @@ class PeerChat extends Chat {
 }
 
 
-PeerChat = connect(function(state){
+GroupChat = connect(function(state){
     return {messages:state.messages};
-})(PeerChat);
+})(GroupChat);
 
-export default PeerChat;
+export default GroupChat;

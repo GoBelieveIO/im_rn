@@ -125,6 +125,7 @@ export default class Login extends Component {
                         marginRight:8,
                         borderWidth: 0.5,
                         borderColor: '#0f0f0f',
+                        height:35,
                     }}
                     keyboardType="numeric"
                     placeholder="发送者id"
@@ -141,6 +142,7 @@ export default class Login extends Component {
                         marginRight:8,
                         borderWidth: 0.5,
                         borderColor: '#0f0f0f',
+                        height:35,
                     }}
                     keyboardType="numeric"
                     placeholder="接受者id"
