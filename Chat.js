@@ -656,6 +656,10 @@ export default class Chat extends React.Component {
         AudioRecorder.prepareRecordingAtPath(audioPath, {
             SampleRate: 8000,
             Channels: 2,
+            OutputFormat: Platform.select({
+                ios: "",
+                android: "amr_nb",
+            }),
             AudioEncoding: Platform.select({
                 ios: "lpcm",
                 android: "amr_nb",
