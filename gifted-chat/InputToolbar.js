@@ -339,7 +339,7 @@ export default class InputToolbar extends React.Component {
   
     renderTextInput() {
         const {value = '', isEmoji, mode} = this.state;
-        var height = this.composerHeight + 11;
+        var height = this.composerHeight + (MIN_INPUT_TOOLBAR_HEIGHT - MIN_COMPOSER_HEIGHT);
         console.log("composer height:", this.composerHeight);
         return (
             <View style={[Styles.inputRow, {height:height}]}>
@@ -381,8 +381,10 @@ export default class InputToolbar extends React.Component {
 
     renderReocrdInput() {
         const {value = '', isEmoji, mode, opacity} = this.state;
-        var height = this.composerHeight + 11;
-        
+        var height = this.composerHeight + (MIN_INPUT_TOOLBAR_HEIGHT - MIN_COMPOSER_HEIGHT);
+        console.log("composer height:", this.composerHeight);
+
+        //android bug: https://github.com/facebook/react-native/issues/7221        
         var responder = {
             onStartShouldSetResponder:(evt) => true,
             onMoveShouldSetResponder: (evt) => true,
@@ -442,6 +444,7 @@ export default class InputToolbar extends React.Component {
                         </Text>
                     </View>
                 </View>
+                { this._renderEmojiButton() }
                 { this._renderSendButton() }
             </View>
         );

@@ -682,7 +682,7 @@ export default class Chat extends React.Component {
 
         if (duration < 1) {
             console.log("record time too short");
-            Toast.showLongBottom.bind(null, '录音时间太短了')
+            Toast.showShortBottom('录音时间太短了')
             return;
         }
 
