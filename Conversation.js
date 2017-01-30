@@ -9,9 +9,10 @@ import {
     TouchableHighlight
 } from 'react-native';
 
+
 import {connect} from 'react-redux'
 import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
-
+import moment from 'moment/min/moment-with-locales.min';
 
 import {setConversations, setUnread} from './actions'
 
@@ -96,20 +97,71 @@ class Conversation extends React.Component {
                 },
             });
         }
-        
+
+        var t = new Date();
+        t = t.setTime(conv.timestamp*1000);
+
+        var reanderUnread = function() {
+            if (conv.unread > 0) {
+                return (
+                    <View style={{backgroundColor:"red",
+                                  position:"absolute",
+                                  left:32,
+                                  top:0,
+                                  width:16,
+                                  height:16,
+                                  borderRadius:90,
+                                  alignItems:"center",
+                                  justifyContent:"center"}}>
+                        <Text style={{fontSize:8}}>
+                            {"" + conv.unread}
+                        </Text>
+                    </View>
+                );
+            } else {
+                return null;
+            }
+        }
+
         return (
             <TouchableHighlight
-                style={{flex:1, height:40}}
+                style={{flex:1, height:64, backgroundColor:"white"}}
+                activeOpacity={0.6}
+                underlayColor={"gray"}
                 onPress={onPress}>
-                <View style={{flex:1, height:40, justifyContent:"center"}}>
-                    <Text style={{marginLeft:12}}>
-                        {conv.name}
-                    </Text>
-                    <Text style={{marginLeft:12}}>
-                        {conv.content}
-                    </Text>
+                <View style={{flex:1}}>
 
-                    <View style={{height:1, marginTop:4, backgroundColor:"gray"}}/>
+                    <View style={{flex:1,
+                                  height:64,
+                                  flexDirection:"row",
+                                  alignItems:"center"}}>
+
+                        <View style={{marginLeft:12, width:48, height:48}}>
+                            <Image style={{ position:"absolute",
+                                            left:0,
+                                            top:8,
+                                            width:40,
+                                            height:40}}
+                                   source={require("./Images/default.png")}/>
+                            
+                            {reanderUnread()}
+                        </View>
+                        <View style={{flex:1, height:40, marginLeft:12}}>
+                            <View style={{flex:1, flexDirection:"row",  justifyContent: 'space-between'}}>
+                                <Text style={{fontWeight:"bold"}}>
+                                    {conv.name}
+                                </Text>
+                                <Text style={{fontWeight:"100", fontSize:12, marginRight:8}}>
+                                    {moment(t).locale('zh-cn').format('LT')}
+                                </Text>
+                            </View>
+                            <Text>
+                                {conv.content}
+                            </Text>
+                        </View>
+                    </View>
+                    
+                    <View style={{ height:1, backgroundColor:"gray"}}/>
                 </View>
             </TouchableHighlight>
         );
@@ -118,7 +170,7 @@ class Conversation extends React.Component {
     
     render() {
         return (
-            <View style={{flex: 1, paddingTop: 22}}>
+            <View style={{flex: 1, marginTop:4}}>
                 <ListView
                     enableEmptySections={true}
                     dataSource={this.state.dataSource}

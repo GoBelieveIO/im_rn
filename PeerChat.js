@@ -4,7 +4,7 @@ import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
 
 import PeerMessageDB from './PeerMessageDB.js'
 import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
-import {updateConversation} from './actions'
+import {setUnread, updateConversation} from './actions'
 
 var IMService = require("./im");
 
@@ -52,6 +52,8 @@ class PeerChat extends Chat {
         im.removeObserver(this);
 
         this.listener.remove();
+
+        this.props.dispatch(setUnread(this.props.receiver, 0));
     }
 
     parseMessageContent(m) {

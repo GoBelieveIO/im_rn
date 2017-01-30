@@ -16,6 +16,7 @@
     "react-native-engine.io-client": "^1.6.12",
     "react-native-fs": "^2.1.0-rc.1",
     "react-native-image-picker": "^0.25.1",
+    "react-native-loading-spinner-overlay": "^0.4.1",
     "react-native-maps": "^0.13.0",
     "react-native-nav": "^1.1.4",
     "react-native-navigation": "^2.0.0-experimental.189",

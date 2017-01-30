@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 
 import { NativeModules, NativeAppEventEmitter } from 'react-native';
+import Spinner from 'react-native-loading-spinner-overlay';
 
 var IMService = require("./im");
 var im = IMService.instance;
@@ -22,7 +23,11 @@ var im = IMService.instance;
 export default class Login extends Component {
     constructor(props) {
         super(props);
-        this.state = {sender:"", receiver:""};
+        this.state = {
+            sender:"",
+            receiver:"",
+            visible:false
+        };
         console.log("this props:", this.props);
     }
     
@@ -59,6 +64,9 @@ export default class Login extends Component {
             device_id:im.device_id,
         };
 
+        this.setState({
+            visible:true
+        });
         fetch(url, {
             method:"POST",  
             headers: {
@@ -68,6 +76,10 @@ export default class Login extends Component {
             body:JSON.stringify(obj)
         }).then((response) => {
             console.log("status:", response.status);
+            this.setState({
+                visible:false
+            });
+
             return response.json().then((responseJson)=>{
                 if (response.status == 200) {
                     console.log("response json:", responseJson);
@@ -91,6 +103,9 @@ export default class Login extends Component {
             });
         }).catch((error) => {
             console.log("error:", error);
+            this.setState({
+                visible:false
+            });
         });
     }
 
@@ -99,6 +114,7 @@ export default class Login extends Component {
     render() {
         return (
             <View>
+                <Spinner visible={this.state.visible} />
                 <TextInput
                     onChangeText={(text) => {
                             this.setState({sender:text});

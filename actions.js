@@ -41,10 +41,11 @@ export function updateConversation(conv, index) {
     };
 }
 
-export function setUnread(cid) {
+export function setUnread(cid, unread) {
     return {
         type:SET_UNREAD,
-        cid:cid
+        cid:cid,
+        unread:unread
     };
 }
 
