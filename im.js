@@ -14,17 +14,28 @@ import {
 module.exports = IMService;
 
 function IMService() {
-    this.host = "imnode.gobelieve.io";
-    this.port = 13890;
+    this.host = "imnode2.gobelieve.io";
+    if (global.location && 'https:' === location.protocol) {
+        this.port = 14890;
+    } else {
+        this.port = 13890;
+    }
+
     this.accessToken = "";
+    this.syncKey = 0;
+    this.groupSyncKeys = {};
+    
     this.observers = [];
+    
     this.socket = null;
     this.connectFailCount = 0;
     this.connectState = IMService.STATE_UNCONNECTED;
     this.seq = 0;
+    this.stopped = true;
     this.roomID = 0;
     //sending message
     this.messages = {};
+    this.groupMessages = {};
     this.customerMessages = {};
 
     this.stopped = true;
@@ -48,6 +59,8 @@ IMService.MSG_AUTH_STATUS = 3;
 IMService.MSG_IM = 4;
 IMService.MSG_ACK = 5;
 IMService.MSG_RST = 6;
+IMService.MSG_GROUP_NOTIFICATION = 7;
+IMService.MSG_GROUP_IM = 8;
 IMService.MSG_PEER_ACK = 9;
 IMService.MSG_AUTH_TOKEN = 15;
 IMService.MSG_RT = 17;
@@ -55,8 +68,21 @@ IMService.MSG_ENTER_ROOM = 18;
 IMService.MSG_LEAVE_ROOM = 19;
 IMService.MSG_ROOM_IM = 20;
 
-IMService.MSG_CUSTOMER = 24
-IMService.MSG_CUSTOMER_SUPPORT = 25
+IMService.MSG_CUSTOMER = 24;
+IMService.MSG_CUSTOMER_SUPPORT = 25;
+
+IMService.MSG_SYNC = 26;
+IMService.MSG_SYNC_BEGIN = 27;
+IMService.MSG_SYNC_END = 28;
+IMService.MSG_SYNC_NOTIFY = 29;
+IMService.MSG_SYNC_GROUP = 30;
+IMService.MSG_SYNC_GROUP_BEGIN = 31;
+IMService.MSG_SYNC_GROUP_END = 32;
+IMService.MSG_SYNC_GROUP_NOTIFY = 33;
+IMService.MSG_SYNC_KEY = 34;
+IMService.MSG_GROUP_SYNC_KEY = 35;
+
+IMService.MSG_VOIP_CONTROL = 64;
 
 
 IMService.PLATFORM_ID = 3;
@@ -224,6 +250,12 @@ IMService.prototype.onOpen = function () {
     if (this.roomID > 0) {
         this.sendEnterRoom(this.roomID);
     }
+    this.sendSync(this.syncKey);
+
+    for (var groupID in this.groupSyncKeys) {
+        var s = this.groupSyncKeys[groupID];
+        this.sendGroupSync(groupID, s);
+    }
 
     this.connectFailCount = 0;
     this.seq = 0;
@@ -276,6 +308,41 @@ IMService.prototype.onMessage = function (data) {
                 observer.handlePeerMessage(msg);
             }
         });
+
+        this.sendACK(seq);
+    } else if (cmd == IMService.MSG_GROUP_IM) {
+        var msg = {}
+
+        msg.sender = ntoh64(buf, pos);
+        pos += 8;
+
+        msg.receiver = ntoh64(buf, pos);
+        pos += 8;
+        
+        msg.timestamp = ntohl(buf, pos);
+        pos += 4;
+
+        //msgid
+        pos += 4;
+
+        msg.content = buf.toString("utf8", IMService.HEADSIZE + 24, IMService.HEADSIZE + len);
+
+        console.log("im message sender:" + msg.sender +" receiver:" + msg.receiver + "content:" + msg.content);
+
+        this.observers.forEach(function(observer) { 
+            if (observer != null && "handleGroupMessage" in observer) {
+                observer.handleGroupMessage(msg);
+            }
+        });
+
+        this.sendACK(seq);
+    } else if (cmd == IMService.MSG_GROUP_NOTIFICATION) {
+        msg = buf.toString("utf8", IMService.HEADSIZE, IMService.HEADSIZE + len);
+        this.observers.forEach(function(observer) { 
+            if (observer != null && "handleGroupNotification" in observer) {
+                observer.handleGroupNotification(msg);
+            }
+        });
         this.sendACK(seq);
     } else if (cmd == IMService.MSG_CUSTOMER) {
         var msg = {}
@@ -300,11 +367,12 @@ IMService.prototype.onMessage = function (data) {
                     " customer id:" + msg.customerID + " store id:" + msg.storeID + " seller id:" + 
                     msg.sellerID + "content:" + msg.content);
 
-        this.observers.forEach(function(observer) {
+        this.observers.forEach(function(observer) { 
             if (observer != null && "handleCustomerMessage" in observer) {
                 observer.handleCustomerMessage(msg);
             }
         });
+
         this.sendACK(seq);
     } else if (cmd == IMService.MSG_RT) {
         var msg = {}
@@ -318,7 +386,7 @@ IMService.prototype.onMessage = function (data) {
 
         console.log("rt message sender:" + msg.sender +" receiver:" + msg.receiver + "content:" + msg.content);
 
-        this.observers.forEach(function(observer) {        
+        this.observers.forEach(function(observer) { 
             if (observer != null && "handleRTMessage" in observer) {
                 observer.handleRTMessage(msg);
             }
@@ -335,7 +403,7 @@ IMService.prototype.onMessage = function (data) {
 
         console.log("room message sender:" + msg.sender +" receiver:" + msg.receiver + "content:" + msg.content);
 
-        this.observers.forEach(function(observer) {        
+        this.observers.forEach(function(observer) { 
             if (observer != null && "handleRoomMessage" in observer) {
                 observer.handleRoomMessage(msg);
             }
@@ -363,7 +431,8 @@ IMService.prototype.onMessage = function (data) {
                     " customer id:" + msg.customerID + " store id:" + msg.storeID + 
                     " seller id:" + msg.sellerID + "content:" + msg.content);
 
-        this.observers.forEach(function(observer) {        
+
+        this.observers.forEach(function(observer) { 
             if (observer != null && "handleCustomerSupportMessage" in observer) {
                 observer.handleCustomerSupportMessage(msg);
             }
@@ -377,16 +446,17 @@ IMService.prototype.onMessage = function (data) {
         var ack = ntohl(buf, pos);
         if (ack in this.messages) {
             var msg = this.messages[ack];
-            this.observers.forEach(function(observer) {        
+            this.observers.forEach(function(observer) { 
                 if (observer != null && "handleMessageACK" in observer){
-                    observer.handleMessageACK(msg.msgLocalID, msg.receiver);
+                    observer.handleMessageACK(msg);
                 }
             });
             delete this.messages[ack];
         }
         if (ack in this.customerMessages) {
             var msg = this.customerMessages[ack];
-            this.observers.forEach(function(observer) {
+
+            this.observers.forEach(function(observer) { 
                 if (observer != null && "handleCustomerMessageACK" in observer){
                     observer.handleCustomerMessageACK(msg);
                 }
@@ -394,10 +464,108 @@ IMService.prototype.onMessage = function (data) {
             delete this.customerMessages[ack];
 
         }
+
+        for (ack in this.groupMessages) {
+            var msg = this.groupMessages[ack];
+
+            this.observers.forEach(function(observer) { 
+                if (observer != null && "handleGroupMessageACK" in observer){
+                    observer.handleGroupMessageACK(msg);
+                }
+            });
+            delete this.groupMessages[ack];
+        }
+
+    } else if (cmd == IMService.MSG_VOIP_CONTROL) {
+        var msg = {}
+
+        msg.sender = ntoh64(buf, pos);
+        pos += 8;
+
+        msg.receiver = ntoh64(buf, pos);
+        pos += 8;
+
+        var data = buf.slice(IMService.HEADSIZE + 16, IMService.HEADSIZE + len);
+        msg.content = data;
+
+        this.observers.forEach(function(observer) { 
+            if (this.voipObserver != null && "handleVOIPControl" in this.voipObserver) {
+                this.voipObserver.handleVOIPControl(msg);
+            }
+        });
+    } else if (cmd == IMService.MSG_SYNC_NOTIFY) {
+        newSyncKey = ntoh64(buf, pos);
+        pos += 8;
+        console.log("sync notify:" + newSyncKey);
+
+        if (this.syncKey < newSyncKey) {
+            this.sendSync(this.syncKey);
+        }
+    } else if (cmd == IMService.MSG_SYNC_BEGIN) {
+        newSyncKey = ntoh64(buf, pos);
+        pos += 8;
+
+        console.log("sync begin:" + newSyncKey);
+
+    } else if (cmd == IMService.MSG_SYNC_END) {
+        newSyncKey = ntoh64(buf, pos);
+        pos += 8;
+        
+        console.log("sync end:" + newSyncKey);
+        if (newSyncKey > this.syncKey) {
+            this.syncKey = newSyncKey;
+            this.sendSyncKey(this.syncKey);
+        }
+
+    } else if (cmd == IMService.MSG_SYNC_GROUP_NOTIFY) {
+        var groupID = ntoh64(buf, pos)
+        pos += 8;
+        var newSyncKey = ntoh64(buf, pos);
+        pos += 8;
+
+        console.log("sync group notify:" + groupID + 
+                    " sync key: " + newSyncKey);
+        
+        var groupSyncKey = 0;
+        if (groupID in this.groupSyncKeys) {
+            groupSyncKey = this.groupSyncKeys[groupID];
+        }
+        if (newSyncKey > groupSyncKey) {
+            this.sendGroupSync(groupID, this.groupSyncKeys[groupID]);
+        }
+        
+        
+    } else if (cmd == IMService.MSG_SYNC_GROUP_BEGIN) {
+        var groupID = ntoh64(buf, pos)
+        pos += 8;
+        var newSyncKey = ntoh64(buf, pos);
+        pos += 8;
+
+        console.log("sync group begin:" + groupID + 
+                    " sync key: " + newSyncKey);
+        
+    } else if (cmd == IMService.MSG_SYNC_GROUP_END) {
+        var groupID = ntoh64(buf, pos)
+        pos += 8;
+        var newSyncKey = ntoh64(buf, pos);
+        pos += 8;
+
+        console.log("sync group end:" + groupID + 
+                    " sync key: " + newSyncKey);
+
+        var groupSyncKey = 0;
+        if (groupID in this.groupSyncKeys) {
+            groupSyncKey = this.groupSyncKeys[groupID];
+        }
+        if (newSyncKey > groupSyncKey) {
+            this.groupSyncKeys[groupID] = newSyncKey;
+            this.sendGroupSyncKey(groupID, syncKey);
+        }
     } else {
         console.log("message command:" + cmd);
     }
 };
+
 
 IMService.prototype.onError = function (err) {
     console.log("err:" + err);
@@ -440,6 +608,18 @@ IMService.prototype.onClose = function() {
     }
     this.customerMessages = {};
 
+    
+    for (var seq in this.groupMessages) {
+        var msg = this.groupMessages[seq];
+        this.observers.forEach(function(observer) {
+            if (observer != null && "handleGroupMessageFailure" in observer){
+                observer.handleGroupMessageFailure(msg);
+            }
+        });
+    }
+    this.groupMessages = {};
+    
+
     if (this.stopped || this.isBackground || 
         this.suspended || !this.reachable) {
         return;
@@ -452,6 +632,35 @@ IMService.prototype.onClose = function() {
     setTimeout(f, 400);
 };
 
+IMService.prototype.sendSync = function(syncKey) {
+    var buf = new Buffer(8);
+    hton64(buf, 0, syncKey);
+    this.send(IMService.MSG_SYNC, buf);
+}
+
+
+IMService.prototype.sendSyncKey = function(syncKey) {
+    var buf = new Buffer(8);
+    hton64(buf, 0, syncKey);
+    this.send(IMService.MSG_SYNC_KEY, buf);
+}
+
+IMService.prototype.sendGroupSync = function(groupID, syncKey) {
+    var buf = new Buffer(16);
+    hton64(buf, 0, groupID);
+    hton64(buf, 8, syncKey);
+    this.send(IMService.MSG_SYNC_GROUP, buf);
+}
+
+
+IMService.prototype.sendGroupSyncKey = function(groupID, syncKey) {
+    var buf = new Buffer(16);
+    hton64(buf, 0, groupID);
+    hton64(buf, 8, syncKey);
+    this.send(IMService.MSG_GROUP_SYNC_KEY, buf);
+}
+
+            
 IMService.prototype.sendACK = function(ack) {
     var buf = new Buffer(4);
     htonl(buf, 0, ack);
@@ -520,6 +729,20 @@ IMService.prototype.send = function (cmd, body) {
     return true
 };
 
+
+IMService.prototype.addSuperGroupSyncKey = function(groupID) {
+    delete this.groupSyncKeys[groupID];
+};
+
+IMService.prototype.removeSuperGroupSyncKey = function(groupID, syncKey) {
+    this.groupSyncKeys[groupID] = syncKey;
+};
+
+IMService.prototype.clearSuperGroupSyncKey = function() {
+    this.groupSyncKeys = {};
+};
+
+
 IMService.prototype.sendPeerMessage = function (msg) {
     if (this.connectState != IMService.STATE_CONNECTED) {
         return false;
@@ -551,6 +774,36 @@ IMService.prototype.sendPeerMessage = function (msg) {
     return true;
 };
 
+IMService.prototype.sendGroupMessage = function (msg) {
+    if (this.connectState != IMService.STATE_CONNECTED) {
+        return false;
+    }
+
+    var len = Buffer.byteLength(msg.content);
+    var buf = new Buffer(24+len);
+    var pos = 0;
+
+    hton64(buf, pos, msg.sender);
+    pos += 8;
+    hton64(buf, pos, msg.receiver);
+    pos += 8;
+    htonl(buf, pos, msg.timestamp)
+    pos += 4;
+    htonl(buf, pos, msg.msgLocalID);
+    pos += 4;
+
+    len = buf.write(msg.content, pos);
+    pos += len;
+
+
+    var r = this.send(IMService.MSG_GROUP_IM, buf);
+    if (!r) {
+        return false;
+    }
+
+    this.groupMessages[this.seq] = msg;
+    return true;
+};
 
 IMService.prototype.sendRTMessage = function (msg) {
     if (this.connectState != IMService.STATE_CONNECTED) {
