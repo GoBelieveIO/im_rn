@@ -25,6 +25,7 @@
 		1A9109422B8D4ACA914730DB /* libRNFS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BB000B2B75BA470EBEA48A50 /* libRNFS.a */; };
 		46CAC0F5B1484406904F8B9E /* libsqlite3.0.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AA85691DBCE40E6B72D360A /* libsqlite3.0.tbd */; };
 		5E9157361DD0AC6A00FF2AA8 /* libRCTAnimation.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5E9157331DD0AC6500FF2AA8 /* libRCTAnimation.a */; };
+		6DADEAC21E5CB8F6008579C7 /* libART.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6DADEAA01E5CB8E8008579C7 /* libART.a */; };
 		6DF6D2D11E365DB6003AA63B /* www in Resources */ = {isa = PBXBuildFile; fileRef = 6DF6D2D01E365DB6003AA63B /* www */; };
 		832341BD1AAA6AB300B99B32 /* libRCTText.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 832341B51AAA6A8300B99B32 /* libRCTText.a */; };
 		9EEB237D345644B08DCC385D /* libSQLite.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 4DC6CDBA9B804368BF24BB5C /* libSQLite.a */; };
@@ -205,6 +206,13 @@
 			remoteGlobalIDString = 2D2A28201D9B03D100D4039D;
 			remoteInfo = "RCTAnimation-tvOS";
 		};
+		6DADEA9F1E5CB8E8008579C7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6DADEA9A1E5CB8E8008579C7 /* ART.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 0CF68AC11AF0540F00FF9E5C;
+			remoteInfo = ART;
+		};
 		6DF6D21E1E34ED35003AA63B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = FA231BF88E1A406DA1C0BCA1 /* RNImagePicker.xcodeproj */;
@@ -311,6 +319,7 @@
 		4DC6CDBA9B804368BF24BB5C /* libSQLite.a */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = archive.ar; path = libSQLite.a; sourceTree = "<group>"; };
 		5AA85691DBCE40E6B72D360A /* libsqlite3.0.tbd */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.0.tbd; path = usr/lib/libsqlite3.0.tbd; sourceTree = SDKROOT; };
 		5E91572D1DD0AC6500FF2AA8 /* RCTAnimation.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RCTAnimation.xcodeproj; path = "../node_modules/react-native/Libraries/NativeAnimation/RCTAnimation.xcodeproj"; sourceTree = "<group>"; };
+		6DADEA9A1E5CB8E8008579C7 /* ART.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ART.xcodeproj; path = "../node_modules/react-native/Libraries/ART/ART.xcodeproj"; sourceTree = "<group>"; };
 		6DF6D2D01E365DB6003AA63B /* www */ = {isa = PBXFileReference; lastKnownFileType = folder; path = www; sourceTree = "<group>"; };
 		6E9FB6914CBB48BCBB84B407 /* libRNImagePicker.a */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = archive.ar; path = libRNImagePicker.a; sourceTree = "<group>"; };
 		78C398B01ACF4ADC00677621 /* RCTLinking.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = RCTLinking.xcodeproj; path = "../node_modules/react-native/Libraries/LinkingIOS/RCTLinking.xcodeproj"; sourceTree = "<group>"; };
@@ -341,6 +350,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6DADEAC21E5CB8F6008579C7 /* libART.a in Frameworks */,
 				5E9157361DD0AC6A00FF2AA8 /* libRCTAnimation.a in Frameworks */,
 				146834051AC3E58100842450 /* libReact.a in Frameworks */,
 				00C302E51ABCBA2D00DB3ED1 /* libRCTActionSheet.a in Frameworks */,
@@ -484,6 +494,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		6DADEA9B1E5CB8E8008579C7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				6DADEAA01E5CB8E8008579C7 /* libART.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		6DF6D2021E34ED34003AA63B /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -568,6 +586,7 @@
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
 			isa = PBXGroup;
 			children = (
+				6DADEA9A1E5CB8E8008579C7 /* ART.xcodeproj */,
 				5E91572D1DD0AC6500FF2AA8 /* RCTAnimation.xcodeproj */,
 				146833FF1AC3E56700842450 /* React.xcodeproj */,
 				00C302A71ABCB8CE00DB3ED1 /* RCTActionSheet.xcodeproj */,
@@ -704,6 +723,10 @@
 				{
 					ProductGroup = 6DF6D4471E3B9C3D003AA63B /* Products */;
 					ProjectRef = EBDE7C51DF9E49D8B0C4C25B /* AirMaps.xcodeproj */;
+				},
+				{
+					ProductGroup = 6DADEA9B1E5CB8E8008579C7 /* Products */;
+					ProjectRef = 6DADEA9A1E5CB8E8008579C7 /* ART.xcodeproj */;
 				},
 				{
 					ProductGroup = 00C302A81ABCB8CE00DB3ED1 /* Products */;
@@ -950,6 +973,13 @@
 			fileType = archive.ar;
 			path = "libRCTAnimation-tvOS.a";
 			remoteRef = 5E9157341DD0AC6500FF2AA8 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		6DADEAA01E5CB8E8008579C7 /* libART.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libART.a;
+			remoteRef = 6DADEA9F1E5CB8E8008579C7 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		6DF6D21F1E34ED35003AA63B /* libRNImagePicker.a */ = {

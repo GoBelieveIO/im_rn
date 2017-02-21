@@ -1,11 +1,17 @@
 import React from 'react';
+import {
+    Platform,
+} from 'react-native';
+
 import {connect} from 'react-redux'
 import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
+import {AudioUtils} from 'react-native-audio';
 
 import GroupMessageDB from './GroupMessageDB.js'
 import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
 import {setUnread, updateConversation} from './actions'
 import {setConversation} from './actions';
+
 
 var IMService = require("./im");
 

@@ -1,6 +1,11 @@
 import React from 'react';
+import {
+    Platform,
+} from 'react-native';
+
 import {connect} from 'react-redux'
 import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
+import {AudioUtils} from 'react-native-audio';
 
 import PeerMessageDB from './PeerMessageDB.js'
 import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
@@ -77,7 +82,7 @@ class PeerChat extends Chat {
                     console.log("image uri:", uri);
                 }
             }
-            m.image = obj.image2
+            m.image = obj.image2;
         } else if (obj.audio) {
             console.log("auido message....");
             m.audio = obj.audio;

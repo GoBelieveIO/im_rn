@@ -36,9 +36,10 @@ import {addConversation, updateConversation} from "./chat/actions";
 import {setConversation} from './chat/actions';
 
 import Login from "./Login";
+import Conversation from './Conversation';
 import PeerChat from "./chat/PeerChat";
 import GroupChat from "./chat/GroupChat"
-import Conversation from './Conversation';
+import Photo from './chat/Photo';
 
 var appReducers = require('./chat/reducers');
 var IMService = require("./chat/im");
@@ -50,6 +51,7 @@ var app = {
         Navigation.registerComponent('demo.PeerChat', () => PeerChat, this.store, Provider);
         Navigation.registerComponent('demo.GroupChat', () => GroupChat, this.store, Provider);
         Navigation.registerComponent('demo.Conversation', () => Conversation, this.store, Provider);
+        Navigation.registerComponent('demo.Photo', () => Photo, this.store, Provider);
     },
     
     handlePeerMessage: function(message) {

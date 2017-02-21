@@ -648,6 +648,19 @@ export default class Chat extends React.Component {
                 });
 
         }
+        if (message.image) {
+            var navigator = this.props.navigator;
+            navigator.showLightBox({
+                screen:"demo.Photo",
+                passProps:{
+                    url:message.image.url
+                },
+                navigatorStyle: {
+                    statusBarHideWithNavBar:true,
+                    statusBarHidden:true,
+                },
+            });
+        }
     }
     
     startRecording() {
@@ -988,7 +1001,7 @@ export default class Chat extends React.Component {
         ];
         
         const {width, height} = Dimensions.get('window');
-        var left = this.state.recording ? 0 : -width;
+        var left = this.state.recording ? 0 : width;
         const {recordingText, recordingColor, currentMetering} = this.state;
         //currentMetering [0, 20]
         return (
