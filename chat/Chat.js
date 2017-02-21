@@ -60,6 +60,8 @@ export default class Chat extends React.Component {
             recordingColor:"transparent",
 
             canLoadMoreContent:true,
+
+            currentMetering:0,
         };
 
         this._keyboardHeight = 0;
@@ -657,12 +659,26 @@ export default class Chat extends React.Component {
         }
         
         this.recordingBegin = new Date();
-        
+
+        var self = this;
         var fileName = Platform.select({
             ios: "recording.wav",
             android: "recording.amr",
         });
         var audioPath = AudioUtils.DocumentDirectoryPath + "/" + fileName;
+        AudioRecorder.onProgress = function(data) {
+            console.log("record progress:", data);
+
+            var metering = data.currentMetering;
+            //ios: [-160, 0]
+            metering = Math.max(metering, -160);
+            metering = Math.min(metering, 0);
+
+            //to [0, 20]
+            var t = 20*(metering - (-160))/160;
+            t = Math.floor(t);
+            self.setState({currentMetering:t});
+        };
         AudioRecorder.prepareRecordingAtPath(audioPath, {
             SampleRate: 8000,
             Channels: 2,
@@ -674,6 +690,7 @@ export default class Chat extends React.Component {
                 ios: "lpcm",
                 android: "amr_nb",
             }),
+            MeteringEnabled:true,
         });
 
         AudioRecorder.startRecording();
@@ -946,29 +963,58 @@ export default class Chat extends React.Component {
 
 
     renderRecordView() {
+        var images = [
+            require("./Images/VoiceSearchFeedback000.png"),
+            require("./Images/VoiceSearchFeedback001.png"),
+            require("./Images/VoiceSearchFeedback002.png"),
+            require("./Images/VoiceSearchFeedback003.png"),
+            require("./Images/VoiceSearchFeedback004.png"),
+            require("./Images/VoiceSearchFeedback005.png"),
+            require("./Images/VoiceSearchFeedback006.png"),
+            require("./Images/VoiceSearchFeedback007.png"),
+            require("./Images/VoiceSearchFeedback008.png"),
+            require("./Images/VoiceSearchFeedback009.png"),
+            require("./Images/VoiceSearchFeedback010.png"),
+            require("./Images/VoiceSearchFeedback011.png"),
+            require("./Images/VoiceSearchFeedback012.png"),
+            require("./Images/VoiceSearchFeedback013.png"),
+            require("./Images/VoiceSearchFeedback014.png"),
+            require("./Images/VoiceSearchFeedback015.png"),
+            require("./Images/VoiceSearchFeedback016.png"),
+            require("./Images/VoiceSearchFeedback017.png"),
+            require("./Images/VoiceSearchFeedback018.png"),
+            require("./Images/VoiceSearchFeedback019.png"),
+            require("./Images/VoiceSearchFeedback020.png"),
+        ];
+        
         const {width, height} = Dimensions.get('window');
         var left = this.state.recording ? 0 : -width;
-        const {recordingText, recordingColor} = this.state;
+        const {recordingText, recordingColor, currentMetering} = this.state;
+        //currentMetering [0, 20]
         return (
-            <Animated.View style={{backgroundColor:"#dcdcdcaf",
-                                   position:"absolute",
+            <Animated.View style={{position:"absolute",
                                    top:0,
                                    left:left,
                                    width:width,
                                    height:this.state.messagesContainerHeight,
                                    alignItems:"center",
                                    justifyContent:"center"}}>
-                <Text style={{backgroundColor:recordingColor}}>
-                    {recordingText}
-                </Text>
+                <View style={{backgroundColor:"#dcdcdcaf",
+                              alignItems:"center",
+                              borderRadius:4}}>
+                    <Image source={images[currentMetering]}/>
+                    <Text style={{margin:4,
+                                  padding:4,
+                                  backgroundColor:recordingColor}}>
+                        {recordingText}
+                    </Text>
+                </View>
             </Animated.View>);
         
     }
 
     render() {
         const {width, height} = Dimensions.get('window');
-
-
         
         if (this.state.isInitialized === true) {
             var onViewLayout = (e) => {
