@@ -13,7 +13,12 @@ export default class MessageAudio extends React.Component {
         var outgoing = (this.props.user._id == this.props.currentMessage.user._id);
         return (
             <View style={styles.container}>
-                <Image style={{width:20, height:20}}
+                <Image style={{  marginTop: 5,
+                                 marginBottom: 5,
+                                 marginLeft: 10,
+                                 marginRight: 10,
+                                 width:20,
+                                 height:20}}
                        source={outgoing ? require("./Images/SenderVoiceNodePlaying.png") :require("./Images/ReceiverVoiceNodePlaying.png")}>
                 </Image>
             </View>
@@ -23,7 +28,7 @@ export default class MessageAudio extends React.Component {
 
 const styles = StyleSheet.create({
     container: {
-        width:100
+
     },
 });
 
