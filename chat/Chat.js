@@ -797,12 +797,12 @@ export default class Chat extends React.Component {
         console.log("keyboard will show:", e, newMessagesContainerHeight);
         console.log("keyboard height:", e.endCoordinates ? e.endCoordinates.height : e.end.height);
 
-
         if (e && e.duration && e.duration > 0) {
-            LayoutAnimation.configureNext(LayoutAnimation.create(
+            var animation = LayoutAnimation.create(
                 e.duration,
-                LayoutAnimation.Types[e.easing]
-            ));
+                LayoutAnimation.Types[e.easing],
+                LayoutAnimation.Properties.opacity);
+            LayoutAnimation.configureNext(animation);
         }
         this.setState({
             messagesContainerHeight:new Animated.Value(newMessagesContainerHeight)
@@ -816,10 +816,11 @@ export default class Chat extends React.Component {
         console.log("keyboard will hide:", e, newMessagesContainerHeight, this.getMaxHeight(), this.inputToolbar.getToolbarHeight(), this.getKeyboardHeight());
 
         if (e && e.duration && e.duration > 0) {
-            LayoutAnimation.configureNext(LayoutAnimation.create(
+            var animation = LayoutAnimation.create(
                 e.duration,
-                LayoutAnimation.Types[e.easing]
-            ));
+                LayoutAnimation.Types[e.easing],
+                LayoutAnimation.Properties.opacity);
+            LayoutAnimation.configureNext(animation);
         }
         
         this.setState({
