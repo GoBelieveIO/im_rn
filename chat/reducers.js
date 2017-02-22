@@ -1,3 +1,18 @@
+import {
+    SET_CONVERSATIONS,
+    ADD_CONVERSATION,
+    UPDATE_CONVERSATION,
+    SET_UNREAD,
+    SET_LATEST_MESSAGE,
+
+    SET_CONVERSATION,
+
+    SET_MESSAGES,
+    ADD_MESSAGE,
+    INSERT_MESSAGES,
+    ACK_MESSAGE,
+    PLAY_MESSAGE,
+} from './actions';
 
 //当前会话
 function conversationReducer(state={}, action) {
@@ -77,6 +92,22 @@ function messagesReducer(state = [], action) {
                 return [...state.slice(0, index), m, ...state.slice(index+1, state.length)];
             }
             break;
+        case PLAY_MESSAGE:
+            var index = state.findIndex((m) => {
+                return m.id == action.msgID;
+            });
+            if (index == -1) {
+                return state;
+            } else {
+                var playing = state[index].playing ? state[index].playing : 0;
+                if (action.playing) {
+                    playing += 1;
+                } else {
+                    playing = 0;
+                }
+                var m = Object.assign({}, state[index], {playing:playing});
+                return [...state.slice(0, index), m, ...state.slice(index+1, state.length)];
+            }
         default:
             return state;
     }

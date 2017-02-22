@@ -41,7 +41,7 @@ console.log("document path:", AudioUtils.DocumentDirectoryPath);
 
 import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './InputToolbar';
 import MessageContainer from './MessageContainer';
-
+import {playMessage} from './actions';
 
 var IMService = require("./im");
 
@@ -583,6 +583,17 @@ export default class Chat extends React.Component {
         }
     }
 
+    stopPlayer() {
+        if (this.player) {
+            var msgID = this.playingMessage.id;
+            this.player.stop();
+            this.player.release();
+            this.player = null;
+            this.playingMessage = null;
+            clearInterval(this.playingTimer);
+            this.props.dispatch(playMessage(msgID, false));
+        }
+    }
     
     onMessagePress(message) {
         console.log("on message press:", message);
@@ -590,10 +601,7 @@ export default class Chat extends React.Component {
 
             //停止正在播放的消息
             if (this.player && this.playingMessage.id == message.id) {
-                this.player.stop();
-                this.player.release();
-                this.player = null;
-                this.playingMessage = null;
+                this.stopPlayer();
                 return;
             }
 
@@ -610,10 +618,7 @@ export default class Chat extends React.Component {
                     }
 
                     if (this.player) {
-                        this.player.stop();
-                        this.player.release();
-                        this.player = null;
-                        this.playingMessage = null;
+                        this.stopPlayer();
                     }
                     
                     console.log("playing message...:", audioFile);
@@ -632,15 +637,18 @@ export default class Chat extends React.Component {
                     });
                 })
                 .then((player) => {
+                    var self = this;
+                    var msgID = message.id;
+                    this.playingTimer = setInterval(function() {
+                        self.props.dispatch(playMessage(msgID, true));
+                    }, 200);
                     this.playingMessage = message;
                     this.player = player
                     this.player.play((success)=> {
                         console.log("play:", message.uuid,
                                     "result:", success);
-                        
-                        this.player.release();
-                        this.player = null;
-                        this.playingMessage = null;
+
+                        this.stopPlayer();
                     });
                 })
                 .catch((err) => {
