@@ -678,7 +678,7 @@ export default class Chat extends React.Component {
     }
     
     startRecording() {
-        stopPlayer();
+        this.stopPlayer();
         
         this.recordingBegin = new Date();
 

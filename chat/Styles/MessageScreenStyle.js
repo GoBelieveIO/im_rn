@@ -25,14 +25,14 @@ export default create({
     iconRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingTop: 4,
+        paddingTop: 8,
         paddingBottom: 2,
         paddingHorizontal: 12,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: Colors.coolGrey50,
     },
     iconTouch: {
         padding: 8,
+        borderWidth: 1,
+        borderColor: Colors.coolGrey50
     },
     searchRow: {
         flex: 1,

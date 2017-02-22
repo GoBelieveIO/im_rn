@@ -68,16 +68,23 @@ export default class GiftedAvatar extends React.Component {
   }
 
   render() {
-    if (!this.props.user.name && !this.props.user.avatar) {
-      // render placeholder
-      return (
-        <View style={[
-          defaultStyles.avatarStyle,
-          {backgroundColor: 'transparent'},
-          this.props.avatarStyle,
-        ]}/>
-      )
-    }
+      if (!this.props.user.name && !this.props.user.avatar) {
+          // render placeholder
+          return (
+              <TouchableOpacity
+                  disabled={this.props.onPress ? false : true}
+                  onPress={() => {
+                          const {onPress, ...other} = this.props;
+                          this.props.onPress && this.props.onPress(other);
+                      }}>
+                  <Image
+                      source={require('./Images/default.png')}
+                      style={[defaultStyles.avatarStyle, this.props.avatarStyle]}
+                  />
+              </TouchableOpacity>
+          );
+         
+      }
     if (this.props.user.avatar) {
       return (
         <TouchableOpacity

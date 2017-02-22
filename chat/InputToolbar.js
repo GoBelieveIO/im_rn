@@ -39,7 +39,7 @@ export const MIN_INPUT_TOOLBAR_HEIGHT = Platform.select({
     android: 54,
 });
 
-const ACTION_BUTTON_HEIGHT = 40;
+const ACTION_BUTTON_HEIGHT = 80;
 const EMOJI_HEIGHT = 128;
 
 export default class InputToolbar extends React.Component {
@@ -306,16 +306,25 @@ export default class InputToolbar extends React.Component {
     _renderActions() {
         const {isEmoji, focused} = this.state
         return (
-            <View style={Styles.iconRow}>
-                <TouchableOpacity style={Styles.iconTouch} onPress={this.handleCameraPicker.bind(this)}>
-                    <Image source={Images.iconCamera}/>
-                </TouchableOpacity>
-                <TouchableOpacity style={Styles.iconTouch} onPress={this.handleImagePicker.bind(this)}>
-                    <Image source={Images.iconImage}/>
-                </TouchableOpacity>
-                <TouchableOpacity style={Styles.iconTouch} onPress={this.handleLocationClick.bind(this)}>
-                    <Image source={Images.iconEmoji}/>
-                </TouchableOpacity>
+            <View style={[Styles.iconRow, {height:ACTION_BUTTON_HEIGHT}]}>
+                <View style={{alignItems:"center"}}>
+                    <TouchableOpacity style={Styles.iconTouch} onPress={this.handleCameraPicker.bind(this)}>
+                        <Image source={Images.iconCamera}/>
+                    </TouchableOpacity>
+                    <Text style={{marginTop:6, fontSize:12}}>拍照</Text>
+                </View>
+                <View style={{alignItems:"center"}}>
+                    <TouchableOpacity style={Styles.iconTouch} onPress={this.handleImagePicker.bind(this)}>
+                        <Image source={Images.iconImage}/>
+                    </TouchableOpacity>
+                    <Text style={{marginTop:6, fontSize:12}}>相册</Text>
+                </View>
+                <View style={{alignItems:"center"}}>
+                    <TouchableOpacity style={Styles.iconTouch} onPress={this.handleLocationClick.bind(this)}>
+                        <Image source={Images.iconEmoji}/>
+                    </TouchableOpacity>
+                    <Text style={{marginTop:6, fontSize:12}}>位置</Text>
+                </View>
             </View>
         );
     }
@@ -438,8 +447,14 @@ export default class InputToolbar extends React.Component {
                            source={require("./Images/chatBar_keyboard.png")}/>
                 </TouchableOpacity>
                 
-                <View style={[Styles.searchRow, {backgroundColor:"gainsboro", opacity:opacity}]}>
-                    <View style={{flex:1, alignItems:"center", justifyContent:"center"}}
+                <View style={[Styles.searchRow, { }]}>
+                    <View style={{flex:1,
+                                  alignItems:"center",
+                                  margin:4,
+                                  backgroundColor:"gainsboro",
+                                  borderRadius: 3,
+                                  opacity:opacity,
+                                  justifyContent:"center"}}
                           {...responder}>
                         <Text>
                             {"按住说话"}
@@ -475,7 +490,7 @@ export default class InputToolbar extends React.Component {
                                       justifyContent:"center",
                                       paddingRight:8}}
                               onPress={this.handleSend.bind(this)}>
-                <Text style={Styles.sendText}>{'send'}</Text>
+                <Text style={Styles.sendText}>{'发送'}</Text>
             </TouchableOpacity>
 
         ) : (
@@ -515,6 +530,7 @@ export default class InputToolbar extends React.Component {
         return (
             <View style={Styles.search}>
                 {mode == MODE_TEXT ? this.renderTextInput() : this.renderReocrdInput()}
+                <View style={{flexGrow:1, height:1, backgroundColor:"lightgray"}}/>
                 {isEmoji ? this._renderEmoji() : this._renderActions()}
             </View>
         )
