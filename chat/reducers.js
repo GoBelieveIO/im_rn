@@ -12,7 +12,10 @@ import {
     INSERT_MESSAGES,
     ACK_MESSAGE,
     PLAY_MESSAGE,
+    LISTEN_MESSAGE,
 } from './actions';
+
+import {MESSAGE_FLAG_LISTENED} from "./IMessage";
 
 //当前会话
 function conversationReducer(state={}, action) {
@@ -108,6 +111,18 @@ function messagesReducer(state = [], action) {
                 var m = Object.assign({}, state[index], {playing:playing});
                 return [...state.slice(0, index), m, ...state.slice(index+1, state.length)];
             }
+        case LISTEN_MESSAGE:
+            var index = state.findIndex((m) => {
+                return m.id == action.msgID;
+            });
+            if (index == -1) {
+                return state;
+            } else {
+                var f = state[index].flags;
+                f = f | MESSAGE_FLAG_LISTENED;
+                var m = Object.assign({}, state[index], {flags:f});
+                return [...state.slice(0, index), m, ...state.slice(index+1, state.length)];
+            }            
         default:
             return state;
     }

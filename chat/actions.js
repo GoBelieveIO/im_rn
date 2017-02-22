@@ -15,8 +15,7 @@ export const ADD_MESSAGE = "add_message";
 export const INSERT_MESSAGES = "insert_messages";
 export const ACK_MESSAGE = "ack_message";
 export const PLAY_MESSAGE = "play_message";
-
-
+export const LISTEN_MESSAGE = "listen_message";
 
 
 export function setConversations(conversations) {
@@ -97,6 +96,13 @@ export function playMessage(msgID, playing) {
         type:PLAY_MESSAGE,
         msgID:msgID,
         playing:playing,
+    }
+}
+
+export function listenMessage(msgID) {
+    return {
+        type:LISTEN_MESSAGE,
+        msgID:msgID,
     }
 }
 

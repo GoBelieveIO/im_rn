@@ -20,17 +20,18 @@ export default class MessageAudio extends React.Component {
             require('./Images/ReceiverVoiceNodePlaying002.png'),
             require('./Images/ReceiverVoiceNodePlaying003.png'),
         ];
-        
+
+        var msg = this.props.currentMessage;
         var playing;
-        if (this.props.currentMessage.playing == undefined) {
+        if (msg.playing == undefined) {
             playing = 0;
         } else {
-            playing = this.props.currentMessage.playing;
+            playing = msg.playing;
         }
         
         console.log("playing:", playing);
         
-        var outgoing = (this.props.user._id == this.props.currentMessage.user._id);        
+        var outgoing = msg.outgoing;
         if (playing == 0) {
             image = outgoing ? require("./Images/SenderVoiceNodePlaying.png") :
                     require("./Images/ReceiverVoiceNodePlaying.png");
@@ -38,8 +39,12 @@ export default class MessageAudio extends React.Component {
             playing = playing % 4;
             var image = outgoing ? sendImages[playing] : recvImages[playing];
         }
+
+        //max 180
+        var margin = msg.audio.duration*3;
+        margin = Math.min(180, margin);
         return (
-            <View style={styles.container}>
+            <View style={outgoing ? {flex:1, marginRight:margin} : {flex:1, marginLeft:margin, alignItems:"flex-end"}}>
                 <Image style={styles.image}
                        source={image}>
                 </Image>
@@ -50,7 +55,6 @@ export default class MessageAudio extends React.Component {
 
 const styles = StyleSheet.create({
     container: {
-
     },
     image: {
         marginTop: 5,

@@ -77,6 +77,7 @@ var app = {
         message.user = {
             _id: message.sender
         }
+        message.outgoing = (this.uid == message.sender);
         
         var cid = (this.uid == message.sender) ? message.receiver : message.sender;        
         var db = PeerMessageDB.getInstance();
@@ -179,7 +180,7 @@ var app = {
         message.user = {
             _id: message.sender
         }
-        
+        message.outgoing = (this.uid == message.sender);
   
         var db = GroupMessageDB.getInstance();
         db.insertMessage(message,

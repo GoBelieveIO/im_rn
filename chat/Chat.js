@@ -41,7 +41,7 @@ console.log("document path:", AudioUtils.DocumentDirectoryPath);
 
 import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './InputToolbar';
 import MessageContainer from './MessageContainer';
-import {playMessage} from './actions';
+import {playMessage, listenMessage} from './actions';
 
 var IMService = require("./im");
 
@@ -258,6 +258,7 @@ export default class Chat extends React.Component {
             flags:0,
             timestamp:now,
 
+            outgoing:true,
             audio: obj.audio,
             uuid: obj.uuid,
             createdAt: new Date(),
@@ -300,7 +301,8 @@ export default class Chat extends React.Component {
             content: textMsg,
             flags:0,
             timestamp:now,
-            
+
+            outgoing:true,
             text: text,
             createdAt: new Date(),
             user: {
@@ -403,6 +405,7 @@ export default class Chat extends React.Component {
             flags:0,
             timestamp:now,
 
+            outgoing:true,
             image: obj.image2,
             createdAt: new Date(),
             user: {
@@ -464,7 +467,8 @@ export default class Chat extends React.Component {
             content: content,
             flags:0,
             timestamp:now,
-            
+
+            outgoing:true,
             location: obj.location,
             createdAt: new Date(),
             user: {
@@ -639,6 +643,8 @@ export default class Chat extends React.Component {
                 .then((player) => {
                     var self = this;
                     var msgID = message.id;
+                    this.props.dispatch(listenMessage(msgID));
+                    this.setMessageListened(message);
                     this.playingTimer = setInterval(function() {
                         self.props.dispatch(playMessage(msgID, true));
                     }, 200);
@@ -672,12 +678,7 @@ export default class Chat extends React.Component {
     }
     
     startRecording() {
-        if (this.player) {
-            this.player.stop();
-            this.player.release();
-            this.player = null;
-            this.playingMessage = null;
-        }
+        stopPlayer();
         
         this.recordingBegin = new Date();
 
@@ -932,6 +933,14 @@ export default class Chat extends React.Component {
     
     saveMessage(message) {
         console.log("save message not implement");        
+    }
+
+    setMessageListened(message) {
+        console.log("setMessageListened not implement");
+    }
+
+    setMessageFailure(message) {
+        console.log("setMessageFailure not implement");
     }
     
     sendMessage(message) {

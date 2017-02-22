@@ -1,12 +1,4 @@
 
-
-export const MESSAGE_FLAG_ACK = 2;
-export const MESSAGE_FLAG_FAILURE = 8;
-export const MESSAGE_FLAG_UPLOADING = 16;
-export const MESSAGE_FLAG_SENDING = 32;
-export const MESSAGE_FLAG_LISTENED = 64;
-
-
 const PAGE_SIZE = 10;
 var instance = null;
 export default class PeerMessageDB {
@@ -88,6 +80,17 @@ export default class PeerMessageDB {
                            });
     }
 
+    updateFlags(msgID, flags) {
+        this.db.executeSql('UPDATE peer_message SET flags= ? WHERE id=?',
+                           [flags, msgID],
+                           function(result) {
+                               console.log("update flag result:", result);
+                           },
+                           function(error) {
+                               console.log("update error:", error);
+                           });        
+    }
+    
     //获取最近聊天记录
     getMessages(uid, successCB, errCB) {
         var sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message  WHERE peer = ? ORDER BY id DESC LIMIT ?";

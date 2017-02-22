@@ -5,6 +5,7 @@ import {
     TouchableWithoutFeedback,
     Image,
     View,
+    Text,
 } from 'react-native';
 
 import MessageText from './MessageText';
@@ -13,7 +14,7 @@ import MessageAudio from './MessageAudio';
 import MessageLocation from './MessageLocation';
 import Time from './Time';
 
-import {MESSAGE_FLAG_FAILURE} from './PeerMessageDB';
+import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from './IMessage';
 
 export default class Bubble extends React.Component {
     constructor(props) {
@@ -98,6 +99,7 @@ export default class Bubble extends React.Component {
 
     //发送失败标志
     renderFlags() {
+        var msg = this.props.currentMessage;
         if (this.props.user._id === this.props.currentMessage.user._id) {
             if (this.props.currentMessage.flags & MESSAGE_FLAG_FAILURE) {
                 return (
@@ -107,13 +109,74 @@ export default class Bubble extends React.Component {
                 );
             }
         }
+
+        if (!msg.outgoing && msg.audio) {
+            if (!(msg.flags & MESSAGE_FLAG_LISTENED)) {
+                return (
+                    <View style={{marginLeft:4, justifyContent:"space-between"}}>
+                        
+                        <View style={{backgroundColor:"red",
+                                      width:8,
+                                      height:8,
+                                      borderRadius:90}}/>
+
+                        <Text style={{color:"lightgrey"}}>
+                            {"" + msg.audio.duration + "''"}
+                        </Text>
+                    </View>
+                );
+            } else {
+                return (
+                    <View style={{marginLeft:4, justifyContent:"flex-end"}}>
+                        <Text style={{color:"lightgrey"}}>
+                            {"" + msg.audio.duration + "''"}
+                        </Text>
+                    </View>
+                );                
+            }
+        }
+
+        if (msg.outgoing && msg.audio) {
+            return (
+                <View style={{marginRight:4, justifyContent:"flex-end"}}>
+                    <Text style={{color:"lightgrey"}}>
+                        {"" + msg.audio.duration + "''"}
+                    </Text>
+                </View>
+            );                
+        }
     }
     
-    render() {
+    renderLeft() {
         return (
-            <View style={[styles[this.props.position].container, this.props.containerStyle[this.props.position]]}>
+            <View style={[styles['left'].container, this.props.containerStyle['left']]}>
+
+                <View style={[styles['left'].wrapper, this.props.wrapperStyle['left'], this.handleBubbleToNext(), this.handleBubbleToPrevious()]}>
+                    <TouchableWithoutFeedback
+                        onLongPress={this.onLongPress}
+                        onPress={this.onPress}
+                        {...this.props.touchableProps}
+                    >
+                        <View>
+                            {this.renderMessageImage()}
+                            {this.renderMessageText()}
+                            {this.renderMessageAudio()}
+                            {this.renderMessageLocation()}
+                            {this.renderTime()}
+                        </View>
+                    </TouchableWithoutFeedback>
+                </View>
+
                 {this.renderFlags()}
-                <View style={[styles[this.props.position].wrapper, this.props.wrapperStyle[this.props.position], this.handleBubbleToNext(), this.handleBubbleToPrevious()]}>
+            </View>
+        );        
+    }
+
+    renderRight() {
+        return (
+            <View style={[styles['right'].container, this.props.containerStyle['right']]}>
+                {this.renderFlags()}
+                <View style={[styles['right'].wrapper, this.props.wrapperStyle['right'], this.handleBubbleToNext(), this.handleBubbleToPrevious()]}>
                     <TouchableWithoutFeedback
                         onLongPress={this.onLongPress}
                         onPress={this.onPress}
@@ -129,7 +192,14 @@ export default class Bubble extends React.Component {
                     </TouchableWithoutFeedback>
                 </View>
             </View>
-        );
+        );        
+    }
+    render() {
+        if (this.props.position == 'left') {
+            return this.renderLeft();
+        } else {
+            return this.renderRight();
+        }
     }
 }
 

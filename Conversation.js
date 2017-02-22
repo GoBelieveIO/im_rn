@@ -219,7 +219,7 @@ class Conversation extends React.Component {
                                     {moment(t).locale('zh-cn').format('LT')}
                                 </Text>
                             </View>
-                            <Text>
+                            <Text numberOfLines={1} style={{marginRight:16}}>
                                 {conv.content}
                             </Text>
                         </View>
