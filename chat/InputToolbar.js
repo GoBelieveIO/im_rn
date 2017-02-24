@@ -321,7 +321,7 @@ export default class InputToolbar extends React.Component {
                 </View>
                 <View style={{alignItems:"center"}}>
                     <TouchableOpacity style={Styles.iconTouch} onPress={this.handleLocationClick.bind(this)}>
-                        <Image source={Images.iconEmoji}/>
+                        <Image source={Images.iconLocation}/>
                     </TouchableOpacity>
                     <Text style={{marginTop:6, fontSize:12}}>位置</Text>
                 </View>

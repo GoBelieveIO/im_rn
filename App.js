@@ -41,9 +41,18 @@ import PeerChat from "./chat/PeerChat";
 import GroupChat from "./chat/GroupChat"
 import Photo from './chat/Photo';
 
-var appReducers = require('./chat/reducers');
+import {conversationsReducer, messagesReducer, conversationReducer}  from './chat/reducers';
 var IMService = require("./chat/im");
 var im = IMService.instance;
+
+//do not use combineReducers ignore init state of createStore
+function appReducer(state={}, action) {
+    return {
+        conversations:conversationsReducer(state.conversations, action),
+        messages:messagesReducer(state.messages, action),
+        conversation:conversationReducer(state.conversation, action),
+    };
+}
 
 var app = {
     registerScreens: function() {
@@ -273,7 +282,7 @@ var app = {
     },
 
     startApp: function() {
-        this.store = createStore(appReducers);
+        this.store = createStore(appReducer);
         
         var db = SQLite.openDatabase({name:"gobelieve.db", createFromLocation : 1},
                                      function() {

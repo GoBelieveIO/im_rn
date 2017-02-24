@@ -141,7 +141,7 @@ class Conversation extends React.Component {
                 var uid = parseInt(conv.cid.substr(2));
                 navigator.push({
                     title:"Chat",
-                    screen:"demo.PeerChat",
+                    screen:"chat.PeerChat",
                     passProps:{
                         sender:self.props.uid,
                         receiver:uid,
@@ -152,7 +152,7 @@ class Conversation extends React.Component {
                 var gid = parseInt(conv.cid.substr(2));
                 navigator.push({
                     title:"Chat",
-                    screen:"demo.GroupChat",
+                    screen:"chat.GroupChat",
                     passProps:{
                         sender:self.props.uid,
                         receiver:gid,
