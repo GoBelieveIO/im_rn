@@ -665,7 +665,7 @@ export default class Chat extends React.Component {
         if (message.image) {
             var navigator = this.props.navigator;
             navigator.showLightBox({
-                screen:"demo.Photo",
+                screen:"chat.Photo",
                 passProps:{
                     url:message.image.url
                 },

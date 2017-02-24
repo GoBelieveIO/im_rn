@@ -59,9 +59,6 @@ export default class Message extends React.Component {
             isSameUser: this.isSameUser,
             isSameDay: this.isSameDay,
         };
-        if (this.props.renderBubble) {
-            return this.props.renderBubble(bubbleProps);
-        }
         return <Bubble {...bubbleProps}/>;
     }
 
@@ -78,8 +75,6 @@ export default class Message extends React.Component {
         }
         return null;
     }
-
-
 
     render() {
         return (
@@ -116,6 +111,13 @@ const styles = {
             marginRight: 8,
         },
     }),
+    center: StyleSheet.create({
+        container: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+    }),
 };
 
 Message.defaultProps = {
@@ -134,7 +136,7 @@ Message.propTypes = {
     renderAvatar: React.PropTypes.func,
     renderBubble: React.PropTypes.func,
     renderDay: React.PropTypes.func,
-    position: React.PropTypes.oneOf(['left', 'right']),
+    position: React.PropTypes.oneOf(['left', 'right', 'center']),
     currentMessage: React.PropTypes.object,
     nextMessage: React.PropTypes.object,
     previousMessage: React.PropTypes.object,

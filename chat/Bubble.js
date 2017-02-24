@@ -194,11 +194,35 @@ export default class Bubble extends React.Component {
             </View>
         );        
     }
+
+    renderCenter() {
+        var msg = this.props.currentMessage;
+        return (
+            <View style={{alignItems: 'center',
+                          justifyContent: 'center',
+                          marginTop: 5,
+                          marginBottom: 10, }}>
+                <View >
+                    <Text style={{backgroundColor: 'transparent',
+                                  color: '#b2b2b2',
+                                  fontSize: 12,
+                                  fontWeight: '600',}}>
+                        {msg.notification}
+                    </Text>
+                </View>
+            </View>
+        );
+    }
+    
     render() {
         if (this.props.position == 'left') {
             return this.renderLeft();
-        } else {
+        } else if (this.props.position == 'right') {
             return this.renderRight();
+        } else if (this.props.position == 'center') {
+            return this.renderCenter();
+        } else {
+            return null;
         }
     }
 }
@@ -282,7 +306,7 @@ Bubble.propTypes = {
     renderTime: React.PropTypes.func,
     isSameUser: React.PropTypes.func,
     isSameDay: React.PropTypes.func,
-    position: React.PropTypes.oneOf(['left', 'right']),
+    position: React.PropTypes.oneOf(['left', 'right', 'center']),
     currentMessage: React.PropTypes.object,
     nextMessage: React.PropTypes.object,
     previousMessage: React.PropTypes.object,

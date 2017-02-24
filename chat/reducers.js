@@ -18,7 +18,7 @@ import {
 import {MESSAGE_FLAG_LISTENED} from "./IMessage";
 
 //当前会话
-function conversationReducer(state={}, action) {
+export function conversationReducer(state={}, action) {
     switch(action.type) {
         case "set_conversation":
             return action.conversation;
@@ -29,7 +29,7 @@ function conversationReducer(state={}, action) {
 }
 
 //会话列表
-function conversationsReducer(state=[], action) {
+export function conversationsReducer(state=[], action) {
     switch(action.type) {
         case "set_conversations":
             return action.conversations;
@@ -70,7 +70,7 @@ function conversationsReducer(state=[], action) {
     }
 }
 
-function messagesReducer(state = [], action) {
+export function messagesReducer(state = [], action) {
     switch(action.type) {
         case "set_messages":
             return action.messages;
@@ -138,4 +138,3 @@ function appReducer(state={}, action) {
     };
 }
 
-module.exports = appReducer;

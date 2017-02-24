@@ -17,7 +17,7 @@ var IMService = require("./im");
 
 import Chat from './Chat';
 
-class GroupChat extends Chat {
+export class BaseGroupChat extends Chat {
     constructor(props) {
         super(props);
     }
@@ -91,9 +91,26 @@ class GroupChat extends Chat {
             m.audio = obj.audio;
         } else if (obj.location) {
             m.location = obj.location;
+        } else if (obj.notification) {
+            var notification = "";
+            var n = JSON.parse(obj.notification);
+            if (n.create) {
+                if (n.create.master == this.props.sender) {
+                    notification = `您创建了${n.create.name}群组`;
+                } else {
+                    notification = `您加入了${n.create.name}群组`;
+                }
+            } else if (n.add_member) {
+                notification = `${n.add_member.name}加入群`;
+            } else if (n.quit_group) {
+                notification = `${n.quit_group.name}离开群`;
+            } else if (n.disband) {
+                notification = "群组已解散";
+            }
+            m.notification = notification;
         }
-        m.uuid = obj.uuid;
         
+        m.uuid = obj.uuid;
         m.createdAt = t;
         m.user = {
             _id:m.sender
@@ -121,6 +138,23 @@ class GroupChat extends Chat {
             conv.content = "语音"
         } else if (msgObj.location) {
             conv.content = "位置";
+        } else if (msgObj.notification) {
+            var notification = "";
+            var n = JSON.parse(msgObj.notification);
+            if (n.create) {
+                if (n.create.master == this.props.sender) {
+                    notification = `您创建了${n.create.name}群组`;
+                } else {
+                    notification = `您加入了${n.create.name}群组`;
+                }
+            } else if (n.add_member) {
+                notification = `${n.add_member.name}加入群`;
+            } else if (n.quit_group) {
+                notification = `${n.quit_group.name}离开群`;
+            } else if (n.disband) {
+                notification = "群组已解散";
+            }
+            m.notification = notification;
         } else {
             conv.content = "";
         }
@@ -197,8 +231,8 @@ class GroupChat extends Chat {
 }
 
 
-GroupChat = connect(function(state){
+var GroupChat = connect(function(state){
     return {messages:state.messages};
-})(GroupChat);
+})(BaseGroupChat);
 
 export default GroupChat;

@@ -48,10 +48,11 @@ var im = IMService.instance;
 var app = {
     registerScreens: function() {
         Navigation.registerComponent('demo.Login', () => Login, this.store, Provider);
-        Navigation.registerComponent('demo.PeerChat', () => PeerChat, this.store, Provider);
-        Navigation.registerComponent('demo.GroupChat', () => GroupChat, this.store, Provider);
         Navigation.registerComponent('demo.Conversation', () => Conversation, this.store, Provider);
-        Navigation.registerComponent('demo.Photo', () => Photo, this.store, Provider);
+        
+        Navigation.registerComponent('chat.PeerChat', () => PeerChat, this.store, Provider);
+        Navigation.registerComponent('chat.GroupChat', () => GroupChat, this.store, Provider);
+        Navigation.registerComponent('chat.Photo', () => Photo, this.store, Provider);
     },
     
     handlePeerMessage: function(message) {
