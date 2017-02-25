@@ -1,12 +1,4 @@
 import {
-    SET_CONVERSATIONS,
-    ADD_CONVERSATION,
-    UPDATE_CONVERSATION,
-    SET_UNREAD,
-    SET_LATEST_MESSAGE,
-
-    SET_CONVERSATION,
-
     SET_MESSAGES,
     ADD_MESSAGE,
     INSERT_MESSAGES,
@@ -16,59 +8,6 @@ import {
 } from './actions';
 
 import {MESSAGE_FLAG_LISTENED} from "./IMessage";
-
-//当前会话
-export function conversationReducer(state={}, action) {
-    switch(action.type) {
-        case "set_conversation":
-            return action.conversation;
-        default:
-            return state;
-    }
-    
-}
-
-//会话列表
-export function conversationsReducer(state=[], action) {
-    switch(action.type) {
-        case "set_conversations":
-            return action.conversations;
-        case "add_conversation":
-            return [action.conversation].concat(state);
-        case 'update_conversation': 
-            var index = action.index;
-            var conv = action.conversation;
-            if (!index || index == -1) {
-                index = -1;
-                for (var i in state) {
-                    var c = state[i];
-                    if (conv.cid == c.cid) {
-                        index = i;
-                        break;
-                    }
-                }
-            }
-
-            if (index != -1) {
-                return [...state.slice(0, index), conv, ...state.slice(index+1, state.length)];
-            } else {
-                return [conv].concat(state)
-            }
-            
-        case "set_unread":
-            var convs = state.map(function(conv) {
-                if (conv.cid == action.cid) {
-                    return Object.assign({}, conv, {unread:action.unread});
-                }
-                return conv
-            });
-            return convs;
-        case "set_latest_message":
-            return state;
-        default:
-            return state;
-    }
-}
 
 export function messagesReducer(state = [], action) {
     switch(action.type) {
@@ -126,15 +65,5 @@ export function messagesReducer(state = [], action) {
         default:
             return state;
     }
-}
-
-
-//do not use combineReducers ignore init state of createStore
-function appReducer(state={}, action) {
-    return {
-        conversations:conversationsReducer(state.conversations, action),
-        messages:messagesReducer(state.messages, action),
-        conversation:conversationReducer(state.conversation, action),
-    };
 }
 

@@ -9,14 +9,21 @@ import {AudioUtils} from 'react-native-audio';
 
 import PeerMessageDB from './PeerMessageDB.js'
 import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
-import {setUnread, updateConversation, setConversation} from './actions'
 import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from './IMessage';
 
 var IMService = require("./im");
 
 import Chat from './Chat';
 
-class PeerChat extends Chat {
+export class BasePeerChat extends Chat {
+    static navigatorStyle = {
+        navBarBackgroundColor: '#4dbce9',
+        navBarTextColor: '#ffff00',
+        navBarSubtitleTextColor: '#ff0000',
+        navBarButtonColor: '#ffffff',
+        statusBarTextColorScheme: 'light',
+    };
+    
     constructor(props) {
         super(props);
     }
@@ -29,12 +36,23 @@ class PeerChat extends Chat {
 
         this.listener = RCTDeviceEventEmitter.addListener('peer_message',
                                                           (message)=>{
-                                                              this.downloadAudio(message);
-                                                              this.props.dispatch(addMessage(message));
-                                                              this.scrollToBottom();
+                                                              if (message.sender == this.props.peer ||
+                                                                  message.receiver == this.props.peer) {
+                                                                  this.downloadAudio(message);
+                                                                  this.props.dispatch(addMessage(message));
+                                                                  this.scrollToBottom();
+                                                              }
                                                           });
 
 
+        this.ackListener = RCTDeviceEventEmitter.addListener('peer_message_ack',
+                                                          (message)=>{
+                                                              if (message.sender == this.props.peer ||
+                                                                  message.receiver == this.props.peer) {
+                                                                  this.props.dispatch(ackMessage(message.id));
+                                                              }
+                                                          });
+        
         var db = PeerMessageDB.getInstance();
 
         db.getMessages(this.props.receiver,
@@ -49,7 +67,6 @@ class PeerChat extends Chat {
                        },
                        (e)=>{});
 
-        this.props.dispatch(setConversation({cid:"p_" + this.props.receiver}));
     }
 
 
@@ -60,9 +77,7 @@ class PeerChat extends Chat {
         im.removeObserver(this);
 
         this.listener.remove();
-
-        this.props.dispatch(setUnread("p_" + this.props.receiver, 0));
-        this.props.dispatch(setConversation({}));
+        this.ackListener.remove();
     }
 
     parseMessageContent(m) {
@@ -101,32 +116,8 @@ class PeerChat extends Chat {
 
     addMessage(message) {
         this.props.dispatch(addMessage(message));
-        var conv = {
-            id:"p_" + this.props.receiver,
-            cid:"p_" + this.props.receiver,
-            name:"p_" + this.props.receiver,
-            unread:0,
-            message:message,
-            timestamp:message.timestamp,
-            
-        }
-        var msgObj = JSON.parse(message.content);
-        if (msgObj.text) {
-            conv.content = msgObj.text;
-        } else if (msgObj.image2) {
-            conv.content = "一张图片";
-        } else if (msgObj.audio) {
-            conv.content = "语音"
-        } else if (msgObj.location) {
-            conv.content = "位置";
-        } else {
-            conv.content = "";
-        }
-        this.props.dispatch(updateConversation(conv));
-        
         this.scrollToBottom();
     }
-
     
     saveMessage(message) {
         var db = PeerMessageDB.getInstance();
@@ -197,6 +188,6 @@ class PeerChat extends Chat {
 
 PeerChat = connect(function(state){
     return {messages:state.messages};
-})(PeerChat);
+})(BasePeerChat);
 
 export default PeerChat;

@@ -592,7 +592,7 @@ IMService.prototype.onClose = function() {
         var msg = this.messages[seq];
         this.observers.forEach(function(observer) {
             if (observer != null && "handleMessageFailure" in observer){
-                observer.handleMessageFailure(msg.msgLocalID, msg.receiver);
+                observer.handleMessageFailure(msg);
             }
         });
     }

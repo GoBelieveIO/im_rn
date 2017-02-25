@@ -664,16 +664,33 @@ export default class Chat extends React.Component {
         }
         if (message.image) {
             var navigator = this.props.navigator;
-            navigator.showLightBox({
-                screen:"chat.Photo",
-                passProps:{
-                    url:message.image.url
-                },
-                navigatorStyle: {
-                    statusBarHideWithNavBar:true,
-                    statusBarHidden:true,
-                },
-            });
+
+            if (Platform.OS === 'android') {
+                navigator.push({
+                    screen:"chat.Photo",
+                    passProps:{
+                        url:message.image.url
+                    },
+                    navigatorStyle:{
+                        tabBarHidden:true
+                    },
+                    navigatorStyle: {
+                        statusBarHideWithNavBar:true,
+                        statusBarHidden:true,
+                    },
+                });
+            } else {
+                navigator.showLightBox({
+                    screen:"chat.Photo",
+                    passProps:{
+                        url:message.image.url
+                    },
+                    navigatorStyle: {
+                        statusBarHideWithNavBar:true,
+                        statusBarHidden:true,
+                    },
+                });
+            }
         }
     }
     
@@ -1069,7 +1086,7 @@ export default class Chat extends React.Component {
             return (
                 <ActionSheet ref={component => this._actionSheetRef = component}>
                     <View
-                        style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1}}
+                        style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
                         onLayout={onViewLayout}>
                         {this.renderMessages()}
                         {this.renderRecordView()}
@@ -1098,7 +1115,7 @@ export default class Chat extends React.Component {
             });
         };
         return (
-            <View style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1}}
+            <View style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
                   onLayout={onViewLayout} >
             </View>
         );

@@ -20,7 +20,11 @@ export default class Photo extends Component {
     }
 
     onBack() {
-        this.props.navigator.dismissLightBox();
+        if (Platform.OS === 'android') {
+            this.props.navigator.pop();
+        } else {
+            this.props.navigator.dismissLightBox();
+        }
     }
 
     render() {

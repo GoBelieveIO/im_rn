@@ -9,8 +9,6 @@ import {AudioUtils} from 'react-native-audio';
 
 import GroupMessageDB from './GroupMessageDB.js'
 import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
-import {setUnread, updateConversation} from './actions'
-import {setConversation} from './actions';
 import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from './IMessage';
 
 var IMService = require("./im");
@@ -30,12 +28,21 @@ export class BaseGroupChat extends Chat {
 
         this.listener = RCTDeviceEventEmitter.addListener('group_message',
                                                           (message)=>{
-                                                              this.downloadAudio(message);
-                                                              this.props.dispatch(addMessage(message));
-                                                              this.scrollToBottom();
+                                                              if (message.receiver == this.props.groupID) {
+                                                                  this.downloadAudio(message);
+                                                                  this.props.dispatch(addMessage(message));
+                                                                  this.scrollToBottom();
+                                                              }
                                                           });
 
 
+        this.ackListener = RCTDeviceEventEmitter.addListener('group_message_ack',
+                                                             (message)=>{
+                                                                 if (message.receiver == this.props.groupID) {
+                                                                     this.props.dispatch(ackMessage(message.id));
+                                                                 }
+                                                             });
+        
         var db = GroupMessageDB.getInstance();
 
         db.getMessages(this.props.receiver,
@@ -50,8 +57,6 @@ export class BaseGroupChat extends Chat {
                            this.props.dispatch(setMessages(msgs));
                        },
                        (e)=>{});
-
-        this.props.dispatch(setConversation({cid:"g_" + this.props.receiver}));        
     }
 
 
@@ -62,9 +67,7 @@ export class BaseGroupChat extends Chat {
         im.removeObserver(this);
 
         this.listener.remove();
-
-        this.props.dispatch(setUnread("g_" + this.props.receiver, 0));
-        this.props.dispatch(setConversation({}));
+        this.ackListener.remove();
     }
 
     parseMessageContent(m) {
@@ -120,49 +123,8 @@ export class BaseGroupChat extends Chat {
 
     addMessage(message) {
         this.props.dispatch(addMessage(message));
-        var conv = {
-            id:"g_" + this.props.receiver,
-            cid:"g_" + this.props.receiver,
-            name:"g_" + this.props.receiver,
-            unread:0,
-            message:message,
-            timestamp:message.timestamp,
-            
-        }
-        var msgObj = JSON.parse(message.content);
-        if (msgObj.text) {
-            conv.content = msgObj.text;
-        } else if (msgObj.image2) {
-            conv.content = "一张图片";
-        } else if (msgObj.audio) {
-            conv.content = "语音"
-        } else if (msgObj.location) {
-            conv.content = "位置";
-        } else if (msgObj.notification) {
-            var notification = "";
-            var n = JSON.parse(msgObj.notification);
-            if (n.create) {
-                if (n.create.master == this.props.sender) {
-                    notification = `您创建了${n.create.name}群组`;
-                } else {
-                    notification = `您加入了${n.create.name}群组`;
-                }
-            } else if (n.add_member) {
-                notification = `${n.add_member.name}加入群`;
-            } else if (n.quit_group) {
-                notification = `${n.quit_group.name}离开群`;
-            } else if (n.disband) {
-                notification = "群组已解散";
-            }
-            m.notification = notification;
-        } else {
-            conv.content = "";
-        }
-        this.props.dispatch(updateConversation(conv));
-        
         this.scrollToBottom();
     }
-
     
     saveMessage(message) {
         var db = GroupMessageDB.getInstance();

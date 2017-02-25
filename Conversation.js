@@ -14,12 +14,15 @@ import {connect} from 'react-redux'
 import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
 import moment from 'moment/min/moment-with-locales.min';
 
-import {setConversations, setUnread} from './chat/actions'
+import {setConversations, setUnread} from './actions'
+import {addConversation, updateConversation} from "./actions";
 
 var IMService = require("./chat/im");
 
+import {MESSAGE_FLAG_ACK, MESSAGE_FLAG_FAILURE} from './chat/IMessage';
 import PeerMessageDB from './chat/PeerMessageDB';
 import GroupMessageDB from './chat/GroupMessageDB';
+import ConversationDB from './model/ConversationDB';
 
 class Conversation extends React.Component {
     constructor(props) {
@@ -31,11 +34,16 @@ class Conversation extends React.Component {
             ])
         };
     }
-
     
     componentWillMount() {
-        var db = PeerMessageDB.getInstance();
+        var im = IMService.instance;
+        im.addObserver(this);
         
+        this.loadConversations();
+    }
+
+    loadConversations() {
+        var db = PeerMessageDB.getInstance();
         var p1 = db.getConversations()
                    .then((messages) => {
                        var convs = [];
@@ -102,6 +110,23 @@ class Conversation extends React.Component {
                                conv.content = "语音"
                            } else if (msgObj.location) {
                                conv.content = "位置";
+                           } else if (msgObj.notification) {
+                               var notification = "";
+                               var n = JSON.parse(msgObj.notification);
+                               if (n.create) {
+                                   if (n.create.master == this.props.uid) {
+                                       notification = `您创建了${n.create.name}群组`;
+                                   } else {
+                                       notification = `您加入了${n.create.name}群组`;
+                                   }
+                               } else if (n.add_member) {
+                                   notification = `${n.add_member.name}加入群`;
+                               } else if (n.quit_group) {
+                                   notification = `${n.quit_group.name}离开群`;
+                               } else if (n.disband) {
+                                   notification = "群组已解散";
+                               }
+                               conv.content = notification;
                            } else {
                                conv.content = "";
                            }
@@ -119,8 +144,334 @@ class Conversation extends React.Component {
         }).catch((err) => {
             
         })
+    }
+    
+    componetWillUnmount() {
+        var im = IMService.instance;
+        im.removeObserver(this);
+    }
+    
+    handlePeerMessage(message) {
+        console.log("handle peer message:", message, msgObj);
+        message.flags = 0;
+        
+        var msgObj = JSON.parse(message.content);
+
+        if (msgObj.text) {
+            message.text = msgObj.text;
+        } else if (msgObj.image2) {
+            message.image = msgObj.image2
+        } else if (msgObj.audio) {
+            message.audio = msgObj.audio;
+        } else if (msgObj.location) {
+            message.location = msgObj.location;
+        }
+        message.uuid = msgObj.uuid;
+        
+        var t = new Date();
+        t.setTime(message.timestamp*1000);
+        message.createdAt = t;
+        message.user = {
+            _id: message.sender
+        }
+        message.outgoing = (this.uid == message.sender);
+        
+        var peer = (this.uid == message.sender) ? message.receiver : message.sender;
+        var db = PeerMessageDB.getInstance();
+        db.insertMessage(message, peer,
+                         function(rowid) {
+                             message.id = rowid;
+                             message._id = rowid;
+                             RCTDeviceEventEmitter.emit('peer_message', message);
+                         },
+                         function(err) {
+                             
+                         });
+
+
+        cid = "p_" + peer;
+        var index = this.props.conversations.findIndex((conv) => {
+            return conv.cid == cid;
+        });
+        
+        var conv;
+        if (index != -1) {
+            var c = this.props.conversations[index];
+            var newConv = Object.assign({}, c);
+            if (this.props.uid != message.sender) {
+                newConv.unread = newConv.unread + 1;
+                ConversationDB.getInstance().setUnread(newConv.cid, newConv.unread);
+            }
+            conv = newConv;
+        } else {
+            conv = {
+                cid:cid,
+                type:CONVERSATION_PEER,
+                peer:peer,
+                name:cid,
+                timestamp:message.timestamp,
+                unread:0,
+                message:message,
+            };
+            if (this.props.uid != message.sender) {
+                conv.unread = 1;
+                ConversationDB.getInstance().setUnread(conv.cid, conv.unread);
+            }
+        }
+
+        conv.message = message;
+        conv.timestamp = message.timestamp;
+        if (msgObj.text) {
+            conv.content = msgObj.text;
+        } else if (msgObj.image2) {
+            conv.content = "一张图片";
+        } else if (msgObj.audio) {
+            conv.content = "语音"
+        } else if (msgObj.location) {
+            conv.content = "位置";
+        } else {
+            conv.content = "";
+        }
+        
+        console.log("new conv:", newConv);
+        this.props.dispatch(updateConversation(conv, index));
+    }
+
+    handleMessageACK(msg) {
+        console.log("handle message ack");
+        var db = PeerMessageDB.getInstance();
+        db.updateFlags(msg.id, MESSAGE_FLAG_ACK);
+        RCTDeviceEventEmitter.emit('peer_message_ack', msg);
+    }
+
+    handleMessageFailure(msg) {
+        var db = PeerMessageDB.getInstance();
+        db.updateFlags(msg.id, MESSAGE_FLAG_FAILURE);
+        RCTDeviceEventEmitter.emit('peer_message_failure', msg);
+    }
+    
+    handleGroupMessage(message) {
+        console.log("handle group message:", message, msgObj);
+        message.flags = 0;
+        
+        var msgObj = JSON.parse(message.content);
+
+        if (msgObj.text) {
+            message.text = msgObj.text;
+        } else if (msgObj.image2) {
+            message.image = msgObj.image2
+        } else if (msgObj.audio) {
+            message.audio = msgObj.audio;
+        } else if (msgObj.location) {
+            message.location = msgObj.location;
+        }
+        message.uuid = msgObj.uuid;
+        
+        var t = new Date();
+        t.setTime(message.timestamp*1000);
+        message.createdAt = t;
+        message.user = {
+            _id: message.sender
+        }
+        message.outgoing = (this.uid == message.sender);
+        
+        var db = GroupMessageDB.getInstance();
+        db.insertMessage(message,
+                         function(rowid) {
+                             message.id = rowid;
+                             message._id = rowid;
+                             RCTDeviceEventEmitter.emit('group_message', message);
+                         },
+                         function(err) {
+                             
+                         });
+
+        var cid =  "g_" + message.receiver;
+
+        var index = this.props.conversations.findIndex((conv) => {
+            return conv.cid == cid;
+        });
+        var conv;
+        if (index != -1) {
+            var c = this.props.conversations[index];
+            var newConv = Object.assign({}, c);
+            if (this.props.uid != message.sender) {
+                newConv.unread = newConv.unread + 1;
+                ConversationDB.getInstance().setUnread(newConv.cid, newConv.unread);
+            }
+            conv = newConv;
+        } else {
+            conv = {
+                cid:cid,
+                type:CONVERSATION_GROUP,
+                groupID:groupID,
+                name:cid,
+                timestamp:m.timestamp,
+                unread:0,
+                message:m,
+            };
+      
+            if (this.props.uid != message.sender) {
+                conv.unread = 1;
+                ConversationDB.getInstance().setUnread(conv.cid, conv.unread);
+            }
+        }
+
+        conv.message = message;
+        conv.timestamp = message.timestamp;
+        if (msgObj.text) {
+            conv.content = msgObj.text;
+        } else if (msgObj.image2) {
+            conv.content = "一张图片";
+        } else if (msgObj.audio) {
+            conv.content = "语音"
+        } else if (msgObj.location) {
+            conv.content = "位置";
+        } else {
+            conv.content = "";
+        }
+
+        //index==-1 表示添加
+        console.log("new conv:", newConv);
+        this.props.dispatch(updateConversation(conv, index));
+    }
+
+    handleGroupMessageACK(msg) {
+        console.log("handle group message ack");
+        var db = GroupMessageDB.getInstance();
+        db.updateFlags(msg.id, MESSAGE_FLAG_ACK);
+        RCTDeviceEventEmitter.emit('group_message_ack', msg);
+    }
+
+    handleGroupMessageFailure(msg) {
+        var db = GroupMessageDB.getInstance();
+        db.updateFlags(msg.id, MESSAGE_FLAG_FAILURE);
+        RCTDeviceEventEmitter.emit('group_message_failure', msg);
+    }
+
+    handleGroupNotification(msg) {
+        console.log("group notification:", msg);
+        var obj = JSON.parse(msg);
+        
+        var db = GroupDB.getInstance();
+        var notification = "";
+        var timestamp = 0;
+        var groupID = 0;
+        var groupName = "";
+        if (obj.create) {
+            groupID = obj.create.group_id;
+            timestamp = obj.create.timestamp;
+            groupName = obj.create.name;
+            db.insertGroup({id:obj.create.group_id,
+                            name:obj.create.name,
+                            master:obj.create.master,
+                            timestamp:obj.create.timestamp,
+                            members:obj.create.members});
+
+            if (obj.create.master == this.uid) {
+                notification = `您创建了${obj.create.name}群组`;
+            } else {
+                notification = `您加入了${obj.create.name}群组`;
+            }
+
+            var group = {
+                id:groupID,
+                name:groupName,
+                timestamp:timestamp,
+                master:obj.create.master
+            };
+            this.groups.push(group);
+        } else if (obj.add_member) {
+            groupID = obj.add_member.group_id;
+            timestamp = obj.add_member.timestamp;
+            groupName = obj.add_member.name;            
+            db.addGroupMember(obj.add_member.group_id, obj.add_member.member_id);
+            notification = `${obj.add_member.name}加入群`;
+        } else if (obj.quit_group) {
+            groupID = obj.quit_group.group_id;
+            timestamp = obj.quit_group.timestamp;
+            groupName = obj.quit_group.name;
+            db.removeGroupMember(obj.quit_group.group_id, obj.quit_group.member_id);
+            notification = `${obj.quit_group.name}离开群`;
+        } else if (obj.disband) {
+            groupID = obj.disband.group_id;
+            timestamp = obj.disband.timestamp;
+            groupName = obj.disband.name;
+            db.disbandGroup(obj.disband.group_id);
+            notification = "群组已解散";
+        }
+        
+        console.log("group notification:", notification);
+
+        var message = {};
+        message.groupID = groupID;
+        message.sender = 0;
+        message.receiver = groupID;
+        message.flags = 0;
+        message.notification = notification;
+        message.uuid = "";
+        message.timestamp = timestamp;
+        message.content = JSON.stringify({uuid:"", notification:msg});
+        
+        var t = new Date();
+        t.setTime(message.timestamp*1000);
+        message.createdAt = t;
+        message.user = {
+            _id: 0
+        }
+        message.outgoing = false;
+        
+        var db = GroupMessageDB.getInstance();
+        db.insertMessage(message,
+                         function(rowid) {
+                             message.id = rowid;
+                             message._id = rowid;
+                             RCTDeviceEventEmitter.emit('group_message', message);
+                         },
+                         function(err) {
+                             
+                         });
+
+        var cid =  "g_" + message.receiver;
+        var index = this.props.conversations.findIndex((conv) => {
+            return conv.cid == cid;
+        });
+
+        var conv;
+        if (index != -1) {
+            var c = this.props.conversations[index];
+            var newConv = Object.assign({}, c);
+            if (this.props.uid != message.sender) {
+                newConv.unread = newConv.unread + 1;
+            }
+            conv = newConv;
+        } else {
+            conv = {
+                cid:cid,
+                type:CONVERSATION_GROUP,
+                groupID:groupID,
+                name:cid,
+                timestamp:message.timestamp,
+                unread:1,
+                message:message,
+            };
+
+            var group = this.groups.find((group)=> {
+                return group.id == conv.groupID;
+            });
+            if (groupName) {
+                conv.name = groupName;
+            }
+        }
+
+        conv.message = message;
+        conv.timestamp = message.timestamp;
+        conv.content = notification;
+        console.log("new conv:", newConv);
+        this.props.dispatch(updateConversation(conv, index));
 
     }
+
     
     componentWillReceiveProps(nextProps) {
         if (this.props.conversations === nextProps.conversations) {
@@ -145,6 +496,8 @@ class Conversation extends React.Component {
                     passProps:{
                         sender:self.props.uid,
                         receiver:uid,
+                        peer:uid,
+                        name:conv.name,
                         token:self.props.token,
                     },
                 });
@@ -156,6 +509,8 @@ class Conversation extends React.Component {
                     passProps:{
                         sender:self.props.uid,
                         receiver:gid,
+                        groupID:gid,
+                        name:conv.name,
                         token:self.props.token,
                     },
                 });                
