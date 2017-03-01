@@ -142,6 +142,11 @@ export class BaseGroupChat extends Chat {
         return p;
     }
 
+    updateMessageAttachment(msgID, attachment) {
+        var db = GroupMessageDB.getInstance();
+        db.updateAttachment(msgID, attachment);
+    }
+
     setMessageListened(message) {
         var f = message.flags | MESSAGE_FLAG_LISTENED;
         var db = GroupMessageDB.getInstance();

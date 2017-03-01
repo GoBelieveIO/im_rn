@@ -40,6 +40,8 @@ import Conversation from './Conversation';
 import PeerChat from "./PeerChat";
 import GroupChat from "./GroupChat"
 import Photo from './chat/Photo';
+import LocationPicker from './chat/LocationPicker';
+
 import {conversationsReducer, conversationReducer} from './reducers';
 import {messagesReducer}  from './chat/reducers';
 var IMService = require("./chat/im");
@@ -62,6 +64,7 @@ var app = {
         Navigation.registerComponent('chat.PeerChat', () => PeerChat, this.store, Provider);
         Navigation.registerComponent('chat.GroupChat', () => GroupChat, this.store, Provider);
         Navigation.registerComponent('chat.Photo', () => Photo, this.store, Provider);
+        Navigation.registerComponent('chat.LocationPicker', () => LocationPicker, this.store, Provider);
     },
     
 

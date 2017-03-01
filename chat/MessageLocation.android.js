@@ -2,6 +2,7 @@ import React from 'react';
 import {
     Image,
     View,
+    Text,
     Linking,
     Platform,
     StyleSheet,
@@ -37,12 +38,18 @@ export default class MessageLocation extends React.Component {
                               }
                           });
         }
+
+        var address = location.address || "";
         
         return (
             <TouchableOpacity style={styles.container}
                               onPress={onPress}>
                 <Image  style={styles.mapView}
                         source={require("./Images/location.png")}>
+                    <Text textAlign="center"
+                          numberOfLines={2}>
+                        {address}
+                    </Text>
                 </Image>
             </TouchableOpacity>
         );
@@ -55,11 +62,12 @@ const styles = StyleSheet.create({
     container: {
     },
     mapView: {
-        flex:1,
         width: 150,
         height: 100,
         borderRadius: 13,
-        margin: 3,
+        margin: 1,
+        justifyContent:"flex-end",
+        alignItems:"center",
     },
 });
 

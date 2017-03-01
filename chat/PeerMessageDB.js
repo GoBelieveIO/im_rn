@@ -21,7 +21,7 @@ export default class PeerMessageDB {
 
     getMessage(msgID) {
         var p = new Promise((resolve, reject) => {
-            this.db.executeSql("SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE id= ?",
+            this.db.executeSql("SELECT id, sender, receiver, timestamp, flags, content, attachment FROM peer_message WHERE id= ?",
                                [msgID],
                                function(result) {
                                    console.log("tt:", result);
@@ -80,6 +80,17 @@ export default class PeerMessageDB {
                            });
     }
 
+    updateAttachment(msgID, attachment) {
+        this.db.executeSql('UPDATE peer_message SET attachment= ? WHERE id=?',
+                           [attachment, msgID],
+                           function(result) {
+                               console.log("update attachment result:", result);
+                           },
+                           function(error) {
+                               console.log("update attachment error:", error);
+                           });           
+    }
+
     updateFlags(msgID, flags) {
         this.db.executeSql('UPDATE peer_message SET flags= ? WHERE id=?',
                            [flags, msgID],
@@ -93,7 +104,7 @@ export default class PeerMessageDB {
     
     //获取最近聊天记录
     getMessages(uid, successCB, errCB) {
-        var sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message  WHERE peer = ? ORDER BY id DESC LIMIT ?";
+        var sql = "SELECT id, sender, receiver, timestamp, flags, content, attachment FROM peer_message  WHERE peer = ? ORDER BY id DESC LIMIT ?";
         this.db.executeSql(sql, [uid, PAGE_SIZE],
                            function(result) {
                                console.log("get messages:", result);
@@ -112,7 +123,7 @@ export default class PeerMessageDB {
     }
 
     getEarlierMessages(uid, msgID, successCB, errCB) {
-        var sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message WHERE peer = ? AND id < ? ORDER BY id DESC LIMIT ?";
+        var sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message, attachment WHERE peer = ? AND id < ? ORDER BY id DESC LIMIT ?";
         this.db.executeSql(sql, [uid, msgID, PAGE_SIZE],
                            function(result) {
                                console.log("get messages:", result);

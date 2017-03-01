@@ -24,6 +24,9 @@ import PeerMessageDB from './chat/PeerMessageDB';
 import GroupMessageDB from './chat/GroupMessageDB';
 import ConversationDB from './model/ConversationDB';
 
+const CONVERSATION_PEER = "peer";
+const CONVERSATION_GROUP = "group";
+
 class Conversation extends React.Component {
     constructor(props) {
         super(props);

@@ -19,6 +19,7 @@ import {
     Animated
 } from 'react-native';
 
+import Geocoder from 'react-native-geocoder';
 import MapView from 'react-native-maps';
 export default class LocationPicker extends React.Component {
     static navigatorButtons = {
@@ -43,6 +44,8 @@ export default class LocationPicker extends React.Component {
         super(props);
         this.state = {
             loading: true,
+            title:"",
+            description:"",
         };
         this.props.navigator.setOnNavigatorEvent(this.onNavigatorEvent.bind(this));
     }
@@ -53,7 +56,8 @@ export default class LocationPicker extends React.Component {
         }
         var coords = {
             longitude:this.state.region.longitude,
-            latitude:this.state.region.latitude
+            latitude:this.state.region.latitude,
+            address:this.state.description,
         };
 
         this.props.onLocation(coords);
@@ -82,6 +86,7 @@ export default class LocationPicker extends React.Component {
                         latitudeDelta: 0.0922,
                         longitudeDelta: 0.0421,
                     },
+                    title:"",
                     loading:false,
                 })
             },
@@ -94,14 +99,34 @@ export default class LocationPicker extends React.Component {
         console.log("region postion:",
                     region.longitude,
                     region.latitude);
-        this.setState({ region });
+        this.setState({region:region, title:"", description:""});
+        this.marker.hideCallout();
+
     }
 
     onRegionChangeComplete(region) {
         console.log("region change complete:",
                     region.longitude,
                     region.latitude);
-        this.setState({ region });
+        this.setState({region:region, title:"", description:""});
+
+        var location = {lat:region.latitude, lng:region.longitude};
+        Geocoder.geocodePosition(location)
+                .then((res) => {
+                    console.log("geocode position:", res);
+                    if (res.length > 0) {
+                        console.log("location addresses:", res[0].formattedAddress, res[0]);
+                        if (this.state.region.longitude == location.lng &&
+                            this.state.region.latitude == location.lat) {
+                            this.setState({title:res[0].streetName,
+                                           description:res[0].formattedAddress});
+                            this.marker.showCallout();
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.log("geocode error:", err);
+                })
     }
     
     render() {
@@ -123,11 +148,15 @@ export default class LocationPicker extends React.Component {
             return (
                 <MapView
                     style={{flex:1}}
-                    initialRegion={this.state.region}
+                    region={this.state.region}
                     loadingEnabled={true}
                     onRegionChange={this.onRegionChange.bind(this)}
                     onRegionChangeComplete={this.onRegionChangeComplete.bind(this)}>
-                    <MapView.Marker coordinate={this.state.region}/>
+                    <MapView.Marker coordinate={this.state.region}
+                                    identifier={"marker"}
+                                    ref={(ref) => {this.marker=ref}}
+                                    title={this.state.title}
+                                    description={this.state.description}/>
                 </MapView>
             );
         }

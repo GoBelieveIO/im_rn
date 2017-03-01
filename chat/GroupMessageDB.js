@@ -21,7 +21,7 @@ export default class GroupMessageDB {
 
     getMessage(msgID) {
         var p = new Promise((resolve, reject) => {
-            this.db.executeSql("SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE id= ?",
+            this.db.executeSql("SELECT id, sender, group_id, timestamp, flags, content, attachment FROM group_message WHERE id= ?",
                                [msgID],
                                function(result) {
                                    console.log("tt:", result);
@@ -80,6 +80,17 @@ export default class GroupMessageDB {
                            });
     }
 
+    updateAttachment(msgID, attachment) {
+        this.db.executeSql('UPDATE group_message SET attachment= ? WHERE id=?',
+                           [attachment, msgID],
+                           function(result) {
+                               console.log("update attachment result:", result);
+                           },
+                           function(error) {
+                               console.log("update attachment error:", error);
+                           });           
+    }
+    
     updateFlags(msgID, flags) {
         this.db.executeSql('UPDATE group_message SET flags= ? WHERE id=?',
                            [flags, msgID],
@@ -93,7 +104,7 @@ export default class GroupMessageDB {
 
     //获取最近聊天记录
     getMessages(gid, successCB, errCB) {
-        var sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message  WHERE group_id = ? ORDER BY id DESC LIMIT ?";
+        var sql = "SELECT id, sender, group_id, timestamp, flags, content, attachment FROM group_message  WHERE group_id = ? ORDER BY id DESC LIMIT ?";
         this.db.executeSql(sql, [gid, PAGE_SIZE],
                            function(result) {
                                console.log("get messages:", result);
@@ -112,7 +123,7 @@ export default class GroupMessageDB {
     }
 
     getEarlierMessages(gid, msgID, successCB, errCB) {
-        var sql = "SELECT id, sender, group_id, timestamp, flags, content FROM group_message WHERE group_id = ? AND id < ? ORDER BY id DESC LIMIT ?";
+        var sql = "SELECT id, sender, group_id, timestamp, flags, content, attachment FROM group_message WHERE group_id = ? AND id < ? ORDER BY id DESC LIMIT ?";
         this.db.executeSql(sql, [gid, msgID, PAGE_SIZE],
                            function(result) {
                                console.log("get messages:", result);

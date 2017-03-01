@@ -84,7 +84,11 @@ export class BasePeerChat extends Chat {
         var obj = JSON.parse(m.content);
         var t = new Date();
         t.setTime(m.timestamp*1000);
-
+        
+        if (m.attachment) {
+            console.log("attachment:", m.attachment);
+        }
+        
         m._id = m.id;
         m.outgoing = (m.sender == this.props.sender);
         
@@ -100,6 +104,9 @@ export class BasePeerChat extends Chat {
                 }
             }
             m.image = obj.image2;
+            if (m.attachment) {
+                m.image.url = m.attachment;
+            }
         } else if (obj.audio) {
             console.log("auido message....");
             m.audio = obj.audio;
@@ -133,6 +140,11 @@ export class BasePeerChat extends Chat {
             
         });
         return p;
+    }
+
+    updateMessageAttachment(msgID, attachment) {
+        var db = PeerMessageDB.getInstance();
+        db.updateAttachment(msgID, attachment);
     }
 
     setMessageListened(message) {

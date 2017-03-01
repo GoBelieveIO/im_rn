@@ -300,7 +300,7 @@ export default class Chat extends React.Component {
             message.content = content;
             message.audio = obj.audio;
             self.sendMessage(message);
-            //todo save url to db
+            this.updateMessageAttachment(message.id, url);
         })
     }
     
@@ -451,7 +451,8 @@ export default class Chat extends React.Component {
                 },
                 uuid:id,
             };
-            
+
+            this.updateMessageAttachment(message.id, url);
             var content = JSON.stringify(obj);
             message.content = content;
             self.sendMessage(message);
@@ -461,17 +462,22 @@ export default class Chat extends React.Component {
         });
     }
 
-    sendLocationImage(longitude, latitude) {
-        console.log("longitude:" + longitude + " latitude:" + latitude);
+    sendLocationImage(longitude, latitude, address) {
+        console.log("longitude:", longitude,
+                    " latitude:", latitude,
+                    " address:", address);
 
         var id = UUID.v1();
         var obj = {
             location:{
                 longitude:longitude,
-                latitude:latitude
+                latitude:latitude,
             },
             uuid:id
         };
+        if (address) {
+            obj.location.address = address;
+        }
         
         var content = JSON.stringify(obj);
         var sender = this.props.sender;
@@ -568,7 +574,8 @@ export default class Chat extends React.Component {
 
     onLocation(coordinate) {
         this.sendLocationImage(coordinate.longitude,
-                               coordinate.latitude);
+                               coordinate.latitude,
+                               coordinate.address);
     }
 
     handleLocationClick() {
@@ -976,7 +983,11 @@ export default class Chat extends React.Component {
     saveMessage(message) {
         console.log("save message not implement");        
     }
-
+    
+    updateMessageAttachment(msgID, attachment) {
+        console.log("save message attachment not implement");
+    }
+    
     setMessageListened(message) {
         console.log("setMessageListened not implement");
     }
