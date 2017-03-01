@@ -13,10 +13,10 @@ import MapView from 'react-native-maps';
 export default class MessageLocation extends React.Component {
     render() {
         var region = {
-            latitude: 37.78825,
-            longitude: -122.4324,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
+            latitude: this.props.currentMessage.location.latitude,
+            longitude: this.props.currentMessage.location.longitude,
+            latitudeDelta: 0.0422,
+            longitudeDelta: 0.0221,
         };
         
         return (
@@ -37,8 +37,9 @@ export default class MessageLocation extends React.Component {
                     style={styles.mapView}
                     region={region}
                     scrollEnabled={false}
-                    zoomEnabled={false}
-                />
+                    zoomEnabled={false}>
+                    <MapView.Marker coordinate={region}/>
+                </MapView>
             </TouchableOpacity>
         );
     }

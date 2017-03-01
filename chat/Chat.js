@@ -26,6 +26,7 @@ import {connect} from 'react-redux'
 import {AudioRecorder, AudioUtils} from 'react-native-audio';
 
 import {OpenCoreAMR} from 'react-native-amr';
+import Permissions from 'react-native-permissions';
 
 var Toast = require('react-native-toast')
 var UUID = require('react-native-uuid');
@@ -127,7 +128,22 @@ export default class Chat extends React.Component {
                              return AudioRecorder.requestAuthorization();
                          }
                      })
-                     .then((granted)=>{console.log("audio auth granted")})
+                     .then((granted)=>{
+                         console.log("audio auth granted:", granted)
+                     })
+                     .then(()=> {
+                         return Permissions.getPermissionStatus('location');
+                     })
+                     .then((response) => {
+                         if (response == 'undetermined') {
+                             return Permissions.requestPermission('location');
+                         } else {
+                             return response;
+                         }
+                     })
+                     .then((granted)=> {
+                         console.log("location auth granted:", granted);
+                     })
                      .catch((e)=>{console.log("audio auth err:", e)});
     }
 
@@ -478,7 +494,7 @@ export default class Chat extends React.Component {
         
         var self = this;
 
-        var p = this.saveMessage();
+        var p = this.saveMessage(message);
         p.then((rowid)=> {
             console.log("row id:", rowid);
             message.id = rowid;
@@ -550,20 +566,29 @@ export default class Chat extends React.Component {
         });
     }
 
-    
+    onLocation(coordinate) {
+        this.sendLocationImage(coordinate.longitude,
+                               coordinate.latitude);
+    }
 
     handleLocationClick() {
         console.log("locaiton click");
+        var navigator = this.props.navigator;
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                this.sendLocationImage(position.coords.longitude,
-                                       position.coords.latitude);
+        navigator.push({
+            title:"位置",
+            screen:"chat.LocationPicker",
+            passProps:{
+                onLocation:this.onLocation.bind(this),
             },
-            (error) => alert(error.message),
-            {enableHighAccuracy: true, timeout: 20000, maximumAge: 1000}
-        );
-
+            navigatorStyle:{
+                tabBarHidden:true
+            },
+            navigatorStyle: {
+                statusBarHideWithNavBar:true,
+                statusBarHidden:true,
+            },
+        });
     }
 
     onMessageLongPress(message) {
