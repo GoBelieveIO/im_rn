@@ -128,18 +128,7 @@ export class BasePeerChat extends Chat {
     
     saveMessage(message) {
         var db = PeerMessageDB.getInstance();
-        var p = new Promise((resolve, reject) => {
-            db.insertMessage(message, this.props.receiver,
-                             function(rowid) {
-                                 console.log("row id:", rowid);
-                                 resolve(rowid);
-                             },
-                             function(err) {
-                                 reject(err);
-                             });
-            
-        });
-        return p;
+        return db.insertMessage(message, this.props.receiver);
     }
 
     updateMessageAttachment(msgID, attachment) {

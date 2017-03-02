@@ -44,11 +44,6 @@ export default class Login extends Component {
         }
         
         var receiver = parseInt(this.state.receiver);
-        if (!receiver) {
-            alert("请填写接受者者id");
-            return;
-        }
-
         this.startIM(sender, receiver);
     }
 
@@ -88,15 +83,28 @@ export default class Login extends Component {
                     console.log("access token:", im.accessToken);
                     im.start();
                     self.props.app.uid = sender;
-                
-                    navigator.push({
-                        title:"对话",
-                        screen:"demo.Conversation",
-                        passProps:{
-                            uid:sender,
-                            token:responseJson.token
-                        },
-                    });
+                    if (isNaN(receiver)) {
+                        navigator.push({
+                            title:"对话",
+                            screen:"demo.Conversation",
+                            passProps:{
+                                uid:sender,
+                                token:responseJson.token
+                            },
+                        });
+                    } else {
+                        navigator.push({
+                            title:"对话",
+                            screen:"chat.PeerChat",
+                            passProps:{
+                                sender:sender,
+                                receiver:receiver,
+                                peer:receiver,
+                                name:"测试",
+                                token:responseJson.token
+                            },
+                        });
+                    }
                 } else {
                     console.log(responseJson.meta.message);
                 }

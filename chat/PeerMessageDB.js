@@ -1,6 +1,9 @@
 
 const PAGE_SIZE = 10;
 var instance = null;
+
+import tokenizer from "./Tokenizer";
+
 export default class PeerMessageDB {
     static getInstance() {
         if (!instance) {
@@ -65,19 +68,39 @@ export default class PeerMessageDB {
             return Promise.all(arr);
         });
     }
-
     
-    insertMessage(msg, uid, successCB, errCB) {
+    insertMessage(msg, uid) {
         console.log("uid:", uid);
-        this.db.executeSql('INSERT INTO peer_message (peer, sender, receiver, timestamp, flags, content) VALUES (?, ?, ?, ?, ?, ?)',
-                           [uid, msg.sender, msg.receiver, msg.timestamp, msg.flags, msg.content],
-                           function(result) {
-                               console.log("insert result:", result);
-                               successCB(result.insertId);
-                           },
-                           function(error) {
-                               
-                           });
+        var self = this;
+        var p = new Promise(function(resolve, reject) {
+            self.db.executeSql('INSERT INTO peer_message (peer, sender, receiver, timestamp, flags, content) VALUES (?, ?, ?, ?, ?, ?)',
+                               [uid, msg.sender, msg.receiver, msg.timestamp, msg.flags, msg.content],
+                               function(result) {
+                                   console.log("insert result:", result);
+                                   resolve(result.insertId);
+                               },
+                               function(error) {
+                                   reject(error);
+                               });
+        })
+        p.then((rowid) => {
+            if (msg.text) {
+                var text = tokenizer(msg.text);
+                return new Promise(function(resolve, reject) {
+                    self.db.executeSql("INSERT INTO peer_message_fts(docid, content) VALUES(?, ?)",
+                                       [rowid, text],
+                                       function(result) {
+                                           resolve(rowid);
+                                       },
+                                       function(error) {
+                                           reject(error);
+                                       });
+                });
+            } else {
+                return rowid;
+            }
+        });
+        return p;
     }
 
     updateAttachment(msgID, attachment) {

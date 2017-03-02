@@ -67,17 +67,36 @@ export default class GroupMessageDB {
     }
 
     
-    insertMessage(msg, successCB, errCB) {
-        this.db.executeSql('INSERT INTO group_message (sender, group_id, timestamp, flags, content) VALUES (?, ?, ?, ?, ?)',
-                           [msg.sender, msg.receiver, msg.timestamp, msg.flags, msg.content],
-                           function(result) {
-                               console.log("insert result:", result);
-                               successCB(result.insertId);
-                           },
-                           function(error) {
-                               console.log("insert error:", error);
-                               errCB(err);
-                           });
+    insertMessage(msg) {
+        return new Promise(function(resolve, reject) {
+            this.db.executeSql('INSERT INTO group_message (sender, group_id, timestamp, flags, content) VALUES (?, ?, ?, ?, ?)',
+                               [msg.sender, msg.receiver, msg.timestamp, msg.flags, msg.content],
+                               function(result) {
+                                   console.log("insert result:", result);
+                                   resolve(result.insertId);
+                               },
+                               function(error) {
+                                   console.log("insert error:", error);
+                                   reject(err);
+                               });
+            
+        }).then((rowid) => {
+            if (msg.text) {
+                var text = tokenizer(msg.text);
+                return new Promise(function(resolve, reject) {
+                    self.db.executeSql("INSERT INTO group_message_fts(docid, content) VALUES(?, ?)",
+                                       [rowid, text],
+                                       function(result) {
+                                           resolve(rowid);
+                                       },
+                                       function(error) {
+                                           reject(error);
+                                       });
+                });
+            } else {
+                return rowid;
+            }
+        });
     }
 
     updateAttachment(msgID, attachment) {

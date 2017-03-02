@@ -128,18 +128,7 @@ export class BaseGroupChat extends Chat {
     
     saveMessage(message) {
         var db = GroupMessageDB.getInstance();
-        var p = new Promise((resolve, reject) => {
-            db.insertMessage(message, 
-                             function(rowid) {
-                                 console.log("row id:", rowid);
-                                 resolve(rowid);
-                             },
-                             function(err) {
-                                 reject(err);
-                             });
-            
-        });
-        return p;
+        return db.insertMessage(message);
     }
 
     updateMessageAttachment(msgID, attachment) {
