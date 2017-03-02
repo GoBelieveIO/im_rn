@@ -1,6 +1,9 @@
 
 const PAGE_SIZE = 10;
 var instance = null;
+
+import tokenizer from "./Tokenizer";
+
 export default class GroupMessageDB {
     static getInstance() {
         if (!instance) {
@@ -68,8 +71,9 @@ export default class GroupMessageDB {
 
     
     insertMessage(msg) {
+        var self = this;
         return new Promise(function(resolve, reject) {
-            this.db.executeSql('INSERT INTO group_message (sender, group_id, timestamp, flags, content) VALUES (?, ?, ?, ?, ?)',
+            self.db.executeSql('INSERT INTO group_message (sender, group_id, timestamp, flags, content) VALUES (?, ?, ?, ?, ?)',
                                [msg.sender, msg.receiver, msg.timestamp, msg.flags, msg.content],
                                function(result) {
                                    console.log("insert result:", result);
@@ -158,5 +162,34 @@ export default class GroupMessageDB {
                                errCB(e);
                            });   
     }
-    
+
+    search(key) {
+        //manual escape, bind not working, why?
+        key = key.replace("'","\'");
+        var text = tokenizer(key);
+        var sql = `SELECT rowid FROM group_message_fts WHERE group_message_fts MATCH '${text}'`;
+
+        var self = this;
+        return new Promise(function(resolve, reject) {
+            self.db.executeSql(sql, [],
+                               function(result) {
+                                   var msgIDs = [];
+                                   for (var i = 0; i < result.rows.length; i++) {
+                                       var row = result.rows.item(i);
+                                       msgIDs.push(row.rowid);
+                                   }
+                                   console.log("message ids:", msgIDs);
+                                   resolve(msgIDs);
+                               },
+                               function(err) {
+                                   console.log("search err:", err);
+                                   reject(err);
+                               });
+        }).then((msgIDs)=> {
+            return Promise.all(msgIDs.map((msgID) => {
+                return self.getMessage(msgID);
+            }));
+        });
+    }
+
 }

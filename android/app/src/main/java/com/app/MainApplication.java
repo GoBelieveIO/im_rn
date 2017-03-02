@@ -5,6 +5,7 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.facebook.react.ReactApplication;
+import com.oblador.vectoricons.VectorIconsPackage;
 import com.devfd.RNGeocoder.RNGeocoderPackage;
 import com.joshblour.reactnativepermissions.ReactNativePermissionsPackage;
 import com.airbnb.android.react.maps.MapsPackage;
@@ -43,7 +44,8 @@ public class MainApplication extends NavigationApplication {
             new RCTToastPackage(),
             new ReactNativeAudioPackage(),
             new ImagePickerPackage(),
-            new SQLitePluginPackage()
+            new SQLitePluginPackage(),
+            new VectorIconsPackage()
     );
   }
 }

@@ -162,5 +162,33 @@ export default class PeerMessageDB {
                                errCB(e);
                            });   
     }
-    
+
+    search(key) {
+        //manual escape, bind not working, why?
+        key = key.replace("'","\'");
+        var text = tokenizer(key);
+        var sql = `SELECT rowid FROM peer_message_fts WHERE peer_message_fts MATCH '${text}'`;
+
+        var self = this;
+        return new Promise(function(resolve, reject) {
+            self.db.executeSql(sql, [],
+                               function(result) {
+                                   var msgIDs = [];
+                                   for (var i = 0; i < result.rows.length; i++) {
+                                       var row = result.rows.item(i);
+                                       msgIDs.push(row.rowid);
+                                   }
+                                   console.log("message ids:", msgIDs);
+                                   resolve(msgIDs);
+                               },
+                               function(err) {
+                                   console.log("search err:", err);
+                                   reject(err);
+                               });
+        }).then((msgIDs)=> {
+            return Promise.all(msgIDs.map((msgID) => {
+                return self.getMessage(msgID);
+            }));
+        });
+    }
 }

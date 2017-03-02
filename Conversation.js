@@ -28,6 +28,16 @@ const CONVERSATION_PEER = "peer";
 const CONVERSATION_GROUP = "group";
 
 class Conversation extends React.Component {
+    static navigatorButtons = {
+        rightButtons: [
+            {
+                title: '搜索', 
+                id: 'search', 
+                showAsAction: 'ifRoom' 
+            },
+        ]
+    };
+    
     constructor(props) {
         super(props);
 
@@ -36,7 +46,28 @@ class Conversation extends React.Component {
             dataSource: ds.cloneWithRows([
             ])
         };
+        this.props.navigator.setOnNavigatorEvent(this.onNavigatorEvent.bind(this));
     }
+
+    onNavigatorEvent(event) {
+        console.log("event:", event);
+        if (event.type == 'NavBarButtonPress') { 
+            if (event.id == 'search') {
+                var navigator = this.props.navigator;
+                navigator.push({
+                    title:"Search",
+                    screen:"demo.Search",
+                    navigatorStyle:{
+                        tabBarHidden:true
+                    },
+                    passProps:{
+
+                    },
+                });                
+            }
+        }
+    }
+
     
     componentWillMount() {
         var im = IMService.instance;
@@ -181,16 +212,13 @@ class Conversation extends React.Component {
         
         var peer = (this.uid == message.sender) ? message.receiver : message.sender;
         var db = PeerMessageDB.getInstance();
-        db.insertMessage(message, peer,
-                         function(rowid) {
-                             message.id = rowid;
-                             message._id = rowid;
-                             RCTDeviceEventEmitter.emit('peer_message', message);
-                         },
-                         function(err) {
-                             
-                         });
-
+        db.insertMessage(message, peer)
+          .then((rowid) => {
+              message.id = rowid;
+              message._id = rowid;
+              RCTDeviceEventEmitter.emit('peer_message', message);
+              
+          });
 
         cid = "p_" + peer;
         var index = this.props.conversations.findIndex((conv) => {
@@ -279,18 +307,17 @@ class Conversation extends React.Component {
         message.outgoing = (this.uid == message.sender);
         
         var db = GroupMessageDB.getInstance();
-        db.insertMessage(message,
-                         function(rowid) {
-                             message.id = rowid;
-                             message._id = rowid;
-                             RCTDeviceEventEmitter.emit('group_message', message);
-                         },
-                         function(err) {
-                             
-                         });
+        db.insertMessage(message)
+          .then((rowid) => {
+              message.id = rowid;
+              message._id = rowid;
+              RCTDeviceEventEmitter.emit('group_message', message);
+          });
+
 
         var cid =  "g_" + message.receiver;
-
+        var groupID = message.receiver;
+        
         var index = this.props.conversations.findIndex((conv) => {
             return conv.cid == cid;
         });
@@ -309,9 +336,9 @@ class Conversation extends React.Component {
                 type:CONVERSATION_GROUP,
                 groupID:groupID,
                 name:cid,
-                timestamp:m.timestamp,
+                timestamp:message.timestamp,
                 unread:0,
-                message:m,
+                message:message,
             };
       
             if (this.props.uid != message.sender) {
@@ -425,15 +452,13 @@ class Conversation extends React.Component {
         message.outgoing = false;
         
         var db = GroupMessageDB.getInstance();
-        db.insertMessage(message,
-                         function(rowid) {
-                             message.id = rowid;
-                             message._id = rowid;
-                             RCTDeviceEventEmitter.emit('group_message', message);
-                         },
-                         function(err) {
-                             
-                         });
+        db.insertMessage(message)
+          .then((rowid) => {
+              message.id = rowid;
+              message._id = rowid;
+              RCTDeviceEventEmitter.emit('group_message', message);
+          });
+
 
         var cid =  "g_" + message.receiver;
         var index = this.props.conversations.findIndex((conv) => {

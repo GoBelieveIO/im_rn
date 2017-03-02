@@ -37,6 +37,8 @@ import {setConversation} from './actions';
 
 import Login from "./Login";
 import Conversation from './Conversation';
+import Search from './Search';
+
 import PeerChat from "./PeerChat";
 import GroupChat from "./GroupChat"
 import Photo from './chat/Photo';
@@ -60,6 +62,7 @@ var app = {
     registerScreens: function() {
         Navigation.registerComponent('demo.Login', () => Login, this.store, Provider);
         Navigation.registerComponent('demo.Conversation', () => Conversation, this.store, Provider);
+        Navigation.registerComponent('demo.Search', () => Search, this.store, Provider);
         
         Navigation.registerComponent('chat.PeerChat', () => PeerChat, this.store, Provider);
         Navigation.registerComponent('chat.GroupChat', () => GroupChat, this.store, Provider);
