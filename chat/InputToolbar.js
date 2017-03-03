@@ -388,14 +388,20 @@ export default class InputToolbar extends React.Component {
         );
     }
 
-    
+    handleLayout(e) {
+        this.refs.record.measure((x, y, w, h, px, py) => {
+            console.log("record measure:", x, y, w, h, px, py);
+            this.recordPageX = px;
+            this.recordPageY = py;
+        })
+    }
 
     renderReocrdInput() {
         const {value = '', isEmoji, mode, opacity} = this.state;
         var height = this.composerHeight + (MIN_INPUT_TOOLBAR_HEIGHT - MIN_COMPOSER_HEIGHT);
         console.log("composer height:", this.composerHeight);
 
-        //android bug: https://github.com/facebook/react-native/issues/7221        
+        //android bug: https://github.com/facebook/react-native/issues/7221
         var responder = {
             onStartShouldSetResponder:(evt) => true,
             onMoveShouldSetResponder: (evt) => true,
@@ -412,9 +418,10 @@ export default class InputToolbar extends React.Component {
                 console.log("responder move");
                 console.log("event:", evt.nativeEvent);
 
-                if (evt.nativeEvent.locationY < 0) {
+                if (evt.nativeEvent.locationY < 0 ||
+                    evt.nativeEvent.pageY < this.recordPageY) {
                     this.props.giftedChat.setRecordingText("松开手指, 取消发送");
-                    this.props.giftedChat.setRecordingColor("red");                    
+                    this.props.giftedChat.setRecordingColor("red");
                 } else {
                     this.props.giftedChat.setRecordingText("手指上滑, 取消发送");
                     this.props.giftedChat.setRecordingColor("transparent");
@@ -426,7 +433,8 @@ export default class InputToolbar extends React.Component {
                 this.props.giftedChat.setRecording(false);
 
                 var canceled;
-                if (evt.nativeEvent.locationY < 0) {
+                if (evt.nativeEvent.locationY < 0 ||
+                    evt.nativeEvent.pageY < this.recordPageY) {
                     canceled = true;
                 } else {
                     canceled = false;
@@ -455,6 +463,8 @@ export default class InputToolbar extends React.Component {
                                   borderRadius: 3,
                                   opacity:opacity,
                                   justifyContent:"center"}}
+                          ref="record"
+                          onLayout={this.handleLayout.bind(this)}
                           {...responder}>
                         <Text>
                             {"按住说话"}

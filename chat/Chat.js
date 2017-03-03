@@ -456,7 +456,6 @@ export default class Chat extends React.Component {
             var content = JSON.stringify(obj);
             message.content = content;
             self.sendMessage(message);
-            //todo save url
         }).catch((err) => {
             console.log("upload image err:", err);
         });
@@ -739,16 +738,33 @@ export default class Chat extends React.Component {
         var audioPath = AudioUtils.DocumentDirectoryPath + "/" + fileName;
         AudioRecorder.onProgress = function(data) {
             console.log("record progress:", data);
+            if (Platform.OS == 'ios') {
+                var metering = data.currentMetering;
+              
+                //ios: [-160, 0]
+                metering = Math.max(metering, -160);
+                metering = Math.min(metering, 0);
 
-            var metering = data.currentMetering;
-            //ios: [-160, 0]
-            metering = Math.max(metering, -160);
-            metering = Math.min(metering, 0);
-
-            //to [0, 20]
-            var t = 20*(metering - (-160))/160;
-            t = Math.floor(t);
-            self.setState({currentMetering:t});
+                //to [0, 20]
+                var t = 20*(metering - (-160))/160;
+                t = Math.floor(t);
+                self.setState({currentMetering:t});
+            } else {
+                var metering;
+                if (data.currentMetering) {
+                    metering = data.currentMetering;
+                } else {
+                    metering = 0;
+                }
+                metering = metering/7000.0;
+                metering = Math.max(metering, 0);
+                metering = Math.min(metering, 1);
+                
+                //to [0, 20]
+                var t = 20*metering;
+                t = Math.floor(t);
+                self.setState({currentMetering:t});
+            }
         };
         AudioRecorder.prepareRecordingAtPath(audioPath, {
             SampleRate: 8000,
