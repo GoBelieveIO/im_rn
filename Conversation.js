@@ -37,6 +37,16 @@ class Conversation extends React.Component {
             },
         ]
     };
+
+    
+    static navigatorStyle = {
+        navBarBackgroundColor: '#4dbce9',
+        navBarTextColor: '#ffff00',
+        navBarSubtitleTextColor: '#ff0000',
+        navBarButtonColor: '#ffffff',
+        statusBarTextColorScheme: 'light',
+    };
+    
     
     constructor(props) {
         super(props);
@@ -174,6 +184,20 @@ class Conversation extends React.Component {
 
         Promise.all([p1, p2]).then((results) => {
             var convs = results[0].concat(results[1]);
+
+            if (convs.length == 0 && this.props.testPeer) {
+                //test
+                var conv = {
+                    cid:"p_" + this.props.testPeer,
+                    type:CONVERSATION_PEER,
+                    peer:this.props.testPeer,
+                    name:"p_" + this.props.testPeer,
+                    unread:0,
+                    content:"",
+                    timestamp:0,
+                 }
+                convs = [conv];
+            }
             this.props.dispatch(setConversations(convs));
         }).catch((err) => {
             

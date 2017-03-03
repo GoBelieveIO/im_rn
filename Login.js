@@ -11,6 +11,7 @@ import {
     ActionSheetIOS,
     NetInfo,
     View,
+    Platform,
     AsyncStorage
 } from 'react-native';
 
@@ -83,28 +84,16 @@ export default class Login extends Component {
                     console.log("access token:", im.accessToken);
                     im.start();
                     self.props.app.uid = sender;
-                    if (isNaN(receiver)) {
-                        navigator.push({
-                            title:"对话",
-                            screen:"demo.Conversation",
-                            passProps:{
-                                uid:sender,
-                                token:responseJson.token
-                            },
-                        });
-                    } else {
-                        navigator.push({
-                            title:"对话",
-                            screen:"chat.PeerChat",
-                            passProps:{
-                                sender:sender,
-                                receiver:receiver,
-                                peer:receiver,
-                                name:"测试",
-                                token:responseJson.token
-                            },
-                        });
-                    }
+                    navigator.push({
+                        title:"对话",
+                        screen:"demo.Conversation",
+                        passProps:{
+                            uid:sender,
+                            token:responseJson.token,
+                            testPeer:isNaN(receiver) ? 0 : receiver,
+                        },
+                    });
+                 
                 } else {
                     console.log(responseJson.meta.message);
                 }
@@ -120,6 +109,12 @@ export default class Login extends Component {
 
 
     render() {
+        
+        var inputHeight = Platform.select({
+            ios:35,
+            android:45
+        });
+        
         return (
             <View>
                 <Spinner visible={this.state.visible} />
@@ -128,13 +123,16 @@ export default class Login extends Component {
                             this.setState({sender:text});
                         }}
                     style={{    
-                        marginTop:44,
+                        marginTop:40,
                         marginLeft:8,
                         marginRight:8,
                         borderWidth: 0.5,
                         borderColor: '#0f0f0f',
-                        height:35,
+                        height:inputHeight,
                     }}
+                    underlineColorAndroid='rgba(0,0,0,0)'
+                    
+                 
                     keyboardType="numeric"
                     placeholder="发送者id"
                     value={this.state.sender}
@@ -145,13 +143,14 @@ export default class Login extends Component {
                             this.setState({receiver:text});
                         }}
                     style={{    
-                        marginTop:44,
+                        marginTop:40,
                         marginLeft:8,
                         marginRight:8,
                         borderWidth: 0.5,
                         borderColor: '#0f0f0f',
-                        height:35,
+                        height:inputHeight,
                     }}
+                    underlineColorAndroid='rgba(0,0,0,0)'
                     keyboardType="numeric"
                     placeholder="接受者id"
                     value={this.state.receiver}
