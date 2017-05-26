@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-
+    "start": "node node_modules/react-native/local-cli/cli.js start"
   },
   "dependencies": {
     "buffer": "^4.6.0",
@@ -33,5 +33,5 @@
     "react-redux": "^4.4.6",
     "redux": "^3.5.2",
     "spliddit": "^2.1.1"
-  },
+  }
 }
