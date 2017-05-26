@@ -3,8 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node_modules/react-native/packager/packager.sh",
-    "sync": "rm -rf ./node_modules/react-native-gifted-chat; sane '/usr/bin/rsync -v -a --exclude .git --exclude example --exclude __tests__ --exclude node_modules ../ ./node_modules/react-native-gifted-chat/' .. --glob='{**/*.json,**/*.js}'"
+
   },
   "dependencies": {
     "buffer": "^4.6.0",
@@ -21,7 +20,7 @@
     "react-native-maps": "^0.13.0",
     "react-native-material-design-searchbar": "^1.1.0",
     "react-native-nav": "^1.1.4",
-    "react-native-navigation": "^2.0.0-experimental.228",
+    "react-native-navigation": "1.1.79",
     "react-native-permissions": "^0.2.7",
     "react-native-photo-browser": "^0.2.2",
     "react-native-search-bar": "^3.0.0",
@@ -35,8 +34,4 @@
     "redux": "^3.5.2",
     "spliddit": "^2.1.1"
   },
-  "devDependencies": {
-    "babel-preset-react-native": "^1.9.0",
-    "sane": "^1.4.0"
-  }
 }
