@@ -81,7 +81,7 @@ class Conversation extends React.Component {
     
     componentWillMount() {
         var im = IMService.instance;
-        im.addObserver(this);
+        im.observer = this;
         
         this.loadConversations();
     }
@@ -206,7 +206,7 @@ class Conversation extends React.Component {
     
     componetWillUnmount() {
         var im = IMService.instance;
-        im.removeObserver(this);
+        im.observer = undefined;
     }
     
     handlePeerMessage(message) {
