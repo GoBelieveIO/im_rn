@@ -13,15 +13,15 @@ import { Switch, Route, withRouter } from "react-router";
 
 import moment from 'moment/min/moment-with-locales.min';
 
-var IMService = require("./chat/im");
+var IMService = require("../chat/im");
 
-import {MESSAGE_FLAG_ACK, MESSAGE_FLAG_FAILURE} from './chat/IMessage';
-import PeerMessageDB from './chat/PeerMessageDB';
-import GroupMessageDB from './chat/GroupMessageDB';
-import ConversationDB from './model/ConversationDB';
+import {MESSAGE_FLAG_ACK, MESSAGE_FLAG_FAILURE} from '../model/IMessage';
+import PeerMessageDB from '../model/PeerMessageDB';
+import GroupMessageDB from '../model/GroupMessageDB';
+import ConversationDB from '../model/ConversationDB';
 
-import PeerChat from "./chat/PeerChat";
-import Navigator from "./Navigation";
+import PeerChat from "./PeerChat";
+import Navigator from "../Navigation";
 
 const CONVERSATION_PEER = "peer";
 const CONVERSATION_GROUP = "group";
@@ -659,7 +659,7 @@ class Conversation extends React.Component {
                                             top:8,
                                             width:40,
                                             height:40}}
-                                   source={require("./Images/default.png")}/>
+                                   source={require("../Images/default.png")}/>
                             
                             {reanderUnread()}
                         </View>

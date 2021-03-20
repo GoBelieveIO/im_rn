@@ -36,7 +36,7 @@ var UUID = require('react-native-uuid');
 var Sound = require('react-native-sound');
 var RNFS = require('react-native-fs');
 
-import {MESSAGE_FLAG_LISTENED} from "./IMessage";
+import {MESSAGE_FLAG_LISTENED} from "../model/IMessage";
 
 import PropTypes from 'prop-types';
 
@@ -46,15 +46,12 @@ if (Platform.OS === 'android') {
 
 console.log("document path:", AudioUtils.DocumentDirectoryPath);
 
-import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './InputToolbar';
-import MessageContainer from './MessageContainer';
-// import {playMessage, listenMessage} from './actions';
+import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from '../chat/InputToolbar';
+import MessageContainer from '../chat/MessageContainer';
 
-import api from "./api";
+import api from "../chat/api";
 
-const API_URL = "http://api.gobelieve.io";
 const NAVIGATIONBAR_HEIGHT = 0;
-
 
 var Permissions = {
     getPermissionStatus: function(permission) {
@@ -78,6 +75,10 @@ interface Props {
     token:string;
     sender:string;
     receiver:string;
+    emitter:any;
+
+    peer?:any;
+    groupID?:any;
 }
 
 interface Stat {
@@ -1133,27 +1134,27 @@ export default class Chat extends React.Component<Props, Stat> {
 
     renderRecordView() {
         var images = [
-            require("./Images/VoiceSearchFeedback000.png"),
-            require("./Images/VoiceSearchFeedback001.png"),
-            require("./Images/VoiceSearchFeedback002.png"),
-            require("./Images/VoiceSearchFeedback003.png"),
-            require("./Images/VoiceSearchFeedback004.png"),
-            require("./Images/VoiceSearchFeedback005.png"),
-            require("./Images/VoiceSearchFeedback006.png"),
-            require("./Images/VoiceSearchFeedback007.png"),
-            require("./Images/VoiceSearchFeedback008.png"),
-            require("./Images/VoiceSearchFeedback009.png"),
-            require("./Images/VoiceSearchFeedback010.png"),
-            require("./Images/VoiceSearchFeedback011.png"),
-            require("./Images/VoiceSearchFeedback012.png"),
-            require("./Images/VoiceSearchFeedback013.png"),
-            require("./Images/VoiceSearchFeedback014.png"),
-            require("./Images/VoiceSearchFeedback015.png"),
-            require("./Images/VoiceSearchFeedback016.png"),
-            require("./Images/VoiceSearchFeedback017.png"),
-            require("./Images/VoiceSearchFeedback018.png"),
-            require("./Images/VoiceSearchFeedback019.png"),
-            require("./Images/VoiceSearchFeedback020.png"),
+            require("../chat/Images/VoiceSearchFeedback000.png"),
+            require("../chat/Images/VoiceSearchFeedback001.png"),
+            require("../chat/Images/VoiceSearchFeedback002.png"),
+            require("../chat/Images/VoiceSearchFeedback003.png"),
+            require("../chat/Images/VoiceSearchFeedback004.png"),
+            require("../chat/Images/VoiceSearchFeedback005.png"),
+            require("../chat/Images/VoiceSearchFeedback006.png"),
+            require("../chat/Images/VoiceSearchFeedback007.png"),
+            require("../chat/Images/VoiceSearchFeedback008.png"),
+            require("../chat/Images/VoiceSearchFeedback009.png"),
+            require("../chat/Images/VoiceSearchFeedback010.png"),
+            require("../chat/Images/VoiceSearchFeedback011.png"),
+            require("../chat/Images/VoiceSearchFeedback012.png"),
+            require("../chat/Images/VoiceSearchFeedback013.png"),
+            require("../chat/Images/VoiceSearchFeedback014.png"),
+            require("../chat/Images/VoiceSearchFeedback015.png"),
+            require("../chat/Images/VoiceSearchFeedback016.png"),
+            require("../chat/Images/VoiceSearchFeedback017.png"),
+            require("../chat/Images/VoiceSearchFeedback018.png"),
+            require("../chat/Images/VoiceSearchFeedback019.png"),
+            require("../chat/Images/VoiceSearchFeedback020.png"),
         ];
         
         const {width, height} = Dimensions.get('window');

@@ -1,19 +1,13 @@
-import React from 'react';
 import {
     Platform,
 } from 'react-native';
-
-
 import {AudioUtils} from 'react-native-audio';
-
-import PeerMessageDB from './PeerMessageDB.js'
-import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from './IMessage';
-
+import PeerMessageDB from '../model/PeerMessageDB';
+import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from '../model/IMessage';
 import PropTypes from 'prop-types';
-
-var IMService = require("./im");
-
+var IMService = require("../chat/im");
 import Chat from './Chat';
+
 
 export default class PeerChat extends Chat {
     static navigatorStyle = {
@@ -30,8 +24,6 @@ export default class PeerChat extends Chat {
 
     constructor(props) {
         super(props);
-
-
     }
 
     componentDidMount() {
@@ -152,30 +144,30 @@ export default class PeerChat extends Chat {
         };
     }
 
-    addMessage(message, sending) {
+    addMessage(message, sending?) {
         super.addMessage(message, sending);
         if (!sending) {
             return;
         }
-        var conv = {
-            cid:"p_" + this.props.receiver,
-            unread:0,
-            message:message,
-            timestamp:message.timestamp,
-            name:this.props.name,            
-        }
-        var msgObj = JSON.parse(message.content);
-        if (msgObj.text) {
-            conv.content = msgObj.text;
-        } else if (msgObj.image2) {
-            conv.content = "一张图片";
-        } else if (msgObj.audio) {
-            conv.content = "语音"
-        } else if (msgObj.location) {
-            conv.content = "位置";
-        } else {
-            conv.content = "";
-        }
+        // var conv = {
+        //     cid:"p_" + this.props.receiver,
+        //     unread:0,
+        //     message:message,
+        //     timestamp:message.timestamp,
+        //     name:this.props.name,            
+        // }
+        // var msgObj = JSON.parse(message.content);
+        // if (msgObj.text) {
+        //     conv.content = msgObj.text;
+        // } else if (msgObj.image2) {
+        //     conv.content = "一张图片";
+        // } else if (msgObj.audio) {
+        //     conv.content = "语音"
+        // } else if (msgObj.location) {
+        //     conv.content = "位置";
+        // } else {
+        //     conv.content = "";
+        // }
 
         this.props.emitter.emit('update_conversation_message', "p_" + this.props.receiver, message);
         //this.props.dispatch(updateConversation(conv));
@@ -238,7 +230,7 @@ export default class PeerChat extends Chat {
                                   });
         });
 
-        p.then((messages) => {
+        p.then((messages:any[]) => {
   
             if (messages.length == 0) {
                 this.setState({

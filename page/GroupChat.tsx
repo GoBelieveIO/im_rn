@@ -5,14 +5,15 @@ import {
 
 import {AudioUtils} from 'react-native-audio';
 
-import GroupMessageDB from './GroupMessageDB.js'
-import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from './IMessage';
+import GroupMessageDB from '../model/GroupMessageDB.js'
+import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from '../model/IMessage';
 
-var IMService = require("./im");
+var IMService = require("../chat/im");
 
 import Chat from './Chat';
 
-export class BaseGroupChat extends Chat {
+
+export default class GroupChat extends Chat {
     constructor(props) {
         super(props);
     }
@@ -20,22 +21,16 @@ export class BaseGroupChat extends Chat {
     componentWillMount() {
         super.componentWillMount();
         
-        var im = IMService.instance;
-        im.addObserver(this);
-
-        this.listener = this.props.emitter.on('group_message',
-                                                          (message)=>{
-                                                              this.onGroupMessage(message);
-                                                          });
+        this.props.emitter.emit('clear_conversation_unread', "g_" + this.props.receiver);
 
 
-        this.ackListener = this.props.emitter.on('group_message_ack',
-                                                             (message)=>{
-                                                                this.onGroupMessageACK(message);
-                                                             });
+
+        this.props.emitter.on('group_message', this.onGroupMessage, this);
+        this.props.emitter.on('group_message_ack', this.onGroupMessageACK, this);
         
         var db = GroupMessageDB.getInstance();
 
+        this.setState({loading:true});
         db.getMessages(this.props.receiver,
                        (msgs)=>{
                            for (var i in msgs) {
@@ -45,20 +40,19 @@ export class BaseGroupChat extends Chat {
                                this.downloadAudio(m);
                            }
                            console.log("set messages:", msgs.length);
-                           this.setState({messages:msgs});
+                           this.setState({messages:msgs, loading:false});
                        },
-                       (e)=>{});
+                       (e)=>{
+                           console.log("err:", e);
+                           this.setState({loading:false});
+                       });
     }
 
 
     componentWillUnmount() {
         super.componentWillUnmount();
-        
-        var im = IMService.instance;
-        im.removeObserver(this);
-
-        this.listener.remove();
-        this.ackListener.remove();
+        this.props.emitter.off(this.onGroupMessage, this);
+        this.props.emitter.off(this.onGroupMessageACK, this);
     }
 
     onGroupMessage(message) {
@@ -75,7 +69,7 @@ export class BaseGroupChat extends Chat {
             var index = -1;
             for (var i = 0; i < messages.length; i++) {
                 var m = messages[i];
-                if (m.id == action.msgID) {
+                if (m.id == message.msgID) {
                     index = i;
                     break;
                 }
@@ -138,11 +132,58 @@ export class BaseGroupChat extends Chat {
         m.user = {
             _id:m.sender
         };
-        m.outgoing = (this.sender == m.sender);
+        m.outgoing = (this.props.sender == m.sender);
     }
 
  
     
+    addMessage(message, sending?) {
+        super.addMessage(message, sending);
+        if (!sending) {
+            return;
+        }
+        // var conv = {
+        //     cid:"g_" + this.props.receiver,
+        //     message:message,
+        //     timestamp:message.timestamp,
+        //     name:this.props.name,
+        // }
+        
+        // var msgObj = JSON.parse(message.content);
+        // if (msgObj.text) {
+        //     conv.content = msgObj.text;
+        // } else if (msgObj.image2) {
+        //     conv.content = "一张图片";
+        // } else if (msgObj.audio) {
+        //     conv.content = "语音"
+        // } else if (msgObj.location) {
+        //     conv.content = "位置";
+        // } else if (msgObj.notification) {
+        //     var notification = "";
+        //     var n = JSON.parse(msgObj.notification);
+        //     if (n.create) {
+        //         if (n.create.master == this.props.sender) {
+        //             notification = `您创建了${n.create.name}群组`;
+        //         } else {
+        //             notification = `您加入了${n.create.name}群组`;
+        //         }
+        //     } else if (n.add_member) {
+        //         notification = `${n.add_member.name}加入群`;
+        //     } else if (n.quit_group) {
+        //         notification = `${n.quit_group.name}离开群`;
+        //     } else if (n.disband) {
+        //         notification = "群组已解散";
+        //     }
+        //     m.notification = notification;
+        // } else {
+        //     conv.content = "";
+        // }
+
+        this.props.emitter.emit('update_conversation_message', "g_" + this.props.receiver, message);
+
+        //this.props.dispatch(updateConversation(conv));
+    }
+
     saveMessage(message) {
         var db = GroupMessageDB.getInstance();
         return db.insertMessage(message);
@@ -166,11 +207,11 @@ export class BaseGroupChat extends Chat {
         }
     }
 
-    _loadMoreContentAsync = async () => {
-        if (this.props.messages.length == 0) {
+    loadMoreContentAsync() {
+        if (this.state.messages.length == 0) {
             return;
         }
-        var m = this.props.messages[this.props.messages.length - 1];
+        var m = this.state.messages[0];
 
         console.log("load more content...:", m.id);
         var p = new Promise((resolve, reject) => {
@@ -184,30 +225,24 @@ export class BaseGroupChat extends Chat {
                                   });
         });
 
-        messages = await p;
-
-        if (messages.length == 0) {
-            this.setState({
-                canLoadMoreContent:false
-            })
+        p.then((messages:any[]) => {
+            if (messages.length == 0) {
+                this.setState({
+                    canLoadMoreContent:false
+                })
+                return;
+            }
+            for (var i in messages) {
+                var m = messages[i];
+                this.parseMessageContent(m);
+                this.downloadAudio(m);
+            }
+    
+            var ms = this.state.messages;
+            ms.splice(ms.length, 0, ...messages);
+            this.setState({});
             return;
-        }
-        for (var i in messages) {
-            var m = messages[i];
-            this.parseMessageContent(m);
-            this.downloadAudio(m);
-        }
-
-        var ms = this.state.messages;
-        ms.splice(ms.length, 0, ...messages);
-        this.setState({});
-        return;
+        });
     }
 }
 
-
-// var GroupChat = connect(function(state){
-//     return {messages:state.messages};
-// })(BaseGroupChat);
-
-// export default GroupChat;

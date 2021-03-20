@@ -10,9 +10,7 @@ import {
 import { withRouter } from "react-router";  
 import Spinner from 'react-native-loading-spinner-overlay';
 
-
-
-var IMService = require("./chat/im");
+var IMService = require("../chat/im");
 var im = IMService.instance;
 
 interface Stat {
@@ -20,7 +18,7 @@ interface Stat {
     receiver:string;
     visible:boolean;
 }
-class Login extends Component<{}, Stat> {
+class Login extends Component<{history}, Stat> {
     constructor(props) {
         super(props);
         this.state = {

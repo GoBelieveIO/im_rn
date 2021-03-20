@@ -16,7 +16,7 @@ import MessageText from './MessageText';
 // import MessageLocation from './MessageLocation';
 import Time from './Time';
 
-import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from './IMessage';
+import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from '../model/IMessage';
 
 export default class Bubble extends React.Component {
     constructor(props) {

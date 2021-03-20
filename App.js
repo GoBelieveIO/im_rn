@@ -16,12 +16,11 @@ import EventEmitter from 'eventemitter3';
 var SQLite = require('react-native-sqlite-storage');
 SQLite.enablePromise(false);
 
-import PeerMessageDB from './chat/PeerMessageDB';
-import GroupMessageDB from './chat/GroupMessageDB';
+import PeerMessageDB from './model/PeerMessageDB';
+import GroupMessageDB from './model/GroupMessageDB';
 
-import Login from "./Login";
-
-import Conversation from './Conversation';
+import Login from "./page/Login";
+import Conversation from './page/Conversation';
 // import Search from './Search';
 
 //import PeerChat from "./PeerChat";
