@@ -1,9 +1,10 @@
-import {connect} from 'react-redux';
-import {setUnread, updateConversation, setConversation} from './actions';
-import {BasePeerChat} from "./chat/PeerChat.js";
-import ConversationDB from './model/ConversationDB';
 
-class PeerChat extends BasePeerChat {
+
+import {BasePeerChat} from "./chat/PeerChat.js";
+
+
+
+export default class PeerChat extends BasePeerChat {
     static navigatorStyle = {
         navBarBackgroundColor: '#4dbce9',
         navBarTextColor: '#ffff00',
@@ -19,13 +20,20 @@ class PeerChat extends BasePeerChat {
     
     componentWillUnmount() {
         super.componentWillUnmount();
-        this.props.dispatch(setUnread("p_" + this.props.receiver, 0));
-        this.props.dispatch(setConversation({}));
-        ConversationDB.getInstance().setUnread("p_" + this.props.receiver, 0);        
+        
+
+        this.props.emitter.emit('clear_conversation_unread', "p_" + this.props.receiver);
+        
+        //this.props.dispatch(setUnread("p_" + this.props.receiver, 0));
+        //this.props.dispatch(setConversation({}));
+        //ConversationDB.getInstance().setUnread("p_" + this.props.receiver, 0);        
     }
 
-    addMessage(message) {
-        super.addMessage(message);
+    addMessage(message, sending) {
+        super.addMessage(message, sending);
+        if (!sending) {
+            return;
+        }
         var conv = {
             cid:"p_" + this.props.receiver,
             unread:0,
@@ -45,14 +53,16 @@ class PeerChat extends BasePeerChat {
         } else {
             conv.content = "";
         }
-        this.props.dispatch(updateConversation(conv));
+
+        this.props.emitter.emit('update_conversation_message', "p_" + this.props.receiver, message);
+        //this.props.dispatch(updateConversation(conv));
     }
 
 }
 
 
-PeerChat = connect(function(state){
-    return {messages:state.messages};
-})(PeerChat);
+//PeerChat = connect(function(state){
+//    return {messages:state.messages};
+//})(PeerChat);
 
-export default PeerChat;
+//export default PeerChat;

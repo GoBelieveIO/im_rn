@@ -1,27 +1,21 @@
 import React, { Component } from 'react';
 import {
-    AppRegistry,
-    StyleSheet,
     Text,
     TextInput,
-    Image,
-    ScrollView,
-    Navigator,
     TouchableHighlight,
-    ActionSheetIOS,
-    NetInfo,
     View,
     Platform,
     AsyncStorage
 } from 'react-native';
-
-import { NativeModules, NativeAppEventEmitter } from 'react-native';
+import { withRouter } from "react-router";  
 import Spinner from 'react-native-loading-spinner-overlay';
+
+
 
 var IMService = require("./chat/im");
 var im = IMService.instance;
 
-export default class Login extends Component {
+class Login extends Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -51,7 +45,7 @@ export default class Login extends Component {
     startIM(sender, receiver) {
         console.log("start im");
         var self = this;
-        var navigator = this.props.navigator;
+        //var navigator = this.props.navigator;
         var url = "http://demo.gobelieve.io/auth/token";
         var obj = {
             uid:sender,
@@ -81,18 +75,30 @@ export default class Login extends Component {
                     console.log("response json:", responseJson);
                     AsyncStorage.setItem("access_token", responseJson.token);
                     im.accessToken = responseJson.token;
+                    im.protocol = "wss://";
+                    im.port = 14891;
                     console.log("access token:", im.accessToken);
                     im.start();
-                    self.props.app.uid = sender;
-                    navigator.push({
-                        title:"对话",
-                        screen:"demo.Conversation",
-                        passProps:{
-                            uid:sender,
-                            token:responseJson.token,
-                            testPeer:isNaN(receiver) ? 0 : receiver,
-                        },
-                    });
+
+                    var loc = {
+                        pathname: "/conversations",
+                        state: {
+                            uid: sender,
+                            token: responseJson.token,
+                            testPeer: isNaN(receiver) ? 0 : receiver,
+                        }
+                    };
+                    self.props.history.replace(loc);
+                    //self.props.app.uid = sender;
+                    // navigator.push({
+                    //     title:"对话",
+                    //     screen:"demo.Conversation",
+                    //     passProps:{
+                    //         uid:sender,
+                    //         token:responseJson.token,
+                    //         testPeer:isNaN(receiver) ? 0 : receiver,
+                    //     },
+                    // });
                  
                 } else {
                     console.log(responseJson.meta.message);
@@ -164,3 +170,5 @@ export default class Login extends Component {
         
     }
 }
+
+export default withRouter(Login);

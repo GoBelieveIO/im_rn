@@ -1,11 +1,6 @@
 var order = require('./byte_order');
 var utf8 = require("./utf8");
 
-import {
-    NetInfo
-} from 'react-native';
-
-
 var hton64 = order.hton64;
 var ntoh64 = order.ntoh64;
 var htonl = order.htonl;
@@ -124,22 +119,6 @@ IMService.prototype.removeObserver = function(ob) {
  
 }
 
-IMService.prototype.startReachabilityNotifier = function() {
-    NetInfo.fetch().done((reach) => {
-        if (reach && (reach.toLowerCase() == 'wifi' || reach.toLowerCase() == 'cell')) {
-            this.reachable = true;
-        } else {
-            this.reachable = false;
-        }
-        console.log("reachable:", reach, this.reachable);
-    });
-
-    //never remove listener
-    NetInfo.addEventListener(
-        'change',
-        this.handleConnectivityChange.bind(this)
-    );
-}
 
 IMService.prototype.handleConnectivityChange = function(reach) {
     console.log("connectivity changed:" + reach);

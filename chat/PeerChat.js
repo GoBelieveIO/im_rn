@@ -3,12 +3,10 @@ import {
     Platform,
 } from 'react-native';
 
-import {connect} from 'react-redux'
-import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
+
 import {AudioUtils} from 'react-native-audio';
 
 import PeerMessageDB from './PeerMessageDB.js'
-import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
 import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from './IMessage';
 
 var IMService = require("./im");
@@ -26,46 +24,39 @@ export class BasePeerChat extends Chat {
     
     constructor(props) {
         super(props);
+
+
     }
 
-    componentWillMount() {
-        super.componentWillMount();
-        
+    componentDidMount() {
+        super.componentDidMount();
+
         var im = IMService.instance;
         im.addObserver(this);
 
-        this.listener = RCTDeviceEventEmitter.addListener('peer_message',
-                                                          (message)=>{
-                                                              if (message.sender == this.props.peer ||
-                                                                  message.receiver == this.props.peer) {
-                                                                  this.downloadAudio(message);
-                                                                  this.props.dispatch(addMessage(message));
-                                                                  this.scrollToBottom();
-                                                              }
-                                                          });
+        this.props.emitter.on('peer_message',this.onPeerMessage, this);
+        this.props.emitter.on('peer_message_ack', this.onPeerMessageACK, this);
 
-
-        this.ackListener = RCTDeviceEventEmitter.addListener('peer_message_ack',
-                                                          (message)=>{
-                                                              if (message.sender == this.props.peer ||
-                                                                  message.receiver == this.props.peer) {
-                                                                  this.props.dispatch(ackMessage(message.id));
-                                                              }
-                                                          });
-        
         var db = PeerMessageDB.getInstance();
 
+        this.setState({loading:true});
         db.getMessages(this.props.receiver,
                        (msgs)=>{
+                           msgs.reverse();
                            for (var i in msgs) {
                                var m = msgs[i];
                                this.parseMessageContent(m);
                                this.downloadAudio(m);
                            }
                            console.log("set messages:", msgs.length);
-                           this.props.dispatch(setMessages(msgs));
+                           this.setState({messages:msgs, loading:false}, () => {
+                                //this.scrollToBottom();
+                           });
                        },
-                       (e)=>{});
+                       (e)=>{
+                           console.log("err:", e);
+                            this.setState({loading:false});
+                       });
 
     }
 
@@ -76,10 +67,42 @@ export class BasePeerChat extends Chat {
         var im = IMService.instance;
         im.removeObserver(this);
 
-        this.listener.remove();
-        this.ackListener.remove();
+        this.props.emitter.off(this.onPeerMessage, this);
+        this.props.emitter.off(this.onPeerMessageACK, this);
     }
 
+    onPeerMessage(message) {
+        if (message.sender == this.props.peer ||
+            message.receiver == this.props.peer) {
+            this.downloadAudio(message);
+            this.addMessage(message);
+        }        
+    }
+    
+    onPeerMessageACK(message) {
+        if (message.sender == this.props.peer ||
+            message.receiver == this.props.peer) {
+
+            var messages = this.state.messages;
+
+            var index = -1;
+            for (var i = 0; i < messages.length; i++) {
+                var m = messages[i];
+                if (m.id == message.msgID) {
+                    index = i;
+                    break;
+                }
+            }
+            
+            if (index == -1) {
+                return;
+            }
+
+            messages[index].ack = true;
+            this.setState({});
+        }
+    }
+    
     parseMessageContent(m) {
         var obj = JSON.parse(m.content);
         var t = new Date();
@@ -121,11 +144,6 @@ export class BasePeerChat extends Chat {
         };
     }
 
-    addMessage(message) {
-        this.props.dispatch(addMessage(message));
-        this.scrollToBottom();
-    }
-    
     saveMessage(message) {
         var db = PeerMessageDB.getInstance();
         return db.insertMessage(message, this.props.receiver);
@@ -149,46 +167,60 @@ export class BasePeerChat extends Chat {
         }
     }
 
-    _loadMoreContentAsync = async () => {
-        if (this.props.messages.length == 0) {
+    loadMoreContentAsync() {
+        if (this.state.loading) {
             return;
         }
-        var m = this.props.messages[this.props.messages.length - 1];
+
+        if (!this.state.canLoadMoreContent) {
+            return;
+        }
+
+        if (this.state.messages.length == 0) {
+            return;
+        }
+
+
+        var m = this.state.messages[0];
 
         console.log("load more content...:", m.id);
+
+        this.setState({loading:true});
+
         var p = new Promise((resolve, reject) => {
             var db = PeerMessageDB.getInstance();
             db.getEarlierMessages(this.props.receiver, m.id,
                                   (messages) => {
+                                      console.log("mmm:", messages);
                                       resolve(messages);
                                   },
                                   (err) => {
+                                      console.log("err:", err);
                                       reject(err);
                                   });
         });
 
-        messages = await p;
+        p.then((messages) => {
+  
+            if (messages.length == 0) {
+                this.setState({
+                    canLoadMoreContent:false,
+                    loading:false
+                })
+                return;
+            }
+            messages.reverse();
+            for (var i in messages) {
+                var m = messages[i];
+                this.parseMessageContent(m);
+                this.downloadAudio(m);
+            }
+    
+            var ms = this.state.messages;
+            ms.splice(0, 0, ...messages);
+            this.setState({loading:false});
 
-        if (messages.length == 0) {
-            this.setState({
-                canLoadMoreContent:false
-            })
-            return;
-        }
-        for (var i in messages) {
-            var m = messages[i];
-            this.parseMessageContent(m);
-            this.downloadAudio(m);
-        }
-
-        this.props.dispatch(insertMessages(messages));
-        return;
+        })
     }
 }
 
-
-PeerChat = connect(function(state){
-    return {messages:state.messages};
-})(BasePeerChat);
-
-export default PeerChat;

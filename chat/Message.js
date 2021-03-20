@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 
 import moment from 'moment';
+import PropTypes from 'prop-types';
 
 import Avatar from './Avatar';
 import Bubble from './Bubble';
@@ -79,7 +80,7 @@ export default class Message extends React.Component {
     render() {
         return (
             <View>
-                {this.renderDay()}
+                {/* {this.renderDay()} */}
                 <View style={[styles[this.props.position].container, {
                         marginBottom: this.isSameUser(this.props.currentMessage, this.props.nextMessage) ? 2 : 10,
                     }, this.props.containerStyle[this.props.position]]}>
@@ -133,16 +134,16 @@ Message.defaultProps = {
 };
 
 Message.propTypes = {
-    renderAvatar: React.PropTypes.func,
-    renderBubble: React.PropTypes.func,
-    renderDay: React.PropTypes.func,
-    position: React.PropTypes.oneOf(['left', 'right', 'center']),
-    currentMessage: React.PropTypes.object,
-    nextMessage: React.PropTypes.object,
-    previousMessage: React.PropTypes.object,
-    user: React.PropTypes.object,
-    containerStyle: React.PropTypes.shape({
-        left: View.propTypes.style,
-        right: View.propTypes.style,
-    }),
+    renderAvatar: PropTypes.func,
+    renderBubble: PropTypes.func,
+    renderDay: PropTypes.func,
+    position: PropTypes.oneOf(['left', 'right', 'center']),
+    currentMessage: PropTypes.object,
+    nextMessage: PropTypes.object,
+    previousMessage: PropTypes.object,
+    user: PropTypes.object,
+    // containerStyle: PropTypes.shape({
+    //     left: View.propTypes.style,
+    //     right: View.propTypes.style,
+    // }),
 };

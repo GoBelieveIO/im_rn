@@ -1,80 +1,36 @@
 import React from 'react';
 
 import {
-    ListView,
+    FlatList,
     View,
 } from 'react-native';
-
-import shallowequal from 'shallowequal';
-import InfiniteScrollView from './InfiniteScrollView.js';
-import md5 from 'md5';
-import LoadEarlier from './LoadEarlier';
+import PropTypes from 'prop-types';
 import Message from './Message';
 
 export default class MessageContainer extends React.Component {
     constructor(props) {
         super(props);
-
-        this.renderRow = this.renderRow.bind(this);
-        this.renderScrollComponent = this.renderScrollComponent.bind(this);
-
-        const dataSource = new ListView.DataSource({
-            rowHasChanged: (r1, r2) => {
-                return r1.hash !== r2.hash;
-            }
-        });
-
-        const messagesData = this.prepareMessages(props.messages);
         this.state = {
-            dataSource: dataSource.cloneWithRows(messagesData.blob, messagesData.keys),
         };
+        this.renderRow = this.renderRow.bind(this);
+
     }
 
-    prepareMessages(messages) {
-        return {
-            keys: messages.map(m => m._id),
-            blob: messages.reduce((o, m, i) => {
-                const previousMessage = messages[i + 1] || {};
-                const nextMessage = messages[i - 1] || {};
-                // add next and previous messages to hash to ensure updates
-                const toHash = JSON.stringify(m) + previousMessage._id + nextMessage._id;
-                o[m._id] = {
-                    ...m,
-                    previousMessage,
-                    nextMessage,
-                    hash: md5(toHash)
-                };
-                return o;
-            }, {})
-        };
-    }
 
-    shouldComponentUpdate(nextProps, nextState) {
-        if (!shallowequal(this.props, nextProps)) {
-            return true;
-        }
-        if (!shallowequal(this.state, nextState)) {
-            return true;
-        }
-        return false;
-    }
+    componentDidUpdate(prevProps, prevState) {
 
-    componentWillReceiveProps(nextProps) {
-        if (this.props.messages === nextProps.messages) {
-            return;
-        }
-        const messagesData = this.prepareMessages(nextProps.messages);
-        this.setState({
-            dataSource: this.state.dataSource.cloneWithRows(messagesData.blob, messagesData.keys)
-        });
     }
-
 
     scrollTo(options) {
-        this._invertibleScrollViewRef.scrollTo(options);
+        // this._invertibleScrollViewRef.scrollTo(options);
     }
 
-    renderRow(message, sectionId, rowId) {
+    scrollToBottom(options) {
+        this.listRef.scrollToEnd({animated:true});
+    }
+
+    renderRow(row) {
+        var message = row.item;
         if (!message._id && message._id !== 0) {
             console.warn('GiftedChat: `_id` is missing for message', JSON.stringify(message));
         }
@@ -105,37 +61,26 @@ export default class MessageContainer extends React.Component {
         return <Message {...messageProps}/>;
     }
 
-    renderScrollComponent(props) {
-        const invertibleScrollViewProps = this.props.invertibleScrollViewProps;
-        return (
-            <InfiniteScrollView
-                {...props}
-                {...invertibleScrollViewProps}
-                ref={component => this._invertibleScrollViewRef = component}
-            />
-        );
-    }
-
-
 
     render() {
         return (
             <View ref='container' style={{flex:1}}>
-                <ListView
-                    enableEmptySections={true}
-                    keyboardShouldPersistTaps="always"
-                    automaticallyAdjustContentInsets={false}
-                    initialListSize={20}
-                    pageSize={20}
-
-                    dataSource={this.state.dataSource}
-
-                    renderRow={this.renderRow}
-                    renderScrollComponent={this.renderScrollComponent}
-
-                    canLoadMore={this.props.canLoadMore}
-                    onLoadMoreAsync={this.props.onLoadMoreAsync}
-                />
+                <FlatList
+                        ref={(ref) => {this.listRef=ref}}
+                        enableEmptySections={true}
+                        keyboardShouldPersistTaps="always"
+                        automaticallyAdjustContentInsets={false}
+                        initialListSize={20}
+                        pageSize={20}
+                        inverted={false}
+                        data={this.props.messages}
+                        renderItem={this.renderRow}
+                        keyExtractor={(item, index) => {return "" + item._id}}
+                        refreshing={this.props.isLoading}
+                        onRefresh={() => {
+                            this.props.onLoadMoreAsync();
+                        }}
+                    />
             </View>
         );
     }
@@ -148,7 +93,7 @@ MessageContainer.defaultProps = {
 };
 
 MessageContainer.propTypes = {
-    messages: React.PropTypes.array,
-    user: React.PropTypes.object,
-    renderMessage: React.PropTypes.func,
+    messages: PropTypes.array,
+    user: PropTypes.object,
+    renderMessage: PropTypes.func,
 };

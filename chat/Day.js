@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 
 import moment from 'moment/min/moment-with-locales.min';
+import PropTypes from 'prop-types';
 
 export default class Day extends React.Component {
     render() {
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
 });
 
 Day.contextTypes = {
-    getLocale: React.PropTypes.func,
+    getLocale: PropTypes.func,
 };
 
 Day.defaultProps = {
@@ -63,11 +64,11 @@ Day.defaultProps = {
   textStyle: {},
 };
 
-Day.propTypes = {
-  isSameDay: React.PropTypes.func,
-  currentMessage: React.PropTypes.object,
-  previousMessage: React.PropTypes.object,
-  containerStyle: View.propTypes.style,
-  wrapperStyle: View.propTypes.style,
-  textStyle: Text.propTypes.style,
-};
+// Day.propTypes = {
+//   isSameDay: PropTypes.func,
+//   currentMessage: PropTypes.object,
+//   previousMessage: PropTypes.object,
+//   containerStyle: View.propTypes.style,
+//   wrapperStyle: View.propTypes.style,
+//   textStyle: Text.propTypes.style,
+// };

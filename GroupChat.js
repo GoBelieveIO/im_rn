@@ -1,12 +1,7 @@
 import {BaseGroupChat} from "./chat/GroupChat.js"
-import {connect} from 'react-redux'
 
-import ConversationDB from './model/ConversationDB'
 
-import {setUnread, updateConversation} from './actions'
-import {setConversation} from './actions';
-
-class GroupChat extends BaseGroupChat {
+export default class GroupChat extends BaseGroupChat {
  
 
     static navigatorStyle = {
@@ -22,21 +17,24 @@ class GroupChat extends BaseGroupChat {
     }
 
 
-
-
     componentWillUnmount() {
         super.componentWillUnmount();
 
-        this.props.dispatch(setUnread("g_" + this.props.receiver, 0));
-        this.props.dispatch(setConversation({}));
+        this.props.emitter.emit('clear_conversation_unread', "g_" + this.props.receiver);
 
-        ConversationDB.getInstance().setUnread("g_" + this.props.receiver, 0);
+        // this.props.dispatch(setUnread("g_" + this.props.receiver, 0));
+        // this.props.dispatch(setConversation({}));
+
+        // ConversationDB.getInstance().setUnread("g_" + this.props.receiver, 0);
     }
 
 
     
-    addMessage(message) {
-        super.addMessage(message);
+    addMessage(message, sending) {
+        super.addMessage(message, sending);
+        if (!sending) {
+            return;
+        }
         var conv = {
             cid:"g_" + this.props.receiver,
             message:message,
@@ -73,14 +71,17 @@ class GroupChat extends BaseGroupChat {
         } else {
             conv.content = "";
         }
-        this.props.dispatch(updateConversation(conv));
+
+        this.props.emitter.emit('update_conversation_message', "g_" + this.props.receiver, message);
+
+        //this.props.dispatch(updateConversation(conv));
     }
 }
 
 
 
-GroupChat = connect(function(state){
-    return {messages:state.messages};
-})(GroupChat);
+// GroupChat = connect(function(state){
+//     return {messages:state.messages};
+// })(GroupChat);
 
-export default GroupChat;
+// export default GroupChat;

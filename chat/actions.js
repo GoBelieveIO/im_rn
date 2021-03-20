@@ -8,50 +8,6 @@ export const PLAY_MESSAGE = "play_message";
 export const LISTEN_MESSAGE = "listen_message";
 
 
-export function setConversations(conversations) {
-    return {
-        type:SET_CONVERSATIONS,
-        conversations:conversations
-    };
-}
-
-export function addConversation(conv) {
-    return {
-        type:ADD_CONVERSATION,
-        conversation:conv
-    };
-}
-
-export function updateConversation(conv, index) {
-    return {
-        type:UPDATE_CONVERSATION,
-        conversation:conv,
-        index:index
-    };
-}
-
-export function setUnread(cid, unread) {
-    return {
-        type:SET_UNREAD,
-        cid:cid,
-        unread:unread
-    };
-}
-
-export function setLatestMessage(message) {
-    return {
-        type:SET_LATEST_MESSAGE,
-        message:message
-    };
-}
-
-export function setConversation(conversation) {
-    return {
-        type:SET_CONVERSATION,
-        conversation:conversation
-    };
-}
-
 export function setMessages(messages) {
     return {
         type:SET_MESSAGES,

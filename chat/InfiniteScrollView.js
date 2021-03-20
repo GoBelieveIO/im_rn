@@ -1,14 +1,13 @@
-'use strict';
 
-import React, {
-  PropTypes,
-} from 'react';
+import React from 'react';
+
 import {
     Platform,
     ScrollView,
     View,
     StyleSheet
 } from 'react-native';
+import PropTypes from 'prop-types';
 import ScrollableMixin from 'react-native-scrollable-mixin';
 
 import cloneReferencedElement from 'react-clone-referenced-element';
@@ -79,11 +78,13 @@ export default class InfiniteScrollView extends React.Component {
       );
     }
       
-    let {
-      inverted,
-      renderScrollComponent,
-      ...props,
-    } = this.props;
+
+    var inverted = this.props.inverted;
+    var renderScrollComponent = this.props.renderScrollComponent;
+    var props = Object.assign({}, this.props);
+    delete(props.inverted);
+    delete(props.renderScrollComponent);
+    
     Object.assign(props, {
       onScroll: this._handleScroll,
       children: [this.props.children, statusIndicator],

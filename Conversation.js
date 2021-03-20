@@ -4,18 +4,14 @@ import {
     Text,
     View,
     Image,
-    ListView,
+    FlatList,
     TouchableWithoutFeedback,
     TouchableHighlight
 } from 'react-native';
 
+import { Switch, Route, withRouter } from "react-router";  
 
-import {connect} from 'react-redux'
-import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
 import moment from 'moment/min/moment-with-locales.min';
-
-import {setConversations, setUnread} from './actions'
-import {addConversation, updateConversation} from "./actions";
 
 var IMService = require("./chat/im");
 
@@ -23,6 +19,9 @@ import {MESSAGE_FLAG_ACK, MESSAGE_FLAG_FAILURE} from './chat/IMessage';
 import PeerMessageDB from './chat/PeerMessageDB';
 import GroupMessageDB from './chat/GroupMessageDB';
 import ConversationDB from './model/ConversationDB';
+
+import PeerChat from "./PeerChat";
+import Navigator from "./Navigation";
 
 const CONVERSATION_PEER = "peer";
 const CONVERSATION_GROUP = "group";
@@ -51,12 +50,11 @@ class Conversation extends React.Component {
     constructor(props) {
         super(props);
 
-        const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
+      
         this.state = {
-            dataSource: ds.cloneWithRows([
-            ])
+            conversations:[],
         };
-        this.props.navigator.setOnNavigatorEvent(this.onNavigatorEvent.bind(this));
+        //this.props.navigator.setOnNavigatorEvent(this.onNavigatorEvent.bind(this));
     }
 
     onNavigatorEvent(event) {
@@ -79,7 +77,7 @@ class Conversation extends React.Component {
     }
 
     
-    componentWillMount() {
+    componentDidMount() {
         var im = IMService.instance;
         im.observer = this;
         
@@ -198,9 +196,12 @@ class Conversation extends React.Component {
                  }
                 convs = [conv];
             }
-            this.props.dispatch(setConversations(convs));
+
+            console.log("llllll:", convs);
+            this.setState({conversations:convs});
+            //this.props.dispatch(setConversations(convs));
         }).catch((err) => {
-            
+            console.error("err:", err);
         })
     }
     
@@ -240,18 +241,17 @@ class Conversation extends React.Component {
           .then((rowid) => {
               message.id = rowid;
               message._id = rowid;
-              RCTDeviceEventEmitter.emit('peer_message', message);
-              
+              this.props.emitter.emit('peer_message', message)
           });
 
         cid = "p_" + peer;
-        var index = this.props.conversations.findIndex((conv) => {
+        var index = this.state.conversations.findIndex((conv) => {
             return conv.cid == cid;
         });
         
         var conv;
         if (index != -1) {
-            var c = this.props.conversations[index];
+            var c = this.state.conversations[index];
             var newConv = Object.assign({}, c);
             if (this.props.uid != message.sender) {
                 newConv.unread = newConv.unread + 1;
@@ -289,20 +289,39 @@ class Conversation extends React.Component {
         }
         
         console.log("new conv:", newConv);
-        this.props.dispatch(updateConversation(conv, index));
+        this.updateConversation(conv, index);
+        //this.props.dispatch(updateConversation(conv, index));
+    }
+
+    updateConversation(conv, index) {
+        if (!index || index == -1) {
+            index = this.state.conversations.findIndex((c) => {
+                return conv.cid == c.cid;
+            });
+        }
+
+        if (index != -1) {
+            //update
+            Object.assign(this.state.conversations[index], conv);
+    
+            this.setState({});
+        } else {
+            //add
+            this.state.conversations.splice(0, 0, conv);
+        }
     }
 
     handleMessageACK(msg) {
         console.log("handle message ack");
         var db = PeerMessageDB.getInstance();
         db.updateFlags(msg.id, MESSAGE_FLAG_ACK);
-        RCTDeviceEventEmitter.emit('peer_message_ack', msg);
+        this.props.emitter.emit('peer_message_ack', msg);
     }
 
     handleMessageFailure(msg) {
         var db = PeerMessageDB.getInstance();
         db.updateFlags(msg.id, MESSAGE_FLAG_FAILURE);
-        RCTDeviceEventEmitter.emit('peer_message_failure', msg);
+        this.props.emitter.emit('peer_message_failure', msg);
     }
     
     handleGroupMessage(message) {
@@ -335,19 +354,19 @@ class Conversation extends React.Component {
           .then((rowid) => {
               message.id = rowid;
               message._id = rowid;
-              RCTDeviceEventEmitter.emit('group_message', message);
+              this.props.emitter.emit('group_message', message);
           });
 
 
         var cid =  "g_" + message.receiver;
         var groupID = message.receiver;
         
-        var index = this.props.conversations.findIndex((conv) => {
+        var index = this.state.conversations.findIndex((conv) => {
             return conv.cid == cid;
         });
         var conv;
         if (index != -1) {
-            var c = this.props.conversations[index];
+            var c = this.state.conversations[index];
             var newConv = Object.assign({}, c);
             if (this.props.uid != message.sender) {
                 newConv.unread = newConv.unread + 1;
@@ -387,20 +406,21 @@ class Conversation extends React.Component {
 
         //index==-1 表示添加
         console.log("new conv:", newConv);
-        this.props.dispatch(updateConversation(conv, index));
+        this.updateConversation(conv, index);
+//        this.props.dispatch(updateConversation(conv, index));
     }
 
     handleGroupMessageACK(msg) {
         console.log("handle group message ack");
         var db = GroupMessageDB.getInstance();
         db.updateFlags(msg.id, MESSAGE_FLAG_ACK);
-        RCTDeviceEventEmitter.emit('group_message_ack', msg);
+        this.props.emitter.emit('group_message_ack', msg);
     }
 
     handleGroupMessageFailure(msg) {
         var db = GroupMessageDB.getInstance();
         db.updateFlags(msg.id, MESSAGE_FLAG_FAILURE);
-        RCTDeviceEventEmitter.emit('group_message_failure', msg);
+        this.props.emitter.emit('group_message_failure', msg);
     }
 
     handleGroupNotification(msg) {
@@ -480,18 +500,18 @@ class Conversation extends React.Component {
           .then((rowid) => {
               message.id = rowid;
               message._id = rowid;
-              RCTDeviceEventEmitter.emit('group_message', message);
+              this.props.emitter.emit('group_message', message);
           });
 
 
         var cid =  "g_" + message.receiver;
-        var index = this.props.conversations.findIndex((conv) => {
+        var index = this.state.conversations.findIndex((conv) => {
             return conv.cid == cid;
         });
 
         var conv;
         if (index != -1) {
-            var c = this.props.conversations[index];
+            var c = this.state.conversations[index];
             var newConv = Object.assign({}, c);
             if (this.props.uid != message.sender) {
                 newConv.unread = newConv.unread + 1;
@@ -520,26 +540,55 @@ class Conversation extends React.Component {
         conv.timestamp = message.timestamp;
         conv.content = notification;
         console.log("new conv:", newConv);
-        this.props.dispatch(updateConversation(conv, index));
-
+        this.updateConversation(conv, index);
+        //this.props.dispatch(updateConversation(conv, index));
     }
 
     
-    componentWillReceiveProps(nextProps) {
-        if (this.props.conversations === nextProps.conversations) {
-            return;
-        }
-        this.setState({
-            dataSource: this.state.dataSource.cloneWithRows(nextProps.conversations)
-        });
-    }
+    // componentWillReceiveProps(nextProps) {
+    //     if (this.props.conversations === nextProps.conversations) {
+    //         return;
+    //     }
+    //     this.setState({
+    //         dataSource: this.state.dataSource.cloneWithRows(nextProps.conversations)
+    //     });
+    // }
     
-    renderRow(conv) {
-        var navigator = this.props.navigator;
+    renderRow(row) {
+        var conv = row.item;
+
         var self = this;
         function onPress() {
             console.log("row data:", conv);
+            if (conv.cid.startsWith("p_")) {
+                var uid = parseInt(conv.cid.substr(2));
+                var loc = {
+                    pathname: "/conversations/" + conv.cid,
+                    state: {
+                        sender: self.props.uid,
+                        receiver:uid,
+                        peer:uid,
+                        name:conv.name,
+                        token: self.props.token,
+                    }
+                };
+                self.props.history.push(loc);
 
+        }
+        //     if (conv.cid.startsWith("p_")) {
+        //         var uid = parseInt(conv.cid.substr(2));
+        //         var passProps = {
+        //             sender:self.props.uid,
+        //             receiver:uid,
+        //             peer:uid,
+        //             name:conv.name,
+        //             token:self.props.token,
+        //         };
+        //         Navigator.push("PeerChat", passProps);
+        // }
+
+/*
+            var navigator = self.props.navigator;
             if (conv.cid.startsWith("p_")) {
                 var uid = parseInt(conv.cid.substr(2));
                 navigator.push({
@@ -566,7 +615,7 @@ class Conversation extends React.Component {
                         token:self.props.token,
                     },
                 });                
-            }
+            }*/
         }
 
         var t = new Date();
@@ -641,12 +690,29 @@ class Conversation extends React.Component {
     
     render() {
         return (
+
             <View style={{flex: 1, marginTop:4}}>
-                <ListView
+                <Switch>
+                    <Route exact path="/conversations" render={() => {
+                        return (<FlatList 
+                            data={this.state.conversations}
+                            renderItem={this.renderRow.bind(this)}
+                            keyExtractor={(item, index) => {return "" + item.cid}}>
+
+                        </FlatList>);
+                    }}></Route>
+
+                    <Route path="/conversations/:cid" render={(routeProps) => {
+                        var state = routeProps.location.state;
+                        return (<PeerChat emitter={this.props.emitter} {...state}></PeerChat>);
+                    }}></Route>
+                </Switch>
+     
+                {/* <ListView
                     enableEmptySections={true}
                     dataSource={this.state.dataSource}
                     renderRow={this.renderRow.bind(this)}
-                />
+                /> */}
             </View>
         );        
     }
@@ -654,10 +720,4 @@ class Conversation extends React.Component {
     
 }
 
-Conversation = connect(function(state){
-    return {
-        conversations:state.conversations,
-    };
-})(Conversation);
-
-export default Conversation;
+export default withRouter(Conversation);

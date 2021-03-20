@@ -5,7 +5,7 @@ import {
   Text,
   View,
 } from 'react-native';
-
+import PropTypes from 'prop-types';
 import ParsedText from 'react-native-parsed-text';
 import Communications from 'react-native-communications';
 
@@ -103,7 +103,7 @@ const styles = {
 };
 
 MessageText.contextTypes = {
-  actionSheet: React.PropTypes.func,
+  actionSheet: PropTypes.func,
 };
 
 MessageText.defaultProps = {
@@ -116,19 +116,19 @@ MessageText.defaultProps = {
   linkStyle: {},
 };
 
-MessageText.propTypes = {
-  position: React.PropTypes.oneOf(['left', 'right']),
-  currentMessage: React.PropTypes.object,
-  containerStyle: React.PropTypes.shape({
-    left: View.propTypes.style,
-    right: View.propTypes.style,
-  }),
-  textStyle: React.PropTypes.shape({
-    left: Text.propTypes.style,
-    right: Text.propTypes.style,
-  }),
-  linkStyle: React.PropTypes.shape({
-    left: Text.propTypes.style,
-    right: Text.propTypes.style,
-  }),
-};
+// MessageText.propTypes = {
+//   position: PropTypes.oneOf(['left', 'right']),
+//   currentMessage: PropTypes.object,
+//   containerStyle: PropTypes.shape({
+//     left: View.propTypes.style,
+//     right: View.propTypes.style,
+//   }),
+//   textStyle: PropTypes.shape({
+//     left: Text.propTypes.style,
+//     right: Text.propTypes.style,
+//   }),
+//   linkStyle: PropTypes.shape({
+//     left: Text.propTypes.style,
+//     right: Text.propTypes.style,
+//   }),
+// };

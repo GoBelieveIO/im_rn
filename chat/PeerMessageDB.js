@@ -130,11 +130,11 @@ export default class PeerMessageDB {
         var sql = "SELECT id, sender, receiver, timestamp, flags, content, attachment FROM peer_message  WHERE peer = ? ORDER BY id DESC LIMIT ?";
         this.db.executeSql(sql, [uid, PAGE_SIZE],
                            function(result) {
-                               console.log("get messages:", result);
+                               //console.log("get messages:", result);
                                var msgs = [];
                                for (var i = 0; i < result.rows.length; i++) {
                                    var row = result.rows.item(i);
-                                   console.log("row:", row);
+                                   //console.log("row:", row);
                                    msgs.push(row);
                                }
 
@@ -146,14 +146,14 @@ export default class PeerMessageDB {
     }
 
     getEarlierMessages(uid, msgID, successCB, errCB) {
-        var sql = "SELECT id, sender, receiver, timestamp, flags, content FROM peer_message, attachment WHERE peer = ? AND id < ? ORDER BY id DESC LIMIT ?";
+        var sql = "SELECT id, sender, receiver, timestamp, flags, content, attachment FROM peer_message WHERE peer = ? AND id < ? ORDER BY id DESC LIMIT ?";
         this.db.executeSql(sql, [uid, msgID, PAGE_SIZE],
                            function(result) {
-                               console.log("get messages:", result);
+                               //console.log("get messages:", result);
                                var msgs = [];
                                for (var i = 0; i < result.rows.length; i++) {
                                    var row = result.rows.item(i);
-                                   console.log("row:", row);
+                                   //console.log("row:", row);
                                    msgs.push(row);
                                }
                                successCB(msgs);

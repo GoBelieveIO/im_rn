@@ -90,9 +90,9 @@ LoadEarlier.defaultProps = {
 };
 
 LoadEarlier.propTypes = {
-  onLoadEarlier: React.PropTypes.func,
-  isLoadingEarlier: React.PropTypes.bool,
-  label: React.PropTypes.string,
+  onLoadEarlier: PropTypes.func,
+  isLoadingEarlier: PropTypes.bool,
+  label: PropTypes.string,
   containerStyle: View.propTypes.style,
   wrapperStyle: View.propTypes.style,
   textStyle: Text.propTypes.style,

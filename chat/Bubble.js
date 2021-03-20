@@ -8,10 +8,12 @@ import {
     Text,
 } from 'react-native';
 
+import PropTypes from 'prop-types'
+
 import MessageText from './MessageText';
-import MessageImage from './MessageImage';
-import MessageAudio from './MessageAudio';
-import MessageLocation from './MessageLocation';
+// import MessageImage from './MessageImage';
+// import MessageAudio from './MessageAudio';
+// import MessageLocation from './MessageLocation';
 import Time from './Time';
 
 import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from './IMessage';
@@ -24,16 +26,16 @@ export default class Bubble extends React.Component {
     }
 
     handleBubbleToNext() {
-        if (this.props.isSameUser(this.props.currentMessage, this.props.nextMessage) && this.props.isSameDay(this.props.currentMessage, this.props.nextMessage)) {
-            return StyleSheet.flatten([styles[this.props.position].containerToNext, this.props.containerToNextStyle[this.props.position]]);
-        }
+        // if (this.props.isSameUser(this.props.currentMessage, this.props.nextMessage) && this.props.isSameDay(this.props.currentMessage, this.props.nextMessage)) {
+        //     return StyleSheet.flatten([styles[this.props.position].containerToNext, this.props.containerToNextStyle[this.props.position]]);
+        // }
         return null;
     }
 
     handleBubbleToPrevious() {
-        if (this.props.isSameUser(this.props.currentMessage, this.props.previousMessage) && this.props.isSameDay(this.props.currentMessage, this.props.previousMessage)) {
-            return StyleSheet.flatten([styles[this.props.position].containerToPrevious, this.props.containerToPreviousStyle[this.props.position]]);
-        }
+        // if (this.props.isSameUser(this.props.currentMessage, this.props.previousMessage) && this.props.isSameDay(this.props.currentMessage, this.props.previousMessage)) {
+        //     return StyleSheet.flatten([styles[this.props.position].containerToPrevious, this.props.containerToPreviousStyle[this.props.position]]);
+        // }
         return null;
     }
 
@@ -271,7 +273,7 @@ const styles = {
 };
 
 Bubble.contextTypes = {
-    actionSheet: React.PropTypes.func,
+    actionSheet: PropTypes.func,
 };
 
 Bubble.defaultProps = {
@@ -297,33 +299,33 @@ Bubble.defaultProps = {
     containerToPreviousStyle: {},
 };
 
-Bubble.propTypes = {
-    touchableProps: React.PropTypes.object,
-    onLongPress: React.PropTypes.func,
-    renderMessageImage: React.PropTypes.func,
-    renderMessageText: React.PropTypes.func,
-    renderCustomView: React.PropTypes.func,
-    renderTime: React.PropTypes.func,
-    isSameUser: React.PropTypes.func,
-    isSameDay: React.PropTypes.func,
-    position: React.PropTypes.oneOf(['left', 'right', 'center']),
-    currentMessage: React.PropTypes.object,
-    nextMessage: React.PropTypes.object,
-    previousMessage: React.PropTypes.object,
-    containerStyle: React.PropTypes.shape({
-        left: View.propTypes.style,
-        right: View.propTypes.style,
-    }),
-    wrapperStyle: React.PropTypes.shape({
-        left: View.propTypes.style,
-        right: View.propTypes.style,
-    }),
-    containerToNextStyle: React.PropTypes.shape({
-        left: View.propTypes.style,
-        right: View.propTypes.style,
-    }),
-    containerToPreviousStyle: React.PropTypes.shape({
-        left: View.propTypes.style,
-        right: View.propTypes.style,
-    }),
-};
+// Bubble.propTypes = {
+//     touchableProps: PropTypes.object,
+//     onLongPress: PropTypes.func,
+//     renderMessageImage: PropTypes.func,
+//     renderMessageText: PropTypes.func,
+//     renderCustomView: PropTypes.func,
+//     renderTime: PropTypes.func,
+//     isSameUser: PropTypes.func,
+//     isSameDay: PropTypes.func,
+//     position: PropTypes.oneOf(['left', 'right', 'center']),
+//     currentMessage: PropTypes.object,
+//     nextMessage: PropTypes.object,
+//     previousMessage: PropTypes.object,
+//     containerStyle: PropTypes.shape({
+//         left: View.propTypes.style,
+//         right: View.propTypes.style,
+//     }),
+//     wrapperStyle: PropTypes.shape({
+//         left: View.propTypes.style,
+//         right: View.propTypes.style,
+//     }),
+//     containerToNextStyle: PropTypes.shape({
+//         left: View.propTypes.style,
+//         right: View.propTypes.style,
+//     }),
+//     containerToPreviousStyle: PropTypes.shape({
+//         left: View.propTypes.style,
+//         right: View.propTypes.style,
+//     }),
+// };

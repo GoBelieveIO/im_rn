@@ -20,19 +20,22 @@ import {
 } from 'react-native';
 
 import ImagePicker from 'react-native-image-picker'
-import ActionSheet from '@exponent/react-native-action-sheet';
+//import ActionSheet from '@exponent/react-native-action-sheet';
 import dismissKeyboard from 'react-native-dismiss-keyboard';
-import {connect} from 'react-redux'
 import {AudioRecorder, AudioUtils} from 'react-native-audio';
 
 import {OpenCoreAMR} from 'react-native-amr';
-import Permissions from 'react-native-permissions';
 
-var Toast = require('react-native-toast')
+import {request, check, PERMISSIONS} from 'react-native-permissions';
+//import Permissions from 'react-native-permissions';
+
+// var Toast = require('react-native-toast')
 var UUID = require('react-native-uuid');
 var Sound = require('react-native-sound');
 var RNFS = require('react-native-fs');
-import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
+
+
+import PropTypes from 'prop-types';
 
 if (Platform.OS === 'android') {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -42,13 +45,30 @@ console.log("document path:", AudioUtils.DocumentDirectoryPath);
 
 import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './InputToolbar';
 import MessageContainer from './MessageContainer';
-import {playMessage, listenMessage} from './actions';
-
-var IMService = require("./im");
+// import {playMessage, listenMessage} from './actions';
 
 
 const API_URL = "http://api.gobelieve.io";
 const NAVIGATIONBAR_HEIGHT = 0;
+
+
+var Permissions = {
+    getPermissionStatus: function(permission) {
+        if (permission == "location") {
+            return check(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
+        } else {
+            return Promise.resolve("denied");
+        }
+    },
+
+    requestPermission: function(permission) {
+        if (permission == "location") {
+            return request(PERMISSIONS.IOS.LOCATION_WHEN_IN_USE);
+        } else {
+            return Promise.resolve("denied");
+        }
+    },
+}
 
 export default class Chat extends React.Component {
     constructor(props) {
@@ -56,12 +76,15 @@ export default class Chat extends React.Component {
         this.state = {
             isInitialized: false, // initialization will calculate maxHeight before rendering the chat
             
+
+            loading:false,//loading message
+
             recording: false,
             recordingText:"",
             recordingColor:"transparent",
 
             canLoadMoreContent:true,
-
+            
             currentMetering:0,
         };
 
@@ -74,7 +97,7 @@ export default class Chat extends React.Component {
         this._locale = 'zh-cn';
         this._messages = [];
 
-        this._loadMoreContentAsync = this._loadMoreContentAsync.bind(this);
+        this.loadMoreContentAsync = this.loadMoreContentAsync.bind(this);
         this.onSend = this.onSend.bind(this);
         
         this.onTouchStart = this.onTouchStart.bind(this);
@@ -149,6 +172,13 @@ export default class Chat extends React.Component {
 
     componentWillUnmount() {
     
+    }
+
+    addMessage(message, sending) {
+        this.state.messages.push(message);
+        this.setState({}, () => {
+            this.scrollToBottom();
+        });
     }
 
     downloadAudio(message) {
@@ -289,7 +319,7 @@ export default class Chat extends React.Component {
             message.id = rowid;
             message._id = rowid;
 
-            this.addMessage(message);
+            this.addMessage(message, true);
 
             return this.uploadAudio(amrPath);
             
@@ -331,7 +361,7 @@ export default class Chat extends React.Component {
         p.then((rowid)=> {
             message.id = rowid;
             message._id = rowid;
-            self.addMessage(message);
+            self.addMessage(message, true);
             self.setState({
                 value: '',
             });
@@ -436,7 +466,7 @@ export default class Chat extends React.Component {
         p.then((rowid) => {
             message.id = rowid;
             message._id = rowid;
-            self.addMessage(message);
+            self.addMessage(message, true);
             
             return message;
         }).then((message) => {
@@ -505,7 +535,7 @@ export default class Chat extends React.Component {
             message.id = rowid;
             message._id = rowid;
 
-            this.addMessage(message);
+            this.addMessage(message, true);
             this.sendMessage(message);
         });
     }
@@ -945,10 +975,11 @@ export default class Chat extends React.Component {
     }
 
     scrollToBottom(animated = true) {
-        this._messageContainerRef.scrollTo({
-            y: 0,
-            animated,
-        });
+        this._messageContainerRef.scrollToBottom();
+        // this._messageContainerRef.scrollTo({
+        //     y: 0,
+        //     animated,
+        // });
     }
 
     onTouchStart() {
@@ -991,10 +1022,6 @@ export default class Chat extends React.Component {
             messagesContainerHeight:new Animated.Value(newMessagesContainerHeight)
         });
     }
-
-    addMessage(message) {
-        console.log("add message not implement");            
-    }
     
     saveMessage(message) {
         console.log("save message not implement");        
@@ -1015,7 +1042,7 @@ export default class Chat extends React.Component {
     sendMessage(message) {
         console.log("send message not implement");
     }
-    _loadMoreContentAsync = async () => {
+    loadMoreContentAsync() {
         console.log("loadMoreContentAsync not implement");
     }
     
@@ -1024,8 +1051,9 @@ export default class Chat extends React.Component {
             <Animated.View style={{height: this.state.messagesContainerHeight }}>
                 <MessageContainer
 
+                    isLoading={this.state.loading}
                     canLoadMore={this.state.canLoadMoreContent}
-                    onLoadMoreAsync={this._loadMoreContentAsync}
+                    onLoadMoreAsync={this.loadMoreContentAsync}
                     
                     user={{
                         _id: this.props.sender, // sent messages should have same user._id
@@ -1035,7 +1063,7 @@ export default class Chat extends React.Component {
 
                     onMessageLongPress={this.onMessageLongPress.bind(this)}
                     onMessagePress={this.onMessagePress.bind(this)}
-                    messages={this.props.messages}
+                    messages={this.state.messages}
 
                     ref={component => this._messageContainerRef = component}
                 />
@@ -1136,7 +1164,7 @@ export default class Chat extends React.Component {
                 }
             };
             return (
-                <ActionSheet ref={component => this._actionSheetRef = component}>
+                <View ref={component => this._actionSheetRef = component}>
                     <View
                         style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
                         onLayout={onViewLayout}>
@@ -1144,8 +1172,20 @@ export default class Chat extends React.Component {
                         {this.renderRecordView()}
                         {this.renderInputToolbar()}
                     </View>
-                </ActionSheet>
+                </View>
             );
+
+            // return (
+            //     <ActionSheet ref={component => this._actionSheetRef = component}>
+            //         <View
+            //             style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
+            //             onLayout={onViewLayout}>
+            //             {this.renderMessages()}
+            //             {this.renderRecordView()}
+            //             {this.renderInputToolbar()}
+            //         </View>
+            //     </ActionSheet>
+            // );
         }
 
         var onViewLayout = (e) => {
@@ -1178,8 +1218,8 @@ export default class Chat extends React.Component {
 
 
 Chat.childContextTypes = {
-    actionSheet: React.PropTypes.func,
-    getLocale: React.PropTypes.func,
+    actionSheet: PropTypes.func,
+    getLocale: PropTypes.func,
 };
 
 

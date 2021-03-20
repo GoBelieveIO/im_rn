@@ -3,12 +3,9 @@ import {
     Platform,
 } from 'react-native';
 
-import {connect} from 'react-redux'
-import RCTDeviceEventEmitter from 'RCTDeviceEventEmitter';
 import {AudioUtils} from 'react-native-audio';
 
 import GroupMessageDB from './GroupMessageDB.js'
-import {setMessages, addMessage, insertMessages, ackMessage} from './actions'
 import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from './IMessage';
 
 var IMService = require("./im");
@@ -26,21 +23,15 @@ export class BaseGroupChat extends Chat {
         var im = IMService.instance;
         im.addObserver(this);
 
-        this.listener = RCTDeviceEventEmitter.addListener('group_message',
+        this.listener = this.props.emitter.on('group_message',
                                                           (message)=>{
-                                                              if (message.receiver == this.props.groupID) {
-                                                                  this.downloadAudio(message);
-                                                                  this.props.dispatch(addMessage(message));
-                                                                  this.scrollToBottom();
-                                                              }
+                                                              this.onGroupMessage(message);
                                                           });
 
 
-        this.ackListener = RCTDeviceEventEmitter.addListener('group_message_ack',
+        this.ackListener = this.props.emitter.on('group_message_ack',
                                                              (message)=>{
-                                                                 if (message.receiver == this.props.groupID) {
-                                                                     this.props.dispatch(ackMessage(message.id));
-                                                                 }
+                                                                this.onGroupMessageACK(message);
                                                              });
         
         var db = GroupMessageDB.getInstance();
@@ -54,7 +45,7 @@ export class BaseGroupChat extends Chat {
                                this.downloadAudio(m);
                            }
                            console.log("set messages:", msgs.length);
-                           this.props.dispatch(setMessages(msgs));
+                           this.setState({messages:msgs});
                        },
                        (e)=>{});
     }
@@ -68,6 +59,35 @@ export class BaseGroupChat extends Chat {
 
         this.listener.remove();
         this.ackListener.remove();
+    }
+
+    onGroupMessage(message) {
+        if (message.receiver == this.props.groupID) {
+            this.downloadAudio(message);
+            this.addMessage(message);
+        }
+    }
+
+    onGroupMessageACK(message) {
+        if (message.receiver == this.props.groupID) {
+            var messages = this.state.messages;
+
+            var index = -1;
+            for (var i = 0; i < messages.length; i++) {
+                var m = messages[i];
+                if (m.id == action.msgID) {
+                    index = i;
+                    break;
+                }
+            }
+            
+            if (index == -1) {
+                return;
+            }
+
+            messages[index].ack = true;
+            this.setState({});
+        }
     }
 
     parseMessageContent(m) {
@@ -121,10 +141,7 @@ export class BaseGroupChat extends Chat {
         m.outgoing = (this.sender == m.sender);
     }
 
-    addMessage(message) {
-        this.props.dispatch(addMessage(message));
-        this.scrollToBottom();
-    }
+ 
     
     saveMessage(message) {
         var db = GroupMessageDB.getInstance();
@@ -181,14 +198,16 @@ export class BaseGroupChat extends Chat {
             this.downloadAudio(m);
         }
 
-        this.props.dispatch(insertMessages(messages));
+        var ms = this.state.messages;
+        ms.splice(ms.length, 0, ...messages);
+        this.setState({});
         return;
     }
 }
 
 
-var GroupChat = connect(function(state){
-    return {messages:state.messages};
-})(BaseGroupChat);
+// var GroupChat = connect(function(state){
+//     return {messages:state.messages};
+// })(BaseGroupChat);
 
-export default GroupChat;
+// export default GroupChat;
