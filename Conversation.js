@@ -20,7 +20,7 @@ import PeerMessageDB from './chat/PeerMessageDB';
 import GroupMessageDB from './chat/GroupMessageDB';
 import ConversationDB from './model/ConversationDB';
 
-import PeerChat from "./PeerChat";
+import PeerChat from "./chat/PeerChat";
 import Navigator from "./Navigation";
 
 const CONVERSATION_PEER = "peer";
@@ -196,10 +196,7 @@ class Conversation extends React.Component {
                  }
                 convs = [conv];
             }
-
-            console.log("llllll:", convs);
             this.setState({conversations:convs});
-            //this.props.dispatch(setConversations(convs));
         }).catch((err) => {
             console.error("err:", err);
         })

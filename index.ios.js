@@ -6,7 +6,7 @@ import {
 import React from "react";
 
 import App from './App';
-import PeerChat from "./PeerChat";
+import PeerChat from "./chat/PeerChat";
 
 AppRegistry.registerComponent('app', () => App);
 AppRegistry.registerComponent('PeerChat', () => PeerChat);

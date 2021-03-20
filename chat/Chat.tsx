@@ -16,7 +16,9 @@ import {
     Clipboard,
     Easing,
     UIManager,
-    Animated
+    Animated,
+    LayoutAnimationTypes,
+    LayoutAnimationProperties
 } from 'react-native';
 
 import ImagePicker from 'react-native-image-picker'
@@ -34,6 +36,7 @@ var UUID = require('react-native-uuid');
 var Sound = require('react-native-sound');
 var RNFS = require('react-native-fs');
 
+import {MESSAGE_FLAG_LISTENED} from "./IMessage";
 
 import PropTypes from 'prop-types';
 
@@ -47,6 +50,7 @@ import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from './InputToolbar';
 import MessageContainer from './MessageContainer';
 // import {playMessage, listenMessage} from './actions';
 
+import api from "./api";
 
 const API_URL = "http://api.gobelieve.io";
 const NAVIGATIONBAR_HEIGHT = 0;
@@ -70,7 +74,53 @@ var Permissions = {
     },
 }
 
-export default class Chat extends React.Component {
+interface Props {
+    token:string;
+    sender:string;
+    receiver:string;
+}
+
+interface Stat {
+    isInitialized:boolean;
+    loading:boolean;
+
+    recording:boolean;
+    recordingText:string;
+    recordingColor:string;
+
+
+    currentMetering:number;
+
+    canLoadMoreContent:boolean;
+    messages:any[];
+
+    value:string;
+
+    messagesContainerHeight:any;
+}
+export default class Chat extends React.Component<Props, Stat> {
+    _keyboardHeight:number;
+    _bottomOffset:number;
+    _maxHeight:number;
+    _touchStarted:boolean;
+    _isFirstLayout:boolean;
+    _isTypingDisabled:boolean;
+    _locale:string;
+    _messages:any[];
+
+    player:any;
+    playingMessage:any;
+    playingTimer:any;
+
+    recordingBegin:any;
+
+    inputToolbar:any;
+    _messageContainerRef:any;
+
+    static childContextTypes = {
+        getLocale:PropTypes.func
+    };
+
     constructor(props) {
         super(props);
         this.state = {
@@ -84,8 +134,14 @@ export default class Chat extends React.Component {
             recordingColor:"transparent",
 
             canLoadMoreContent:true,
-            
+            messages:[],
+
             currentMetering:0,
+
+            value:"",
+
+            messagesContainerHeight:0,
+  
         };
 
         this._keyboardHeight = 0;
@@ -108,17 +164,17 @@ export default class Chat extends React.Component {
         this.onKeyboardDidShow = this.onKeyboardDidShow.bind(this);
         this.onKeyboardDidHide = this.onKeyboardDidHide.bind(this);
         
-        this.invertibleScrollViewProps = {
-            inverted: true,
-            keyboardShouldPersistTaps: "always",
-            onTouchStart: this.onTouchStart,
-            onTouchMove: this.onTouchMove,
-            onTouchEnd: this.onTouchEnd,
-            onKeyboardWillShow: this.onKeyboardWillShow,
-            onKeyboardWillHide: this.onKeyboardWillHide,
-            onKeyboardDidShow: this.onKeyboardDidShow,
-            onKeyboardDidHide: this.onKeyboardDidHide,
-        };
+        // this.invertibleScrollViewProps = {
+        //     inverted: true,
+        //     keyboardShouldPersistTaps: "always",
+        //     onTouchStart: this.onTouchStart,
+        //     onTouchMove: this.onTouchMove,
+        //     onTouchEnd: this.onTouchEnd,
+        //     onKeyboardWillShow: this.onKeyboardWillShow,
+        //     onKeyboardWillHide: this.onKeyboardWillHide,
+        //     onKeyboardDidShow: this.onKeyboardDidShow,
+        //     onKeyboardDidHide: this.onKeyboardDidHide,
+        // };
 
         console.log("token:", this.props.token);
 
@@ -126,7 +182,7 @@ export default class Chat extends React.Component {
 
     getChildContext() {
         return {
-            actionSheet: () => this._actionSheetRef,
+            // actionSheet: () => this._actionSheetRef,
             getLocale: this.getLocale.bind(this),
         };
     }
@@ -180,6 +236,11 @@ export default class Chat extends React.Component {
             this.scrollToBottom();
         });
     }
+
+
+
+
+
 
     downloadAudio(message) {
         if (!message.audio) {
@@ -236,45 +297,12 @@ export default class Chat extends React.Component {
 
     getNow() {
         var now = new Date();
-        now = now.getTime()/1000;
-        now = Math.floor(now);
-        return now;
+        var t = now.getTime()/1000;
+        t = Math.floor(t);
+        return t;
     }
 
-    uploadAudio(filePath) {
-        var url = API_URL + "/v2/audios";
-        var formData = new FormData();
-        console.log("uri:", filePath);
 
-        var s = filePath.split("/");
-        if (s.length == 0) {
-            return;
-        }
-
-        var fileName = s[s.length-1];
-        formData.append('file', {uri: "file://" + filePath, name:fileName, type:"audio/amr-nb"});
-        let options = {};
-        options.body = formData;
-        options.method = 'post';
-        options.headers = {
-            "Authorization":"Bearer " + this.props.token,
-            'Content-Type': 'multipart/form-data',
-        };
-        return fetch(url, options)
-            .then((response) => {
-                return Promise.all([response.status, response.json()]);
-            })
-            .then((values)=>{
-                var status = values[0];
-                var respJson = values[1];
-                if (status != 200) {
-                    console.log("upload image fail:", respJson);
-                    return Promise.reject(respJson);
-                }
-                console.log("upload image success:", respJson);
-                return respJson.src_url;
-            });
-    }
 
     getWAVPath(id) {
         var path = AudioUtils.DocumentDirectoryPath + "/audios";
@@ -298,6 +326,8 @@ export default class Chat extends React.Component {
         var receiver = this.props.receiver;
         var now = this.getNow();
         var message = {
+            id:0,
+            _id:0,
             sender:sender,
             receiver:receiver,
             content: content,
@@ -321,7 +351,7 @@ export default class Chat extends React.Component {
 
             this.addMessage(message, true);
 
-            return this.uploadAudio(amrPath);
+            return api.uploadAudio(amrPath);
             
         }).then((url)=> {
             console.log("audio url:", url);
@@ -342,6 +372,8 @@ export default class Chat extends React.Component {
         var receiver = this.props.receiver;
         var now = this.getNow();
         var message = {
+            id:0,
+            _id:0,
             sender:sender,
             receiver:receiver,
             content: textMsg,
@@ -370,33 +402,7 @@ export default class Chat extends React.Component {
     }
 
 
-    uploadImage(uri, fileName) {
-        var url = API_URL + "/v2/images";
-        var formData = new FormData();
-        formData.append('file', {uri: uri, name:fileName, type:"image/jpeg"});
-        let options = {};
-        options.body = formData;
-        options.method = 'POST';
-        options.headers = {
-            'Content-Type': 'multipart/form-data; boundary=6ff46e0b6b5148d984f148b6542e5a5d',
-            "Authorization":"Bearer " + this.props.token,
-        };
-        return fetch(url, options)
-            .then((response) => {
-                return Promise.all([response.status, response.json()]);
-            })
-            .then((values)=>{
-                var status = values[0];
-                var respJson = values[1];
-                if (status != 200) {
-                    console.log("upload image fail:", respJson);
-                    Promise.reject(respJson);
-                    return;
-                }
-                console.log("upload image success:", respJson);
-                return respJson.src_url;
-            });
-    }
+
 
 
     
@@ -445,6 +451,8 @@ export default class Chat extends React.Component {
         var receiver = this.props.receiver;
         var now = this.getNow();
         var message = {
+            id:0,
+            _id:0,
             sender:sender,
             receiver:receiver,
             content: content,
@@ -470,7 +478,7 @@ export default class Chat extends React.Component {
             
             return message;
         }).then((message) => {
-            return this.uploadImage(image.uri, image.fileName);
+            return api.uploadImage(image.uri, image.fileName);
         }).then((url) => {
             console.log("upload image success url:", url);
             var obj = {
@@ -497,7 +505,7 @@ export default class Chat extends React.Component {
                     " address:", address);
 
         var id = UUID.v1();
-        var obj = {
+        var obj:any = {
             location:{
                 longitude:longitude,
                 latitude:latitude,
@@ -513,6 +521,8 @@ export default class Chat extends React.Component {
         var receiver = this.props.receiver;
         var now = this.getNow();
         var message = {
+            id:0,
+            _id:0,
             sender:sender,
             receiver:receiver,
             content: content,
@@ -551,35 +561,34 @@ export default class Chat extends React.Component {
 
 
     handleImagePicker() {
-        const options = {
+        const options:any = {
             maxWidth:1024,
             storageOptions: {
                 skipBackup: true,
                 path: 'images'
-            }
+            },
         }
         ImagePicker.launchImageLibrary(options, (response) => {
             console.log('Response = ', response);
 
             if (response.didCancel) {
                 console.log('User cancelled image picker');
-            } else if (response.error) {
-                console.log('ImagePicker Error: ', response.error);
-            } else if (response.customButton) {
-                console.log('User tapped custom button: ', response.customButton);
-            } else {
+            } else if (response.errorCode) {
+                console.log('ImagePicker Error: ', response.errorCode);
+            }  else {
                 this.sendImageMessage(response)
             }
         });
     }
 
     handleCameraPicker() {
-        const options = {
+        const options:any = {
             maxWidth:1024,
             storageOptions: {
                 skipBackup: true,
                 path: 'images'
-            }
+            },
+            mediaType:"photo"
         }
         
         // Launch Camera:
@@ -589,11 +598,8 @@ export default class Chat extends React.Component {
             if (response.didCancel) {
                 console.log('User cancelled image picker');
             }
-            else if (response.error) {
-                console.log('ImagePicker Error: ', response.error);
-            }
-            else if (response.customButton) {
-                console.log('User tapped custom button: ', response.customButton);
+            else if (response.errorCode) {
+                console.log('ImagePicker Error: ', response.errorCode);
             }
             else {
                 this.sendImageMessage(response);
@@ -609,43 +615,43 @@ export default class Chat extends React.Component {
 
     handleLocationClick() {
         console.log("locaiton click");
-        var navigator = this.props.navigator;
+        // var navigator = this.props.navigator;
 
-        navigator.push({
-            title:"位置",
-            screen:"chat.LocationPicker",
-            passProps:{
-                onLocation:this.onLocation.bind(this),
-            },
-            navigatorStyle:{
-                tabBarHidden:true
-            },
-            navigatorStyle: {
-                statusBarHideWithNavBar:true,
-                statusBarHidden:true,
-            },
-        });
+        // navigator.push({
+        //     title:"位置",
+        //     screen:"chat.LocationPicker",
+        //     passProps:{
+        //         onLocation:this.onLocation.bind(this),
+        //     },
+        //     navigatorStyle:{
+        //         tabBarHidden:true
+        //     },
+        //     navigatorStyle: {
+        //         statusBarHideWithNavBar:true,
+        //         statusBarHidden:true,
+        //     },
+        // });
     }
 
     onMessageLongPress(message) {
         console.log("on message long press:", message);
-        if (message.text) {
-            const options = [
-                'Copy Text',
-                'Cancel',
-            ];
-            const cancelButtonIndex = options.length - 1;
-            this._actionSheetRef.showActionSheetWithOptions({
-                options,
-                cancelButtonIndex,
-            }, (buttonIndex) => {
-                switch (buttonIndex) {
-                    case 0:
-                        Clipboard.setString(message.text);
-                        break;
-                }
-            });
-        }
+        // if (message.text) {
+        //     const options = [
+        //         'Copy Text',
+        //         'Cancel',
+        //     ];
+        //     const cancelButtonIndex = options.length - 1;
+        //     this._actionSheetRef.showActionSheetWithOptions({
+        //         options,
+        //         cancelButtonIndex,
+        //     }, (buttonIndex) => {
+        //         switch (buttonIndex) {
+        //             case 0:
+        //                 Clipboard.setString(message.text);
+        //                 break;
+        //         }
+        //     });
+        // }
     }
 
     stopPlayer() {
@@ -656,7 +662,7 @@ export default class Chat extends React.Component {
             this.player = null;
             this.playingMessage = null;
             clearInterval(this.playingTimer);
-            this.props.dispatch(playMessage(msgID, false));
+            //this.props.dispatch(playMessage(msgID, false));
         }
     }
     
@@ -704,10 +710,10 @@ export default class Chat extends React.Component {
                 .then((player) => {
                     var self = this;
                     var msgID = message.id;
-                    this.props.dispatch(listenMessage(msgID));
+     
                     this.setMessageListened(message);
                     this.playingTimer = setInterval(function() {
-                        self.props.dispatch(playMessage(msgID, true));
+                        self.setMessagePlaying(msgID, true);
                     }, 200);
                     this.playingMessage = message;
                     this.player = player
@@ -724,34 +730,34 @@ export default class Chat extends React.Component {
 
         }
         if (message.image) {
-            var navigator = this.props.navigator;
+            // var navigator = this.props.navigator;
 
-            if (Platform.OS === 'android') {
-                navigator.push({
-                    screen:"chat.Photo",
-                    passProps:{
-                        url:message.image.url
-                    },
-                    navigatorStyle:{
-                        tabBarHidden:true
-                    },
-                    navigatorStyle: {
-                        statusBarHideWithNavBar:true,
-                        statusBarHidden:true,
-                    },
-                });
-            } else {
-                navigator.showLightBox({
-                    screen:"chat.Photo",
-                    passProps:{
-                        url:message.image.url
-                    },
-                    navigatorStyle: {
-                        statusBarHideWithNavBar:true,
-                        statusBarHidden:true,
-                    },
-                });
-            }
+            // if (Platform.OS === 'android') {
+            //     navigator.push({
+            //         screen:"chat.Photo",
+            //         passProps:{
+            //             url:message.image.url
+            //         },
+            //         navigatorStyle:{
+            //             tabBarHidden:true
+            //         },
+            //         navigatorStyle: {
+            //             statusBarHideWithNavBar:true,
+            //             statusBarHidden:true,
+            //         },
+            //     });
+            // } else {
+            //     navigator.showLightBox({
+            //         screen:"chat.Photo",
+            //         passProps:{
+            //             url:message.image.url
+            //         },
+            //         navigatorStyle: {
+            //             statusBarHideWithNavBar:true,
+            //             statusBarHidden:true,
+            //         },
+            //     });
+            // }
         }
     }
     
@@ -826,7 +832,7 @@ export default class Chat extends React.Component {
 
         if (duration < 1) {
             console.log("record time too short");
-            Toast.showShortBottom('录音时间太短了')
+            //Toast.showShortBottom('录音时间太短了')
             return;
         }
 
@@ -864,7 +870,7 @@ export default class Chat extends React.Component {
                     return RNFS.moveFile(audioPath, wavPath);
                 })
                 .then(() => {
-                    return new Promise((resolve, reject) => {
+                    return new Promise<void>((resolve, reject) => {
                         OpenCoreAMR.wav2AMR(wavPath, amrPath, function(err) {
                             if (err) {
                                 console.log("wav 2 arm err:", err);
@@ -932,10 +938,15 @@ export default class Chat extends React.Component {
         console.log("keyboard height:", e.endCoordinates ? e.endCoordinates.height : e.end.height);
 
         if (e && e.duration && e.duration > 0) {
+            // var animation = LayoutAnimation.create(
+            //     e.duration,
+            //     LayoutAnimation.Types[e.easing],
+            //     LayoutAnimation.Properties.opacity);
+
             var animation = LayoutAnimation.create(
                 e.duration,
-                LayoutAnimation.Types[e.easing],
-                LayoutAnimation.Properties.opacity);
+                LayoutAnimation.Types[e.easing]);
+
             LayoutAnimation.configureNext(animation);
         }
         this.setState({
@@ -952,8 +963,7 @@ export default class Chat extends React.Component {
         if (e && e.duration && e.duration > 0) {
             var animation = LayoutAnimation.create(
                 e.duration,
-                LayoutAnimation.Types[e.easing],
-                LayoutAnimation.Properties.opacity);
+                LayoutAnimation.Types[e.easing]);
             LayoutAnimation.configureNext(animation);
         }
         
@@ -1014,8 +1024,8 @@ export default class Chat extends React.Component {
         
         LayoutAnimation.configureNext(LayoutAnimation.create(
             100,
-            LayoutAnimation.Types.linear,
-            LayoutAnimation.Properties.opacity
+            // LayoutAnimation.Types.linear,
+            // LayoutAnimation.Properties.opacity
         ));
         
         this.setState({
@@ -1025,14 +1035,46 @@ export default class Chat extends React.Component {
     
     saveMessage(message) {
         console.log("save message not implement");        
+        return Promise.resolve(message);
     }
     
     updateMessageAttachment(msgID, attachment) {
         console.log("save message attachment not implement");
     }
     
+    setMessagePlaying(msgID,  playing) {
+        var messages = this.state.messages;
+        var index = messages.findIndex((m) => {
+            return m.id == msgID;
+        });
+        if (index == -1) {
+            return;
+        }
+
+        var playing = messages[index].playing ? messages[index].playing : 0;
+        if (playing) {
+            playing += 1;
+        } else {
+            playing = 0;
+        }
+        messages[index].playing = playing;
+
+        this.setState({});
+          
+    }
+
     setMessageListened(message) {
         console.log("setMessageListened not implement");
+        var messages = this.state.messages;
+        var index = messages.findIndex((m) => {
+            return m.id == message.id;
+        });
+        if (index == -1) {
+            return;
+        }
+        var f = messages[index].flags;
+        f = f | MESSAGE_FLAG_LISTENED;
+        this.setState({});
     }
 
     setMessageFailure(message) {
@@ -1059,7 +1101,7 @@ export default class Chat extends React.Component {
                         _id: this.props.sender, // sent messages should have same user._id
                     }}
                     
-                    invertibleScrollViewProps={this.invertibleScrollViewProps}
+         
 
                     onMessageLongPress={this.onMessageLongPress.bind(this)}
                     onMessagePress={this.onMessagePress.bind(this)}
@@ -1164,7 +1206,7 @@ export default class Chat extends React.Component {
                 }
             };
             return (
-                <View ref={component => this._actionSheetRef = component}>
+                <View>
                     <View
                         style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
                         onLayout={onViewLayout}>
@@ -1217,10 +1259,10 @@ export default class Chat extends React.Component {
 }
 
 
-Chat.childContextTypes = {
-    actionSheet: PropTypes.func,
-    getLocale: PropTypes.func,
-};
+// Chat.childContextTypes = {
+//     //  actionSheet: PropTypes.func,
+//     getLocale: PropTypes.func,
+// };
 
 
 

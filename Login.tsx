@@ -15,7 +15,12 @@ import Spinner from 'react-native-loading-spinner-overlay';
 var IMService = require("./chat/im");
 var im = IMService.instance;
 
-class Login extends Component {
+interface Stat {
+    sender:string;
+    receiver:string;
+    visible:boolean;
+}
+class Login extends Component<{}, Stat> {
     constructor(props) {
         super(props);
         this.state = {
@@ -34,7 +39,7 @@ class Login extends Component {
         console.log("login:", this.state);
         var sender = parseInt(this.state.sender);
         if (!sender) {
-            alert("请填写发送者id");
+            //alert("请填写发送者id");
             return;
         }
         

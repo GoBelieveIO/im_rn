@@ -40,3 +40,9 @@ buck-out/
 \.buckd/
 android/app/libs
 android/keystores/debug.keystore
+
+ios/app.xcworkspace
+ios/Pods
+
+
+yarn-error.log
