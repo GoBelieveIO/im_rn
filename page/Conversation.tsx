@@ -11,11 +11,18 @@ import {
 
 import { Switch, Route, withRouter } from "react-router";  
 
-import moment from 'moment/min/moment-with-locales.min';
+//import moment from 'moment/min/moment-with-locales.min';
+import moment from 'moment';
 
-var IMService = require("../chat/im");
 
-import {MESSAGE_FLAG_ACK, MESSAGE_FLAG_FAILURE} from '../model/IMessage';
+import {
+    MESSAGE_FLAG_ACK, 
+    MESSAGE_FLAG_FAILURE,
+    CONVERSATION_PEER,
+    CONVERSATION_GROUP,
+    Conversation as IConversation
+} from '../model/IMessage';
+
 import PeerMessageDB from '../model/PeerMessageDB';
 import GroupMessageDB from '../model/GroupMessageDB';
 import ConversationDB from '../model/ConversationDB';
@@ -23,10 +30,21 @@ import ConversationDB from '../model/ConversationDB';
 import PeerChat from "./PeerChat";
 import Navigator from "../Navigation";
 
-const CONVERSATION_PEER = "peer";
-const CONVERSATION_GROUP = "group";
+var IMService = require("../imsdk/im");
 
-class Conversation extends React.Component {
+interface Props {
+    uid:number;
+    token:string;
+    testPeer:number;
+    emitter:any;
+    history:any;
+}
+
+interface Stat {
+    conversations:IConversation[];
+}
+
+class Conversation extends React.Component<Props, Stat> {
     static navigatorButtons = {
         rightButtons: [
             {
@@ -36,7 +54,6 @@ class Conversation extends React.Component {
             },
         ]
     };
-
     
     static navigatorStyle = {
         navBarBackgroundColor: '#4dbce9',
@@ -49,38 +66,35 @@ class Conversation extends React.Component {
     
     constructor(props) {
         super(props);
-
-      
         this.state = {
             conversations:[],
         };
-        //this.props.navigator.setOnNavigatorEvent(this.onNavigatorEvent.bind(this));
+
+        var im = IMService.instance;
+        im.observer = this;
     }
 
     onNavigatorEvent(event) {
         console.log("event:", event);
-        if (event.type == 'NavBarButtonPress') { 
-            if (event.id == 'search') {
-                var navigator = this.props.navigator;
-                navigator.push({
-                    title:"Search",
-                    screen:"demo.Search",
-                    navigatorStyle:{
-                        tabBarHidden:true
-                    },
-                    passProps:{
+        // if (event.type == 'NavBarButtonPress') { 
+        //     if (event.id == 'search') {
+        //         var navigator = this.props.navigator;
+        //         navigator.push({
+        //             title:"Search",
+        //             screen:"demo.Search",
+        //             navigatorStyle:{
+        //                 tabBarHidden:true
+        //             },
+        //             passProps:{
 
-                    },
-                });                
-            }
-        }
+        //             },
+        //         });                
+        //     }
+        // }
     }
 
     
     componentDidMount() {
-        var im = IMService.instance;
-        im.observer = this;
-        
         this.loadConversations();
     }
 
@@ -94,13 +108,14 @@ class Conversation extends React.Component {
                            console.log("m:", m, "uid:", this.props.uid);
                            var cid = (m.sender == this.props.uid) ? m.receiver : m.sender;
                            cid = "p_" + cid;
-                           var conv = {
-                               id:cid,
+                           var conv:IConversation = {
                                cid:cid,
                                name:cid,
+                               avatar:"",
                                timestamp:m.timestamp,
                                unread:0,
                                message:m,
+                               type:CONVERSATION_PEER
                            }
                            var msgObj = JSON.parse(m.content);
                            if (msgObj.text) {
@@ -135,13 +150,14 @@ class Conversation extends React.Component {
                            m.receiver = m.group_id;
                            
                            var cid = "g_" + m.receiver;
-                           var conv = {
-                               id:cid,
+                           var conv:IConversation = {
                                cid:cid,
                                name:cid,
+                               avatar:"",
                                timestamp:m.timestamp,
                                unread:0,
                                message:m,
+                               type:CONVERSATION_GROUP
                            }
                            var msgObj = JSON.parse(m.content);
                            if (msgObj.text) {
@@ -230,9 +246,9 @@ class Conversation extends React.Component {
         message.user = {
             _id: message.sender
         }
-        message.outgoing = (this.uid == message.sender);
+        message.outgoing = (this.props.uid == message.sender);
         
-        var peer = (this.uid == message.sender) ? message.receiver : message.sender;
+        var peer = (this.props.uid == message.sender) ? message.receiver : message.sender;
         var db = PeerMessageDB.getInstance();
         db.insertMessage(message, peer)
           .then((rowid) => {
@@ -241,7 +257,7 @@ class Conversation extends React.Component {
               this.props.emitter.emit('peer_message', message)
           });
 
-        cid = "p_" + peer;
+        var cid = "p_" + peer;
         var index = this.state.conversations.findIndex((conv) => {
             return conv.cid == cid;
         });
@@ -287,7 +303,6 @@ class Conversation extends React.Component {
         
         console.log("new conv:", newConv);
         this.updateConversation(conv, index);
-        //this.props.dispatch(updateConversation(conv, index));
     }
 
     updateConversation(conv, index) {
@@ -344,7 +359,7 @@ class Conversation extends React.Component {
         message.user = {
             _id: message.sender
         }
-        message.outgoing = (this.uid == message.sender);
+        message.outgoing = (this.props.uid == message.sender);
         
         var db = GroupMessageDB.getInstance();
         db.insertMessage(message)
@@ -404,7 +419,6 @@ class Conversation extends React.Component {
         //index==-1 表示添加
         console.log("new conv:", newConv);
         this.updateConversation(conv, index);
-//        this.props.dispatch(updateConversation(conv, index));
     }
 
     handleGroupMessageACK(msg) {
@@ -423,7 +437,7 @@ class Conversation extends React.Component {
     handleGroupNotification(msg) {
         console.log("group notification:", msg);
         var obj = JSON.parse(msg);
-        
+        /*
         var db = GroupDB.getInstance();
         var notification = "";
         var timestamp = 0;
@@ -537,19 +551,9 @@ class Conversation extends React.Component {
         conv.timestamp = message.timestamp;
         conv.content = notification;
         console.log("new conv:", newConv);
-        this.updateConversation(conv, index);
-        //this.props.dispatch(updateConversation(conv, index));
+        this.updateConversation(conv, index);*/
     }
 
-    
-    // componentWillReceiveProps(nextProps) {
-    //     if (this.props.conversations === nextProps.conversations) {
-    //         return;
-    //     }
-    //     this.setState({
-    //         dataSource: this.state.dataSource.cloneWithRows(nextProps.conversations)
-    //     });
-    // }
     
     renderRow(row) {
         var conv = row.item;
@@ -615,8 +619,8 @@ class Conversation extends React.Component {
             }*/
         }
 
-        var t = new Date();
-        t = t.setTime(conv.timestamp*1000);
+        var now = new Date();
+        var ts = now.setTime(conv.timestamp*1000);
 
         var reanderUnread = function() {
             if (conv.unread > 0) {
@@ -669,7 +673,7 @@ class Conversation extends React.Component {
                                     {conv.name}
                                 </Text>
                                 <Text style={{fontWeight:"100", fontSize:12, marginRight:8}}>
-                                    {moment(t).locale('zh-cn').format('LT')}
+                                    {moment(ts).locale('zh-cn').format('LT')}
                                 </Text>
                             </View>
                             <Text numberOfLines={1} style={{marginRight:16}}>
@@ -683,11 +687,9 @@ class Conversation extends React.Component {
             </TouchableHighlight>
         );
     }
-
     
     render() {
         return (
-
             <View style={{flex: 1, marginTop:4}}>
                 <Switch>
                     <Route exact path="/conversations" render={() => {
@@ -701,20 +703,13 @@ class Conversation extends React.Component {
 
                     <Route path="/conversations/:cid" render={(routeProps) => {
                         var state = routeProps.location.state;
-                        return (<PeerChat emitter={this.props.emitter} {...state}></PeerChat>);
+                        var im = IMService.instance;
+                        return (<PeerChat im={im} emitter={this.props.emitter} {...state}></PeerChat>);
                     }}></Route>
                 </Switch>
-     
-                {/* <ListView
-                    enableEmptySections={true}
-                    dataSource={this.state.dataSource}
-                    renderRow={this.renderRow.bind(this)}
-                /> */}
             </View>
         );        
     }
-
-    
 }
 
 export default withRouter(Conversation);

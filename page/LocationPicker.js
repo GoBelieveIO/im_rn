@@ -72,7 +72,7 @@ export default class LocationPicker extends React.Component {
         }
     }
     
-    componentWillMount() {
+    componentDidMount() {
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 console.log("current postion:",

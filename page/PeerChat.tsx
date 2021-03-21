@@ -3,11 +3,16 @@ import {
 } from 'react-native';
 import {AudioUtils} from 'react-native-audio';
 import PeerMessageDB from '../model/PeerMessageDB';
-import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from '../model/IMessage';
+import {
+    MESSAGE_FLAG_FAILURE, 
+    MESSAGE_FLAG_LISTENED,
+    Message as IMessage
+} from '../model/IMessage';
 import PropTypes from 'prop-types';
-var IMService = require("../chat/im");
+var IMService = require("../imsdk/im");
 import Chat from './Chat';
 
+import {MESSAGE_LIST_INVERTED} from "../config";
 
 export default class PeerChat extends Chat {
     static navigatorStyle = {
@@ -29,18 +34,18 @@ export default class PeerChat extends Chat {
     componentDidMount() {
         super.componentDidMount();
 
-        var im = IMService.instance;
-        im.addObserver(this);
-
         this.props.emitter.on('peer_message',this.onPeerMessage, this);
         this.props.emitter.on('peer_message_ack', this.onPeerMessageACK, this);
+        this.props.emitter.on('peer_message_failure', this.onPeerMessageFailure, this);
 
         var db = PeerMessageDB.getInstance();
 
         this.setState({loading:true});
         db.getMessages(this.props.receiver,
                        (msgs)=>{
-                           msgs.reverse();
+                           if (!MESSAGE_LIST_INVERTED) {
+                               msgs.reverse();
+                           }
                            for (var i in msgs) {
                                var m = msgs[i];
                                this.parseMessageContent(m);
@@ -64,11 +69,10 @@ export default class PeerChat extends Chat {
 
         this.props.emitter.emit('clear_conversation_unread', "p_" + this.props.receiver);
 
-        var im = IMService.instance;
-        im.removeObserver(this);
 
         this.props.emitter.off(this.onPeerMessage, this);
         this.props.emitter.off(this.onPeerMessageACK, this);
+        this.props.emitter.off(this.onPeerMessageFailure, this);
     }
 
     onPeerMessage(message) {
@@ -101,6 +105,10 @@ export default class PeerChat extends Chat {
             messages[index].ack = true;
             this.setState({});
         }
+    }
+
+    onPeerMessageFailure(message) {
+
     }
     
     parseMessageContent(m) {
@@ -191,7 +199,7 @@ export default class PeerChat extends Chat {
     }
 
     sendMessage(message) {
-        var im = IMService.instance;
+        var im = this.props.im;
         if (im.connectState == IMService.STATE_CONNECTED) {
             im.sendPeerMessage(message);
         }
@@ -210,13 +218,14 @@ export default class PeerChat extends Chat {
             return;
         }
 
-
-        var m = this.state.messages[0];
+        if (MESSAGE_LIST_INVERTED) {
+            var m = this.state.messages[this.state.messages.length - 1];
+        } else {
+            var m = this.state.messages[0];
+        }
 
         console.log("load more content...:", m.id);
-
         this.setState({loading:true});
-
         var p = new Promise((resolve, reject) => {
             var db = PeerMessageDB.getInstance();
             db.getEarlierMessages(this.props.receiver, m.id,
@@ -231,7 +240,6 @@ export default class PeerChat extends Chat {
         });
 
         p.then((messages:any[]) => {
-  
             if (messages.length == 0) {
                 this.setState({
                     canLoadMoreContent:false,
@@ -239,18 +247,22 @@ export default class PeerChat extends Chat {
                 })
                 return;
             }
-            messages.reverse();
+            if (!MESSAGE_LIST_INVERTED) {
+                messages.reverse();
+            }
             for (var i in messages) {
                 var m = messages[i];
                 this.parseMessageContent(m);
                 this.downloadAudio(m);
             }
-    
             var ms = this.state.messages;
-            ms.splice(0, 0, ...messages);
+            if (MESSAGE_LIST_INVERTED) {
+                ms.splice(ms.length, 0, ...messages);
+            } else {
+                ms.splice(0, 0, ...messages);
+            }
             this.setState({loading:false});
-
-        })
+        });
     }
 }
 

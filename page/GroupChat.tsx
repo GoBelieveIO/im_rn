@@ -18,12 +18,9 @@ export default class GroupChat extends Chat {
         super(props);
     }
 
-    componentWillMount() {
-        super.componentWillMount();
-        
+    componentDidMount() {
+        super.componentDidMount();
         this.props.emitter.emit('clear_conversation_unread', "g_" + this.props.receiver);
-
-
 
         this.props.emitter.on('group_message', this.onGroupMessage, this);
         this.props.emitter.on('group_message_ack', this.onGroupMessageACK, this);

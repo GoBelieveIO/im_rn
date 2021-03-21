@@ -13,10 +13,10 @@ import {
     TouchableOpacity,
     TouchableWithoutFeedback,
     InteractionManager,
-    Clipboard,
     Easing,
     UIManager,
     Animated,
+    FlatList,
     LayoutAnimationTypes,
     LayoutAnimationProperties
 } from 'react-native';
@@ -29,14 +29,15 @@ import {AudioRecorder, AudioUtils} from 'react-native-audio';
 import {OpenCoreAMR} from 'react-native-amr';
 
 import {request, check, PERMISSIONS} from 'react-native-permissions';
-//import Permissions from 'react-native-permissions';
+
 
 // var Toast = require('react-native-toast')
 var UUID = require('react-native-uuid');
 var Sound = require('react-native-sound');
 var RNFS = require('react-native-fs');
 
-import {MESSAGE_FLAG_LISTENED} from "../model/IMessage";
+import {MESSAGE_FLAG_LISTENED, Message as IMessage, IM} from "../model/IMessage";
+import Message from "../chat/Message";
 
 import PropTypes from 'prop-types';
 
@@ -46,10 +47,14 @@ if (Platform.OS === 'android') {
 
 console.log("document path:", AudioUtils.DocumentDirectoryPath);
 
-import InputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from '../chat/InputToolbar';
-import MessageContainer from '../chat/MessageContainer';
+import TextInputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from '../chat/TextInputToolbar';
+const InputToolbar = TextInputToolbar;
 
-import api from "../chat/api";
+
+
+import api from "../api";
+
+import {MESSAGE_LIST_INVERTED} from "../config";
 
 const NAVIGATIONBAR_HEIGHT = 0;
 
@@ -79,6 +84,8 @@ interface Props {
 
     peer?:any;
     groupID?:any;
+
+    im:IM;
 }
 
 interface Stat {
@@ -93,7 +100,7 @@ interface Stat {
     currentMetering:number;
 
     canLoadMoreContent:boolean;
-    messages:any[];
+    messages:IMessage[];
 
     value:string;
 
@@ -116,7 +123,7 @@ export default class Chat extends React.Component<Props, Stat> {
     recordingBegin:any;
 
     inputToolbar:any;
-    _messageContainerRef:any;
+    listRef:any;
 
     static childContextTypes = {
         getLocale:PropTypes.func
@@ -164,21 +171,13 @@ export default class Chat extends React.Component<Props, Stat> {
         this.onKeyboardWillHide = this.onKeyboardWillHide.bind(this);
         this.onKeyboardDidShow = this.onKeyboardDidShow.bind(this);
         this.onKeyboardDidHide = this.onKeyboardDidHide.bind(this);
-        
-        // this.invertibleScrollViewProps = {
-        //     inverted: true,
-        //     keyboardShouldPersistTaps: "always",
-        //     onTouchStart: this.onTouchStart,
-        //     onTouchMove: this.onTouchMove,
-        //     onTouchEnd: this.onTouchEnd,
-        //     onKeyboardWillShow: this.onKeyboardWillShow,
-        //     onKeyboardWillHide: this.onKeyboardWillHide,
-        //     onKeyboardDidShow: this.onKeyboardDidShow,
-        //     onKeyboardDidHide: this.onKeyboardDidHide,
-        // };
+
+        this.renderRow = this.renderRow.bind(this);
+        this.onMessageLongPress = this.onMessageLongPress.bind(this);
+        this.onMessagePress = this.onMessagePress.bind(this);
+        this.onMessageListPress = this.onMessageListPress.bind(this);
 
         console.log("token:", this.props.token);
-
     }
 
     getChildContext() {
@@ -196,11 +195,13 @@ export default class Chat extends React.Component<Props, Stat> {
         return this._locale;
     }
     
-    componentWillMount() {
-   
-    }
+
 
     componentDidMount() {
+        Keyboard.addListener("keyboardWillShow", this.onKeyboardWillShow);
+        Keyboard.addListener("keyboardWillHide", this.onKeyboardWillHide);
+        Keyboard.addListener("keyboardDidShow", this.onKeyboardDidShow);
+        Keyboard.addListener("keyboardDidHide", this.onKeyboardDidHide);
         AudioRecorder.checkAuthorizationStatus()
                      .then((status)=>{
                          console.log("audio auth status:", status);
@@ -228,20 +229,22 @@ export default class Chat extends React.Component<Props, Stat> {
     }
 
     componentWillUnmount() {
-    
+        Keyboard.removeListener("keyboardWillShow", this.onKeyboardWillShow);
+        Keyboard.removeListener("keyboardWillHide", this.onKeyboardWillHide);
+        Keyboard.removeListener("keyboardDidShow", this.onKeyboardDidShow);
+        Keyboard.removeListener("keyboardDidHide", this.onKeyboardDidHide);
     }
 
     addMessage(message, sending) {
-        this.state.messages.push(message);
-        this.setState({}, () => {
-            this.scrollToBottom();
-        });
+        if (MESSAGE_LIST_INVERTED) {
+            this.state.messages.splice(0, 0, message);
+        } else {
+            this.state.messages.push(message);
+            this.setState({}, () => {
+                this.scrollToBottom();
+            });
+        }
     }
-
-
-
-
-
 
     downloadAudio(message) {
         if (!message.audio) {
@@ -401,10 +404,6 @@ export default class Chat extends React.Component<Props, Stat> {
             self.sendMessage(message);
         });
     }
-
-
-
-
 
     
     /*example:
@@ -667,8 +666,13 @@ export default class Chat extends React.Component<Props, Stat> {
         }
     }
     
+    onMessageListPress() {
+        Keyboard.dismiss();
+    }
+
     onMessagePress(message) {
         console.log("on message press:", message);
+        Keyboard.dismiss();
         if (message.audio && message.uuid) {
 
             //停止正在播放的消息
@@ -953,6 +957,7 @@ export default class Chat extends React.Component<Props, Stat> {
         this.setState({
             messagesContainerHeight:new Animated.Value(newMessagesContainerHeight)
         });
+        this.scrollToBottom();
     }
 
     onKeyboardWillHide(e) {
@@ -986,7 +991,12 @@ export default class Chat extends React.Component<Props, Stat> {
     }
 
     scrollToBottom(animated = true) {
-        this._messageContainerRef.scrollToBottom();
+        if (MESSAGE_LIST_INVERTED) {
+            this.listRef.scrollToIndex({index:0, animated:true});
+        } else {
+            this.listRef.scrollToEnd({animated:true});
+        }
+        // this._messageContainerRef.scrollToBottom();
         // this._messageContainerRef.scrollTo({
         //     y: 0,
         //     animated,
@@ -1052,13 +1062,13 @@ export default class Chat extends React.Component<Props, Stat> {
             return;
         }
 
-        var playing = messages[index].playing ? messages[index].playing : 0;
+        var p = messages[index].playing ? messages[index].playing : 0;
         if (playing) {
-            playing += 1;
+            p += 1;
         } else {
-            playing = 0;
+            p = 0;
         }
-        messages[index].playing = playing;
+        messages[index].playing = p;
 
         this.setState({});
           
@@ -1089,27 +1099,90 @@ export default class Chat extends React.Component<Props, Stat> {
         console.log("loadMoreContentAsync not implement");
     }
     
+
+    renderRow(row) {
+        var message = row.item;
+        if (!message._id && message._id !== 0) {
+            console.warn('GiftedChat: `_id` is missing for message', JSON.stringify(message));
+        }
+        if (!message.user) {
+            console.warn('GiftedChat: `user` is missing for message', JSON.stringify(message));
+            message.user = {};
+        }
+
+        var position;
+        if (message.notification) {
+            position = "center";
+        } else {
+            position = message.user._id === this.props.sender ? 'right' : 'left';
+        }
+        
+        const messageProps = {
+            onMessageLongPress:this.onMessageLongPress,
+            onMessagePress:this.onMessagePress,
+            onPress:this.onMessageListPress,
+            key: message._id,
+            currentMessage: message,
+            previousMessage: message.previousMessage,
+            nextMessage: message.nextMessage,
+            position: position,
+            user:{
+                _id: this.props.sender, 
+            }
+        };
+        return <Message {...messageProps}/>;
+    }
+
     renderMessages() {
+        var props = {}
+        if (!MESSAGE_LIST_INVERTED) {
+            props = {
+                refreshing: MESSAGE_LIST_INVERTED ? false : this.state.loading,
+                onRefresh:() => {
+                    if (!MESSAGE_LIST_INVERTED) {
+                        this.loadMoreContentAsync();
+                    }
+                }
+            }
+        } else {
+            props = {
+                onEndReached:(info) => {
+                    console.log("on end reached:", info);
+                    if (MESSAGE_LIST_INVERTED) {
+                        this.loadMoreContentAsync();
+                    }
+                },
+                onEndReachedThreshold:0.2,
+            }
+        }
         return (
             <Animated.View style={{height: this.state.messagesContainerHeight }}>
-                <MessageContainer
+                <View style={{flex:1}}>
+                    <FlatList
+                            ref={(ref) => {this.listRef=ref}}
+                            keyboardShouldPersistTaps="always"
+                            automaticallyAdjustContentInsets={false}
+                            inverted={MESSAGE_LIST_INVERTED}
+                            data={this.state.messages}
+                            renderItem={this.renderRow}
+                            keyExtractor={(item, index) => {return "" + item.id}}
+                            {...props}
+                        />
+                </View>
+{/* 
 
+                <MessageContainer
                     isLoading={this.state.loading}
                     canLoadMore={this.state.canLoadMoreContent}
                     onLoadMoreAsync={this.loadMoreContentAsync}
-                    
                     user={{
                         _id: this.props.sender, // sent messages should have same user._id
                     }}
-                    
-         
-
                     onMessageLongPress={this.onMessageLongPress.bind(this)}
                     onMessagePress={this.onMessagePress.bind(this)}
                     messages={this.state.messages}
-
                     ref={component => this._messageContainerRef = component}
-                />
+                /> */}
             </Animated.View>
         );
     }
@@ -1182,7 +1255,7 @@ export default class Chat extends React.Component<Props, Stat> {
             </Animated.View>);
         
     }
-
+ 
     render() {
         const {width, height} = Dimensions.get('window');
         

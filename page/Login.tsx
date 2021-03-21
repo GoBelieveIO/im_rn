@@ -10,7 +10,7 @@ import {
 import { withRouter } from "react-router";  
 import Spinner from 'react-native-loading-spinner-overlay';
 
-var IMService = require("../chat/im");
+var IMService = require("../imsdk/im");
 var im = IMService.instance;
 
 interface Stat {

@@ -1,6 +1,4 @@
-import { appendFile } from "react-native-fs";
-
-const API_URL = "http://api.gobelieve.io";
+const API_URL = "https://api.gobelieve.io";
 
 var api = {
     token:"",

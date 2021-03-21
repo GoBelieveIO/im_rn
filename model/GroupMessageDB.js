@@ -1,7 +1,5 @@
-
-const PAGE_SIZE = 10;
 var instance = null;
-
+import {PAGE_SIZE} from "./IMessage";
 import tokenizer from "./Tokenizer";
 
 export default class GroupMessageDB {

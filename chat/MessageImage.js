@@ -29,17 +29,3 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
 });
-
-MessageImage.defaultProps = {
-  currentMessage: {
-    image: null,
-  },
-  containerStyle: {},
-  imageStyle: {},
-};
-
-MessageImage.propTypes = {
-  currentMessage: PropTypes.object,
-  containerStyle: View.propTypes.style,
-  imageStyle: Image.propTypes.style,
-};

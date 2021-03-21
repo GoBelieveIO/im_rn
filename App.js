@@ -31,7 +31,7 @@ import Conversation from './page/Conversation';
 import { NativeRouter, Route, Switch, Link, useHistory } from "react-router-native";
 
 
-var IMService = require("./chat/im");
+var IMService = require("./imsdk/im");
 var im = IMService.instance;
 
 
