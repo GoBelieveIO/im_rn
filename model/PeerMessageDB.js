@@ -1,7 +1,6 @@
-
-const PAGE_SIZE = 10;
 var instance = null;
 
+import {PAGE_SIZE} from "./IMessage";
 import tokenizer from "./Tokenizer";
 
 export default class PeerMessageDB {
@@ -12,7 +11,6 @@ export default class PeerMessageDB {
         return instance;
     }
 
-    
     constructor() {
         
     }
@@ -130,14 +128,14 @@ export default class PeerMessageDB {
         var sql = "SELECT id, sender, receiver, timestamp, flags, content, attachment FROM peer_message  WHERE peer = ? ORDER BY id DESC LIMIT ?";
         this.db.executeSql(sql, [uid, PAGE_SIZE],
                            function(result) {
-                               //console.log("get messages:", result);
+         
                                var msgs = [];
                                for (var i = 0; i < result.rows.length; i++) {
                                    var row = result.rows.item(i);
                                    //console.log("row:", row);
                                    msgs.push(row);
                                }
-
+                               console.log("get messages:", msgs.length);
                                successCB(msgs);
                            },
                            function(e) {

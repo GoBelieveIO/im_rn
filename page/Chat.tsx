@@ -23,40 +23,29 @@ import {
 
 import ImagePicker from 'react-native-image-picker'
 //import ActionSheet from '@exponent/react-native-action-sheet';
-import dismissKeyboard from 'react-native-dismiss-keyboard';
 import {AudioRecorder, AudioUtils} from 'react-native-audio';
-
 import {OpenCoreAMR} from 'react-native-amr';
-
 import {request, check, PERMISSIONS} from 'react-native-permissions';
 
-
 // var Toast = require('react-native-toast')
-var UUID = require('react-native-uuid');
-var Sound = require('react-native-sound');
-var RNFS = require('react-native-fs');
+const UUID = require('react-native-uuid');
+const Sound = require('react-native-sound');
+const RNFS = require('react-native-fs');
 
 import {MESSAGE_FLAG_LISTENED, Message as IMessage, IM} from "../model/IMessage";
 import Message from "../chat/Message";
-
 import PropTypes from 'prop-types';
+import TextInputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from '../chat/TextInputToolbar';
+const InputToolbar = TextInputToolbar;
+
+import api from "../api";
+import {MESSAGE_LIST_INVERTED, ENABLE_NATIVE_NAVIGATOR} from "../config";
+
+const NAVIGATIONBAR_HEIGHT = 0;
 
 if (Platform.OS === 'android') {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-console.log("document path:", AudioUtils.DocumentDirectoryPath);
-
-import TextInputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from '../chat/TextInputToolbar';
-const InputToolbar = TextInputToolbar;
-
-
-
-import api from "../api";
-
-import {MESSAGE_LIST_INVERTED} from "../config";
-
-const NAVIGATIONBAR_HEIGHT = 0;
 
 var Permissions = {
     getPermissionStatus: function(permission) {
@@ -77,14 +66,11 @@ var Permissions = {
 }
 
 interface Props {
-    token:string;
     sender:string;
     receiver:string;
     emitter:any;
-
     peer?:any;
     groupID?:any;
-
     im:IM;
 }
 
@@ -96,23 +82,18 @@ interface Stat {
     recordingText:string;
     recordingColor:string;
 
-
     currentMetering:number;
-
     canLoadMoreContent:boolean;
     messages:IMessage[];
 
     value:string;
-
     messagesContainerHeight:any;
 }
+
 export default class Chat extends React.Component<Props, Stat> {
     _keyboardHeight:number;
-    _bottomOffset:number;
     _maxHeight:number;
-    _touchStarted:boolean;
     _isFirstLayout:boolean;
-    _isTypingDisabled:boolean;
     _locale:string;
     _messages:any[];
 
@@ -133,8 +114,6 @@ export default class Chat extends React.Component<Props, Stat> {
         super(props);
         this.state = {
             isInitialized: false, // initialization will calculate maxHeight before rendering the chat
-            
-
             loading:false,//loading message
 
             recording: false,
@@ -143,21 +122,14 @@ export default class Chat extends React.Component<Props, Stat> {
 
             canLoadMoreContent:true,
             messages:[],
-
             currentMetering:0,
-
             value:"",
-
             messagesContainerHeight:0,
-  
         };
 
         this._keyboardHeight = 0;
-        this._bottomOffset = 0;
         this._maxHeight = 0;
-        this._touchStarted = false;
         this._isFirstLayout = true;
-        this._isTypingDisabled = false;
         this._locale = 'zh-cn';
         this._messages = [];
 
@@ -175,9 +147,8 @@ export default class Chat extends React.Component<Props, Stat> {
         this.onMessagePress = this.onMessagePress.bind(this);
         this.onMessageListPress = this.onMessageListPress.bind(this);
 
-        this.onSend = this.onSend.bind(this),
-        this.onInputToolbarHeightChange = this.onInputToolbarHeightChange.bind(this),   
-        console.log("token:", this.props.token);
+        this.onSend = this.onSend.bind(this);
+        this.onInputToolbarHeightChange = this.onInputToolbarHeightChange.bind(this);
     }
 
     getChildContext() {
@@ -196,6 +167,7 @@ export default class Chat extends React.Component<Props, Stat> {
     }
 
     componentDidMount() {
+        console.log("document path:", AudioUtils.DocumentDirectoryPath);
         Keyboard.addListener("keyboardWillShow", this.onKeyboardWillShow);
         Keyboard.addListener("keyboardWillHide", this.onKeyboardWillHide);
         Keyboard.addListener("keyboardDidShow", this.onKeyboardDidShow);
@@ -296,15 +268,12 @@ export default class Chat extends React.Component<Props, Stat> {
             });
     }
 
-
     getNow() {
         var now = new Date();
         var t = now.getTime()/1000;
         t = Math.floor(t);
         return t;
     }
-
-
 
     getWAVPath(id) {
         var path = AudioUtils.DocumentDirectoryPath + "/audios";
@@ -838,11 +807,8 @@ export default class Chat extends React.Component<Props, Stat> {
             //Toast.showShortBottom('录音时间太短了')
             return;
         }
-
-        
         var self = this;
         var id = UUID.v1();
-
 
         var fileName = Platform.select({
             ios: "recording.wav",
@@ -1210,11 +1176,9 @@ export default class Chat extends React.Component<Props, Stat> {
                     </Text>
                 </View>
             </Animated.View>);
-        
     }
  
     render() {
-        const {width, height} = Dimensions.get('window');
         if (this.state.isInitialized === true) {
             var onViewLayout = (e) => {
                 if (Platform.OS === 'android') {
@@ -1241,7 +1205,7 @@ export default class Chat extends React.Component<Props, Stat> {
                         style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
                         onLayout={onViewLayout}>
                         {this.renderMessages()}
-                        {/* {this.renderRecordView()} */}
+                        {this.renderRecordView()}
                         {this.renderInputToolbar()}
                     </View>
                 </View>
@@ -1269,8 +1233,6 @@ export default class Chat extends React.Component<Props, Stat> {
             console.log("max height:", layout.height);
             InteractionManager.runAfterInteractions(() => {
                 var t = this.prepareMessagesContainerHeight(this.getMaxHeight() - MIN_INPUT_TOOLBAR_HEIGHT);
-                var self = this;
-
                 console.log("set message container height:", t);
                 this.setState({
                     isInitialized: true,
@@ -1284,16 +1246,7 @@ export default class Chat extends React.Component<Props, Stat> {
             </View>
         );
     }
-
-    
 }
-
-
-// Chat.childContextTypes = {
-//     //  actionSheet: PropTypes.func,
-//     getLocale: PropTypes.func,
-// };
-
 
 
 

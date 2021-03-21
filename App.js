@@ -28,8 +28,7 @@ import Conversation from './page/Conversation';
 // import Photo from './chat/Photo';
 // import LocationPicker from './chat/LocationPicker';
 
-import { NativeRouter, Route, Switch, Link, useHistory } from "react-router-native";
-
+import { NativeRouter, Route, Switch, useHistory } from "react-router-native";
 
 var IMService = require("./imsdk/im");
 var im = IMService.instance;

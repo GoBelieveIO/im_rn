@@ -29,6 +29,7 @@ import ConversationDB from '../model/ConversationDB';
 
 import PeerChat from "./PeerChat";
 import Navigator from "../Navigation";
+import {ENABLE_NATIVE_NAVIGATOR} from "../config";
 
 var IMService = require("../imsdk/im");
 
@@ -45,25 +46,6 @@ interface Stat {
 }
 
 class Conversation extends React.Component<Props, Stat> {
-    static navigatorButtons = {
-        rightButtons: [
-            {
-                title: '搜索', 
-                id: 'search', 
-                showAsAction: 'ifRoom' 
-            },
-        ]
-    };
-    
-    static navigatorStyle = {
-        navBarBackgroundColor: '#4dbce9',
-        navBarTextColor: '#ffff00',
-        navBarSubtitleTextColor: '#ff0000',
-        navBarButtonColor: '#ffffff',
-        statusBarTextColorScheme: 'light',
-    };
-    
-    
     constructor(props) {
         super(props);
         this.state = {
@@ -73,26 +55,6 @@ class Conversation extends React.Component<Props, Stat> {
         var im = IMService.instance;
         im.observer = this;
     }
-
-    onNavigatorEvent(event) {
-        console.log("event:", event);
-        // if (event.type == 'NavBarButtonPress') { 
-        //     if (event.id == 'search') {
-        //         var navigator = this.props.navigator;
-        //         navigator.push({
-        //             title:"Search",
-        //             screen:"demo.Search",
-        //             navigatorStyle:{
-        //                 tabBarHidden:true
-        //             },
-        //             passProps:{
-
-        //             },
-        //         });                
-        //     }
-        // }
-    }
-
     
     componentDidMount() {
         this.loadConversations();
@@ -563,19 +525,29 @@ class Conversation extends React.Component<Props, Stat> {
             console.log("row data:", conv);
             if (conv.cid.startsWith("p_")) {
                 var uid = parseInt(conv.cid.substr(2));
-                var loc = {
-                    pathname: "/conversations/" + conv.cid,
-                    state: {
+                if (ENABLE_NATIVE_NAVIGATOR) {
+                    var im = IMService.instance;
+                    Navigator.push(PeerChat, {
+                        emitter:self.props.emitter,
+                        im:im,
                         sender: self.props.uid,
                         receiver:uid,
                         peer:uid,
-                        name:conv.name,
-                        token: self.props.token,
-                    }
-                };
-                self.props.history.push(loc);
-
-        }
+                    });
+                } else {
+                    var loc = {
+                        pathname: "/conversations/" + conv.cid,
+                        state: {
+                            sender: self.props.uid,
+                            receiver:uid,
+                            peer:uid,
+                            name:conv.name,
+                            token: self.props.token,
+                        }
+                    };
+                    self.props.history.push(loc);
+                }
+            }
         //     if (conv.cid.startsWith("p_")) {
         //         var uid = parseInt(conv.cid.substr(2));
         //         var passProps = {

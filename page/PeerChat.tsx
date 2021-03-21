@@ -15,14 +15,6 @@ import Chat from './Chat';
 import {MESSAGE_LIST_INVERTED} from "../config";
 
 export default class PeerChat extends Chat {
-    static navigatorStyle = {
-        navBarBackgroundColor: '#4dbce9',
-        navBarTextColor: '#ffff00',
-        navBarSubtitleTextColor: '#ff0000',
-        navBarButtonColor: '#ffffff',
-        statusBarTextColorScheme: 'light',
-    };
-    
     static childContextTypes = {
         getLocale:PropTypes.func
     };
@@ -62,7 +54,6 @@ export default class PeerChat extends Chat {
                        });
 
     }
-
 
     componentWillUnmount() {
         super.componentWillUnmount();

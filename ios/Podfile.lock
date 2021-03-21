@@ -302,6 +302,8 @@ PODS:
     - React-RCTText
   - RNAudio (3.6.0):
     - React
+  - RNCAsyncStorage (1.14.1):
+    - React-Core
   - RNFS (2.16.6):
     - React
   - RNPermissions (3.0.1):
@@ -360,6 +362,7 @@ DEPENDENCIES:
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - ReactNativeNavigation (from `../node_modules/react-native-navigation`)
   - RNAudio (from `../node_modules/react-native-audio`)
+  - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - RNFS (from `../node_modules/react-native-fs`)
   - RNPermissions (from `../node_modules/react-native-permissions`)
   - RNSearchBar (from `../node_modules/react-native-search-bar`)
@@ -454,6 +457,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-navigation"
   RNAudio:
     :path: "../node_modules/react-native-audio"
+  RNCAsyncStorage:
+    :path: "../node_modules/@react-native-async-storage/async-storage"
   RNFS:
     :path: "../node_modules/react-native-fs"
   RNPermissions:
@@ -510,6 +515,7 @@ SPEC CHECKSUMS:
   ReactCommon: cfe2b7fd20e0dbd2d1185cd7d8f99633fbc5ff05
   ReactNativeNavigation: 906b631a6847c26cacf5cb3791566f1fe205c65c
   RNAudio: 5a5bc9863f6db8b6c9f34f98a7b472c03c684246
+  RNCAsyncStorage: fe58eec522885718d6b297b7b658bf87d7ca557b
   RNFS: 2bd9eb49dc82fa9676382f0585b992c424cd59df
   RNPermissions: 4c8a37b4dde50f1f152bf8cd08c4a43d2355829e
   RNSearchBar: 9860431356b7d12a8449d2fddb2b5f3c78d1e99f

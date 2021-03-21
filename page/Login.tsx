@@ -4,12 +4,12 @@ import {
     TextInput,
     TouchableHighlight,
     View,
-    Platform,
-    AsyncStorage
+    Platform
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { withRouter } from "react-router";  
 import Spinner from 'react-native-loading-spinner-overlay';
-
+import api from "../api";
 var IMService = require("../imsdk/im");
 var im = IMService.instance;
 
@@ -83,6 +83,8 @@ class Login extends Component<{history}, Stat> {
                     console.log("access token:", im.accessToken);
                     im.start();
 
+                    api.token = responseJson.token;
+
                     var loc = {
                         pathname: "/conversations",
                         state: {
@@ -118,7 +120,6 @@ class Login extends Component<{history}, Stat> {
 
 
     render() {
-        
         var inputHeight = Platform.select({
             ios:35,
             android:45
