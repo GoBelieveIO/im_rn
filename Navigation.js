@@ -1,5 +1,5 @@
 import { Text, View, NativeModules } from 'react-native';
-import React from 'react';
+import React, { useEffect } from 'react';
 import PeerChat from "./page/PeerChat";
 
 const { NavigatorModule } = NativeModules;
@@ -19,15 +19,18 @@ var Navigator = {
     },
     
     setTitle: function(title)  {
-    
+        NavigatorModule.setTitle(title);
     },
 }
-export function NavigatorApp2(props) {
-    return <Text>test</Text>;
+
+export function Title(props) {
+    useEffect(() => {
+        Navigator.setTitle(props.title);
+    }, [props.title]);
+    return null;
 }
 
 export function NavigatorApp(props) {
-    console.log("props:", props);
     var id = props.id;
     if (!(id in Navigator.screens)) {
         console.log("invalid id:", id);
@@ -36,11 +39,11 @@ export function NavigatorApp(props) {
 
     var screen = Navigator.screens[id];
     delete(Navigator.screens[id]);
-    
+
     var passProps = screen.passProps;
     var component = screen.component;
 
-    console.log("pass props:", passProps);
+    console.log("navigator app, pass props:", passProps);
 
     if (typeof(component) == "function") {
         var ScreenComponent = component;

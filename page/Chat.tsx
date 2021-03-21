@@ -71,6 +71,7 @@ interface Props {
     emitter:any;
     peer?:any;
     groupID?:any;
+    name?:string;
     im:IM;
 }
 

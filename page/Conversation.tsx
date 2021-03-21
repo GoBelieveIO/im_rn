@@ -57,6 +57,9 @@ class Conversation extends React.Component<Props, Stat> {
     }
     
     componentDidMount() {
+        if (ENABLE_NATIVE_NAVIGATOR) {
+            Navigator.setTitle("会话");
+        }
         this.loadConversations();
     }
 
@@ -533,6 +536,7 @@ class Conversation extends React.Component<Props, Stat> {
                         sender: self.props.uid,
                         receiver:uid,
                         peer:uid,
+                        name:conv.name
                     });
                 } else {
                     var loc = {

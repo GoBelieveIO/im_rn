@@ -12,7 +12,8 @@ import PropTypes from 'prop-types';
 var IMService = require("../imsdk/im");
 import Chat from './Chat';
 
-import {MESSAGE_LIST_INVERTED} from "../config";
+import Navigator from "../Navigation";
+import {MESSAGE_LIST_INVERTED, ENABLE_NATIVE_NAVIGATOR} from "../config";
 
 export default class PeerChat extends Chat {
     static childContextTypes = {
@@ -26,6 +27,9 @@ export default class PeerChat extends Chat {
     componentDidMount() {
         super.componentDidMount();
 
+        if (ENABLE_NATIVE_NAVIGATOR && this.props.name) {
+            Navigator.setTitle(this.props.name);
+        }
         this.props.emitter.on('peer_message',this.onPeerMessage, this);
         this.props.emitter.on('peer_message_ack', this.onPeerMessageACK, this);
         this.props.emitter.on('peer_message_failure', this.onPeerMessageFailure, this);

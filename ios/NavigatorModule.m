@@ -45,4 +45,11 @@ RCT_EXPORT_METHOD(pop) {
   [nav popViewControllerAnimated:YES];
 }
 
+RCT_EXPORT_METHOD(setTitle:(nonnull NSString*)title) {
+  UINavigationController *nav = (UINavigationController*)(RCTKeyWindow().rootViewController);
+  if (nav.viewControllers.count) {
+    UIViewController *ctrl = nav.viewControllers.lastObject;
+    ctrl.navigationItem.title = title;
+  }
+}
 @end
