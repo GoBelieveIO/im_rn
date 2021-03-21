@@ -3,21 +3,10 @@ import {
     StyleSheet,
     View,
     Platform,
-    Text,
-    Dimensions,
     TextInput,
-    Image,
-    ActivityIndicator,
-    Keyboard,
-    LayoutAnimation,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    Animated
 } from 'react-native';
 
 import {Colors, Metrics, Fonts} from './Themes'
-
-//import Styles from './Styles/MessageScreenStyle'
 
 //输入框初始高度
 const MIN_COMPOSER_HEIGHT = Platform.select({
@@ -178,13 +167,14 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.snow,
         justifyContent: 'center',
         marginLeft:4,
+        marginRight:4,
     },
     
     searchInput: {
         borderRadius: 3,
-        fontSize: 13,
-        paddingHorizontal: 12,
-        paddingVertical: 5,
+        fontSize: 16,
+        paddingHorizontal: 4,
+        paddingVertical: 4,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: Colors.coolGrey190
     },

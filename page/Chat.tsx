@@ -164,9 +164,7 @@ export default class Chat extends React.Component<Props, Stat> {
         this.loadMoreContentAsync = this.loadMoreContentAsync.bind(this);
         this.onSend = this.onSend.bind(this);
         
-        this.onTouchStart = this.onTouchStart.bind(this);
-        this.onTouchMove = this.onTouchMove.bind(this);
-        this.onTouchEnd = this.onTouchEnd.bind(this);
+
         this.onKeyboardWillShow = this.onKeyboardWillShow.bind(this);
         this.onKeyboardWillHide = this.onKeyboardWillHide.bind(this);
         this.onKeyboardDidShow = this.onKeyboardDidShow.bind(this);
@@ -177,6 +175,8 @@ export default class Chat extends React.Component<Props, Stat> {
         this.onMessagePress = this.onMessagePress.bind(this);
         this.onMessageListPress = this.onMessageListPress.bind(this);
 
+        this.onSend = this.onSend.bind(this),
+        this.onInputToolbarHeightChange = this.onInputToolbarHeightChange.bind(this),   
         console.log("token:", this.props.token);
     }
 
@@ -194,8 +194,6 @@ export default class Chat extends React.Component<Props, Stat> {
     getLocale() {
         return this._locale;
     }
-    
-
 
     componentDidMount() {
         Keyboard.addListener("keyboardWillShow", this.onKeyboardWillShow);
@@ -996,29 +994,8 @@ export default class Chat extends React.Component<Props, Stat> {
         } else {
             this.listRef.scrollToEnd({animated:true});
         }
-        // this._messageContainerRef.scrollToBottom();
-        // this._messageContainerRef.scrollTo({
-        //     y: 0,
-        //     animated,
-        // });
     }
 
-    onTouchStart() {
-        this._touchStarted = true;
-    }
-
-    onTouchMove() {
-        this._touchStarted = false;
-    }
-
-    // handle Tap event to dismiss keyboard
-    onTouchEnd() {
-        if (this._touchStarted === true) {
-            dismissKeyboard();
-            this.inputToolbar.dismiss();
-        }
-        this._touchStarted = false;
-    }
 
     prepareMessagesContainerHeight(value) {
         var v = new Animated.Value(value);
@@ -1095,6 +1072,7 @@ export default class Chat extends React.Component<Props, Stat> {
     sendMessage(message) {
         console.log("send message not implement");
     }
+
     loadMoreContentAsync() {
         console.log("loadMoreContentAsync not implement");
     }
@@ -1169,37 +1147,16 @@ export default class Chat extends React.Component<Props, Stat> {
                             {...props}
                         />
                 </View>
-{/* 
-
-                <MessageContainer
-                    isLoading={this.state.loading}
-                    canLoadMore={this.state.canLoadMoreContent}
-                    onLoadMoreAsync={this.loadMoreContentAsync}
-                    user={{
-                        _id: this.props.sender, // sent messages should have same user._id
-                    }}
-                    onMessageLongPress={this.onMessageLongPress.bind(this)}
-                    onMessagePress={this.onMessagePress.bind(this)}
-                    messages={this.state.messages}
-                    ref={component => this._messageContainerRef = component}
-                /> */}
             </Animated.View>
         );
     }
 
-    
     renderInputToolbar() {
-        const inputToolbarProps = {
-            onSend: this.onSend.bind(this),
-            onHeightChange:this.onInputToolbarHeightChange.bind(this),
-            giftedChat: this,
-            
-        };
-
         return (
             <InputToolbar
                 ref={(input) => this.inputToolbar = input}
-                {...inputToolbarProps}
+                onSend={this.onSend}
+                onHeightChange={this.onInputToolbarHeightChange}
             />
         );
     }
@@ -1258,7 +1215,6 @@ export default class Chat extends React.Component<Props, Stat> {
  
     render() {
         const {width, height} = Dimensions.get('window');
-        
         if (this.state.isInitialized === true) {
             var onViewLayout = (e) => {
                 if (Platform.OS === 'android') {
@@ -1285,7 +1241,7 @@ export default class Chat extends React.Component<Props, Stat> {
                         style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
                         onLayout={onViewLayout}>
                         {this.renderMessages()}
-                        {this.renderRecordView()}
+                        {/* {this.renderRecordView()} */}
                         {this.renderInputToolbar()}
                     </View>
                 </View>
