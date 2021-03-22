@@ -1,3 +1,7 @@
+import {
+    Platform,
+} from 'react-native';
+
 import PeerMessageDB from '../model/PeerMessageDB';
 import {
     MESSAGE_FLAG_FAILURE, 
@@ -5,6 +9,7 @@ import {
     Message as IMessage
 } from '../model/IMessage';
 import PropTypes from 'prop-types';
+import RNFS from 'react-native-fs';
 var IMService = require("../imsdk/im");
 import Chat from './Chat';
 import Navigator from "../Navigation";
@@ -117,13 +122,13 @@ export default class PeerChat extends Chat {
         if (obj.text) {
             m.text = obj.text;
         } else if (obj.image2) {
-            // if (obj.image2.fileName) {
-            //     if (Platform.OS === 'ios') {
-            //         var uri = AudioUtils.DocumentDirectoryPath + "/images/" + obj.image2.fileName;
-            //         obj.image2.url = uri;
-            //         console.log("image uri:", uri);
-            //     }
-            // }
+            if (obj.image2.fileName) {
+                if (Platform.OS === 'ios') {
+                    var uri = RNFS.DocumentDirectoryPath + "/images/" + obj.image2.fileName;
+                    obj.image2.url = uri;
+                    console.log("image uri:", uri);
+                }
+            }
             m.image = obj.image2;
             if (m.attachment) {
                 m.image.url = m.attachment;
@@ -168,7 +173,6 @@ export default class PeerChat extends Chat {
         // }
 
         this.props.emitter.emit('update_conversation_message', "p_" + this.props.receiver, message);
-        //this.props.dispatch(updateConversation(conv));
     }
 
     saveMessage(message) {

@@ -5,14 +5,11 @@ import {
     Text,
     View,
     Dimensions,
-    TextInput,
     Image,
-    ActivityIndicator,
     Keyboard,
     LayoutAnimation,
     TouchableOpacity,
     TouchableWithoutFeedback,
-    InteractionManager,
     Easing,
     UIManager,
     Animated,
@@ -36,16 +33,19 @@ import RNFS from 'react-native-fs';
 import {MESSAGE_FLAG_LISTENED, Message as IMessage, IM} from "../model/IMessage";
 import Message from "../chat/Message";
 import PropTypes from 'prop-types';
-import TextInputToolbar, {MIN_INPUT_TOOLBAR_HEIGHT} from '../chat/TextInputToolbar';
+import TextInputToolbar from '../chat/TextInputToolbar';
 const InputToolbar = TextInputToolbar;
 
 import api from "../api";
-import {MESSAGE_LIST_INVERTED, ENABLE_NATIVE_NAVIGATOR} from "../config";
+import {MESSAGE_LIST_INVERTED} from "../config";
 
 const NAVIGATIONBAR_HEIGHT = 0;
+const ENABLE_AMR = false;
 
 if (Platform.OS === 'android') {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
+    if (UIManager.setLayoutAnimationEnabledExperimental) {
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+    }
 }
 
 var Permissions = {
@@ -77,7 +77,6 @@ interface Props {
 }
 
 interface Stat {
-    isInitialized:boolean;
     loading:boolean;
 
     recording:boolean;
@@ -88,16 +87,11 @@ interface Stat {
     canLoadMoreContent:boolean;
     messages:IMessage[];
 
-    value:string;
-    messagesContainerHeight:any;
+    keyboardHeight:number;
 }
 
 export default class Chat extends React.Component<Props, Stat> {
-    _keyboardHeight:number;
-    _maxHeight:number;
-    _isFirstLayout:boolean;
     _locale:string;
-    _messages:any[];
 
     player:any;
     playingMessage:any;
@@ -115,7 +109,6 @@ export default class Chat extends React.Component<Props, Stat> {
     constructor(props) {
         super(props);
         this.state = {
-            isInitialized: false, // initialization will calculate maxHeight before rendering the chat
             loading:false,//loading message
 
             recording: false,
@@ -125,19 +118,13 @@ export default class Chat extends React.Component<Props, Stat> {
             canLoadMoreContent:true,
             messages:[],
             currentMetering:0,
-            value:"",
-            messagesContainerHeight:0,
+            keyboardHeight:0,
         };
 
-        this._keyboardHeight = 0;
-        this._maxHeight = 0;
-        this._isFirstLayout = true;
         this._locale = 'zh-cn';
-        this._messages = [];
 
         this.loadMoreContentAsync = this.loadMoreContentAsync.bind(this);
         this.onSend = this.onSend.bind(this);
-        
 
         this.onKeyboardWillShow = this.onKeyboardWillShow.bind(this);
         this.onKeyboardWillHide = this.onKeyboardWillHide.bind(this);
@@ -149,7 +136,6 @@ export default class Chat extends React.Component<Props, Stat> {
         this.onMessagePress = this.onMessagePress.bind(this);
         this.onMessageListPress = this.onMessageListPress.bind(this);
 
-        this.onSend = this.onSend.bind(this);
         this.onInputToolbarHeightChange = this.onInputToolbarHeightChange.bind(this);
     }
 
@@ -212,6 +198,9 @@ export default class Chat extends React.Component<Props, Stat> {
     }
 
     downloadAudio(message) {
+        if (!ENABLE_AMR) {
+            return;
+        }
         if (!message.audio) {
             return;
         }
@@ -225,7 +214,6 @@ export default class Chat extends React.Component<Props, Stat> {
         
         var amrPath = this.getAMRPath(message.uuid);
         var wavPath = this.getWAVPath(message.uuid);
-
 
         RNFS.exists(wavPath)
             .then((exists) =>  {
@@ -360,9 +348,6 @@ export default class Chat extends React.Component<Props, Stat> {
             message.id = rowid;
             message._id = rowid;
             self.addMessage(message, true);
-            self.setState({
-                value: '',
-            });
             self.sendMessage(message);
         });
     }
@@ -624,7 +609,7 @@ export default class Chat extends React.Component<Props, Stat> {
             this.player = null;
             this.playingMessage = null;
             clearInterval(this.playingTimer);
-            //this.props.dispatch(playMessage(msgID, false));
+            this.setMessagePlaying(msgID, false);
         }
     }
     
@@ -867,72 +852,33 @@ export default class Chat extends React.Component<Props, Stat> {
         this.setState({recordingColor:color});
     }
 
-
-    setMaxHeight(height) {
-        this._maxHeight = height;
-    }
-
-    getMaxHeight() {
-        return this._maxHeight;
-    }
-
-    setIsFirstLayout(value) {
-        this._isFirstLayout = value;
-    }
-
-    getIsFirstLayout() {
-        return this._isFirstLayout;
-    }
-    
-    setKeyboardHeight(height) {
-        this._keyboardHeight = height;
-    }
-
-    getKeyboardHeight() {
-        return this._keyboardHeight;
-    }
-
     onKeyboardWillShow(e) {
-        this.setKeyboardHeight(e.endCoordinates ? e.endCoordinates.height : e.end.height);
-
-        this.inputToolbar.actionBarHeight = 0;
-        var newMessagesContainerHeight = this.getMaxHeight() - this.inputToolbar.getToolbarHeight() - this.getKeyboardHeight();
-        console.log("keyboard will show:", e, newMessagesContainerHeight);
-        console.log("keyboard height:", e.endCoordinates ? e.endCoordinates.height : e.end.height);
-
+        var keyboardHeight = e.endCoordinates ? e.endCoordinates.height : e.end.height;
         if (e && e.duration && e.duration > 0) {
-            // var animation = LayoutAnimation.create(
-            //     e.duration,
-            //     LayoutAnimation.Types[e.easing],
-            //     LayoutAnimation.Properties.opacity);
-
             var animation = LayoutAnimation.create(
                 e.duration,
-                LayoutAnimation.Types[e.easing]);
+                LayoutAnimation.Types[e.easing],
+                'opacity');
 
             LayoutAnimation.configureNext(animation);
         }
         this.setState({
-            messagesContainerHeight:new Animated.Value(newMessagesContainerHeight)
+            keyboardHeight:keyboardHeight,
         });
         this.scrollToBottom();
     }
 
     onKeyboardWillHide(e) {
-        this.setKeyboardHeight(0);
-        var newMessagesContainerHeight = this.getMaxHeight() - this.inputToolbar.getToolbarHeight() - this.getKeyboardHeight();
-
-        console.log("keyboard will hide:", e, newMessagesContainerHeight, this.getMaxHeight(), this.inputToolbar.getToolbarHeight(), this.getKeyboardHeight());
-
         if (e && e.duration && e.duration > 0) {
             var animation = LayoutAnimation.create(
                 e.duration,
-                LayoutAnimation.Types[e.easing]);
+                LayoutAnimation.Types[e.easing],
+                'opacity');
             LayoutAnimation.configureNext(animation);
         }
         
         this.setState({
-            messagesContainerHeight:new Animated.Value(newMessagesContainerHeight)
+            keyboardHeight:0,
         });
     }
 
@@ -957,29 +903,15 @@ export default class Chat extends React.Component<Props, Stat> {
         }
     }
 
-
-    prepareMessagesContainerHeight(value) {
-        var v = new Animated.Value(value);
-        console.log("prepare message container height:", v);
-        return v;
-    }
-
     onInputToolbarHeightChange(h) {
         console.log("on input tool bar height changed:", h);
-        const newMessagesContainerHeight = this.getMaxHeight() - this.inputToolbar.getToolbarHeight() - this.getKeyboardHeight();
-
-        console.log("new message container height:",
-                    newMessagesContainerHeight);
-        
         LayoutAnimation.configureNext(LayoutAnimation.create(
             100,
             // LayoutAnimation.Types.linear,
             // LayoutAnimation.Properties.opacity
         ));
-        
-        this.setState({
-            messagesContainerHeight:new Animated.Value(newMessagesContainerHeight)
-        });
+
+        this.setState({});
     }
     
     saveMessage(message) {
@@ -1007,9 +939,7 @@ export default class Chat extends React.Component<Props, Stat> {
             p = 0;
         }
         messages[index].playing = p;
-
         this.setState({});
-          
     }
 
     setMessageListened(message) {
@@ -1094,24 +1024,22 @@ export default class Chat extends React.Component<Props, Stat> {
             }
         }
         return (
-            <Animated.View style={{height: this.state.messagesContainerHeight }}>
-                <View style={{flex:1}}>
-                    <FlatList
-                            ref={(ref) => {this.listRef=ref}}
-                            keyboardShouldPersistTaps="always"
-                            automaticallyAdjustContentInsets={false}
-                            inverted={MESSAGE_LIST_INVERTED}
-                            data={this.state.messages}
-                            renderItem={this.renderRow}
-                            keyExtractor={(item, index) => {return "" + item.id}}
-                            onTouchStart={() => {
-              
-                            }}
-                            onTouchEnd={this.onMessageListPress}
-                            {...props}
-                        />
-                </View>
-            </Animated.View>
+            <View style={{flex:1}}>
+                <FlatList
+                        ref={(ref) => {this.listRef=ref}}
+                        keyboardShouldPersistTaps="always"
+                        automaticallyAdjustContentInsets={false}
+                        inverted={MESSAGE_LIST_INVERTED}
+                        data={this.state.messages}
+                        renderItem={this.renderRow}
+                        keyExtractor={(item, index) => {return "" + item.id}}
+                        onTouchStart={() => {
+            
+                        }}
+                        onTouchEnd={this.onMessageListPress}
+                        {...props}
+                    />
+            </View>
         );
     }
 
@@ -1160,7 +1088,7 @@ export default class Chat extends React.Component<Props, Stat> {
                                    top:0,
                                    left:left,
                                    width:width,
-                                   height:this.state.messagesContainerHeight,
+                                   height:height,
                                    alignItems:"center",
                                    justifyContent:"center"}}>
                 <View style={{backgroundColor:"#dcdcdcaf",
@@ -1177,70 +1105,15 @@ export default class Chat extends React.Component<Props, Stat> {
     }
  
     render() {
-        if (this.state.isInitialized === true) {
-            var onViewLayout = (e) => {
-                if (Platform.OS === 'android') {
-                    // fix an issue when keyboard is dismissing during the initialization
-                    const layout = e.nativeEvent.layout;
-                    if (this.getMaxHeight() !== layout.height &&
-                        this.getIsFirstLayout() === true) {
-                        this.setMaxHeight(layout.height);
-
-                        var t = this.prepareMessagesContainerHeight(this.getMaxHeight() - 44);
-                        console.log("set message container height:", t);
-                        this.setState({
-                            messagesContainerHeight: t
-                        });
-                    }
-                }
-                if (this.getIsFirstLayout() === true) {
-                    this.setIsFirstLayout(false);
-                }
-            };
-            return (
-                <View style={{flex:1}}>
-                    <View
-                        style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
-                        onLayout={onViewLayout}>
-                        {this.renderMessages()}
-                        {this.renderRecordView()}
-                        {this.renderInputToolbar()}
-                    </View>
-                </View>
-            );
-
-            // return (
-            //     <ActionSheet ref={component => this._actionSheetRef = component}>
-            //         <View
-            //             style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
-            //             onLayout={onViewLayout}>
-            //             {this.renderMessages()}
-            //             {this.renderRecordView()}
-            //             {this.renderInputToolbar()}
-            //         </View>
-            //     </ActionSheet>
-            // );
-        }
-
-        var onViewLayout = (e) => {
-            const layout = e.nativeEvent.layout;
-            if (layout.height == 0) {
-                return;
-            }
-            this.setMaxHeight(layout.height);
-            console.log("max height:", layout.height);
-            InteractionManager.runAfterInteractions(() => {
-                var t = this.prepareMessagesContainerHeight(this.getMaxHeight() - MIN_INPUT_TOOLBAR_HEIGHT);
-                console.log("set message container height:", t);
-                this.setState({
-                    isInitialized: true,
-                    messagesContainerHeight: t
-                });
-            });
-        };
         return (
-            <View style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
-                  onLayout={onViewLayout} >
+            <View style={{flex:1}}>
+                <View
+                    style={{top:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}>
+                    {this.renderMessages()}
+                    {/* {this.renderRecordView()} */}
+                    {this.renderInputToolbar()}
+                    <View style={{height:this.state.keyboardHeight}}></View>
+                </View>
             </View>
         );
     }
