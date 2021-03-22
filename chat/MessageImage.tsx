@@ -4,14 +4,15 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import {Message as IMessage} from "../model/IMessage";
 
-export default class MessageImage extends React.Component {
+export default class MessageImage extends React.Component<{currentMessage:IMessage}, {}> {
   render() {
     return (
-      <View style={[styles.container, this.props.containerStyle]}>
+      <View style={[styles.container]}>
         <Image
-          style={[styles.image, this.props.imageStyle]}
-          source={{uri: this.props.currentMessage.image.url}}
+          style={[styles.image]}
+          source={{uri: this.props.currentMessage.contentObj.image2.url}}
         />
       </View>
     );

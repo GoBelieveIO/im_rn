@@ -67,8 +67,8 @@ var Permissions = {
 }
 
 interface Props {
-    sender:string;
-    receiver:string;
+    sender:number;
+    receiver:number;
     emitter:any;
     peer?:any;
     groupID?:any;
@@ -110,19 +110,20 @@ export default class Chat extends React.Component<Props, Stat> {
         super(props);
         this.state = {
             loading:false,//loading message
+            canLoadMoreContent:true,
+            messages:[],
 
             recording: false,
             recordingText:"",
             recordingColor:"transparent",
-
-            canLoadMoreContent:true,
-            messages:[],
             currentMetering:0,
+   
             keyboardHeight:0,
         };
 
         this._locale = 'zh-cn';
 
+        this.getLocale = this.getLocale.bind(this);
         this.loadMoreContentAsync = this.loadMoreContentAsync.bind(this);
         this.onSend = this.onSend.bind(this);
 
@@ -141,12 +142,8 @@ export default class Chat extends React.Component<Props, Stat> {
 
     getChildContext() {
         return {
-            getLocale: this.getLocale.bind(this),
+            getLocale: this.getLocale,
         };
-    }
-    
-    setLocale(locale) {
-        this._locale = locale;
     }
 
     getLocale() {
@@ -279,30 +276,23 @@ export default class Chat extends React.Component<Props, Stat> {
         var sender = this.props.sender;
         var receiver = this.props.receiver;
         var now = this.getNow();
-        var message = {
+        var message:IMessage = {
             id:0,
-            _id:0,
             sender:sender,
             receiver:receiver,
             content: content,
             flags:0,
             timestamp:now,
 
-            outgoing:true,
-            audio: obj.audio,
+            isOutgoing:true,
+            contentObj:obj,
             uuid: obj.uuid,
-            createdAt: new Date(),
-            user: {
-                _id: this.props.sender
-            }
         };
 
         var self = this;
         var p = this.saveMessage(message);
         p.then((rowid) => {
             message.id = rowid;
-            message._id = rowid;
-
             this.addMessage(message, true);
 
             return api.uploadAudio(amrPath);
@@ -312,7 +302,7 @@ export default class Chat extends React.Component<Props, Stat> {
             var obj = {audio: {url:url, duration:duration}, uuid:id};
             var content = JSON.stringify(obj);
             message.content = content;
-            message.audio = obj.audio;
+            message.contentObj = obj;
             self.sendMessage(message);
             this.updateMessageAttachment(message.id, url);
         })
@@ -325,28 +315,24 @@ export default class Chat extends React.Component<Props, Stat> {
         var sender = this.props.sender;
         var receiver = this.props.receiver;
         var now = this.getNow();
-        var message = {
+        var message:IMessage = {
             id:0,
-            _id:0,
             sender:sender,
             receiver:receiver,
             content: textMsg,
             flags:0,
             timestamp:now,
 
-            outgoing:true,
-            text: text,
-            createdAt: new Date(),
-            user: {
-                _id: this.props.sender
-            }
+            contentObj:obj,
+            uuid:obj.uuid,
+            isOutgoing:true,
+
         };
 
         var self = this;
         var p = this.saveMessage(message);
         p.then((rowid)=> {
             message.id = rowid;
-            message._id = rowid;
             self.addMessage(message, true);
             self.sendMessage(message);
         });
@@ -397,21 +383,17 @@ export default class Chat extends React.Component<Props, Stat> {
         var sender = this.props.sender;
         var receiver = this.props.receiver;
         var now = this.getNow();
-        var message = {
+        var message:IMessage = {
             id:0,
-            _id:0,
             sender:sender,
             receiver:receiver,
             content: content,
             flags:0,
             timestamp:now,
 
-            outgoing:true,
-            image: obj.image2,
-            createdAt: new Date(),
-            user: {
-                _id: this.props.sender
-            }
+            isOutgoing:true,
+            uuid:obj.uuid,
+            contentObj:obj,
         };
 
         var self = this;
@@ -420,7 +402,6 @@ export default class Chat extends React.Component<Props, Stat> {
         
         p.then((rowid) => {
             message.id = rowid;
-            message._id = rowid;
             self.addMessage(message, true);
             
             return message;
@@ -467,31 +448,22 @@ export default class Chat extends React.Component<Props, Stat> {
         var sender = this.props.sender;
         var receiver = this.props.receiver;
         var now = this.getNow();
-        var message = {
+        var message:IMessage = {
             id:0,
-            _id:0,
             sender:sender,
             receiver:receiver,
             content: content,
             flags:0,
             timestamp:now,
-
-            outgoing:true,
-            location: obj.location,
-            createdAt: new Date(),
-            user: {
-                _id: this.props.sender
-            }
+            contentObj:obj,
+            uuid:obj.uuid,
+            isOutgoing:true,
         };
-        
-        var self = this;
 
         var p = this.saveMessage(message);
         p.then((rowid)=> {
             console.log("row id:", rowid);
             message.id = rowid;
-            message._id = rowid;
-
             this.addMessage(message, true);
             this.sendMessage(message);
         });
@@ -617,9 +589,9 @@ export default class Chat extends React.Component<Props, Stat> {
         Keyboard.dismiss();
     }
 
-    onMessagePress(message) {
+    onMessagePress(message:IMessage) {
         console.log("on message press:", message);
-        if (message.audio && message.uuid) {
+        if (message.contentObj.audio && message.uuid) {
 
             //停止正在播放的消息
             if (this.player && this.playingMessage.id == message.id) {
@@ -970,35 +942,24 @@ export default class Chat extends React.Component<Props, Stat> {
     
 
     renderRow(row) {
-        var message = row.item;
-        if (!message._id && message._id !== 0) {
-            console.warn('GiftedChat: `_id` is missing for message', JSON.stringify(message));
-        }
-        if (!message.user) {
-            console.warn('GiftedChat: `user` is missing for message', JSON.stringify(message));
-            message.user = {};
+        var message:IMessage = row.item;
+        if (!message.id && message.id !== 0) {
+            console.warn('GiftedChat: `id` is missing for message', JSON.stringify(message));
         }
 
         var position;
-        if (message.notification) {
+        if (message.contentObj.notification) {
             position = "center";
         } else {
-            position = message.user._id === this.props.sender ? 'right' : 'left';
+            position = message.sender === this.props.sender ? 'right' : 'left';
         }
-        
-        const messageProps = {
-            onMessageLongPress:this.onMessageLongPress,
-            onMessagePress:this.onMessagePress,
-            key: message._id,
-            currentMessage: message,
-            previousMessage: message.previousMessage,
-            nextMessage: message.nextMessage,
-            position: position,
-            user:{
-                _id: this.props.sender, 
-            }
-        };
-        return <Message {...messageProps}/>;
+
+        return <Message key={message.id}
+                        onMessageLongPress={this.onMessageLongPress}
+                        onMessagePress={this.onMessagePress}
+                        currentMessage={message}
+                        position={position}
+                        user={{ _id: this.props.sender, }} />;
     }
 
     renderMessages() {

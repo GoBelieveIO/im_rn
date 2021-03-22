@@ -9,7 +9,6 @@ import {
     Message as IMessage
 } from '../model/IMessage';
 import PropTypes from 'prop-types';
-import RNFS from 'react-native-fs';
 var IMService = require("../imsdk/im");
 import Chat from './Chat';
 import Navigator from "../Navigation";
@@ -106,72 +105,19 @@ export default class PeerChat extends Chat {
 
     }
     
-    parseMessageContent(m) {
+    parseMessageContent(m:IMessage) {
         var obj = JSON.parse(m.content);
-        var t = new Date();
-        t.setTime(m.timestamp*1000);
-        
-        if (m.attachment) {
-            console.log("attachment:", m.attachment);
-        }
-        
-        m._id = m.id;
-        m.outgoing = (m.sender == this.props.sender);
-        
-        console.log("obj:", obj);
-        if (obj.text) {
-            m.text = obj.text;
-        } else if (obj.image2) {
-            if (obj.image2.fileName) {
-                if (Platform.OS === 'ios') {
-                    var uri = RNFS.DocumentDirectoryPath + "/images/" + obj.image2.fileName;
-                    obj.image2.url = uri;
-                    console.log("image uri:", uri);
-                }
-            }
-            m.image = obj.image2;
-            if (m.attachment) {
-                m.image.url = m.attachment;
-            }
-        } else if (obj.audio) {
-            console.log("auido message....");
-            m.audio = obj.audio;
-        } else if (obj.location) {
-            m.location = obj.location;
-        }
+        m.isOutgoing = (m.sender == this.props.sender);
+        m.contentObj = obj;
+        console.log("message obj:", obj);
         m.uuid = obj.uuid;
-        
-        m.createdAt = t;
-        m.user = {
-            _id:m.sender
-        };
     }
 
-    addMessage(message, sending?) {
+    addMessage(message:IMessage, sending?) {
         super.addMessage(message, sending);
         if (!sending) {
             return;
         }
-        // var conv = {
-        //     cid:"p_" + this.props.receiver,
-        //     unread:0,
-        //     message:message,
-        //     timestamp:message.timestamp,
-        //     name:this.props.name,            
-        // }
-        // var msgObj = JSON.parse(message.content);
-        // if (msgObj.text) {
-        //     conv.content = msgObj.text;
-        // } else if (msgObj.image2) {
-        //     conv.content = "一张图片";
-        // } else if (msgObj.audio) {
-        //     conv.content = "语音"
-        // } else if (msgObj.location) {
-        //     conv.content = "位置";
-        // } else {
-        //     conv.content = "";
-        // }
-
         this.props.emitter.emit('update_conversation_message', "p_" + this.props.receiver, message);
     }
 

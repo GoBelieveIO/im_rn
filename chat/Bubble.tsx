@@ -2,61 +2,74 @@ import React from 'react';
 import {
     StyleSheet,
     TouchableWithoutFeedback,
-    Image,
     View,
     Text,
 } from 'react-native';
-
-import PropTypes from 'prop-types'
 
 import MessageText from './MessageText';
 import MessageImage from './MessageImage';
 import MessageAudio from './MessageAudio';
 import MessageLocation from './MessageLocation';
 import Time from './Time';
+import {Message as IMessage} from "../model/IMessage";
 
+interface Props {
+    onMessagePress:any;
+    onMessageLongPress:any;
+    currentMessage:IMessage;
+    position:any;
+}
 
-export default class Bubble extends React.Component {
+export default class Bubble extends React.Component<Props, {}> {
     constructor(props) {
         super(props);
         this.onLongPress = this.onLongPress.bind(this);
         this.onPress = this.onPress.bind(this);
     }
 
+    renderMessage() {
+        if (this.props.currentMessage.contentObj.text) {
+            return this.renderMessageText();
+        } else if (this.props.currentMessage.contentObj.image2) {
+            return this.renderMessageImage();
+        } else if (this.props.currentMessage.contentObj.audio) {
+            return this.renderMessageAudio();
+        } else if (this.props.currentMessage.contentObj.location) {
+            return this.renderMessageLocation();
+        }
+    }
+
     renderMessageText() {
-        if (this.props.currentMessage.text) {
-            const {containerStyle, wrapperStyle, ...messageTextProps} = this.props;
-            return <MessageText {...messageTextProps}/>;
+        if (this.props.currentMessage.contentObj.text) {
+            return <MessageText position={this.props.position} currentMessage={this.props.currentMessage}/>;
         }
         return null;
     }
 
     renderMessageImage() {
-        if (this.props.currentMessage.image) {
-            const {containerStyle, wrapperStyle, ...messageImageProps} = this.props;
-            return <MessageImage {...messageImageProps}/>;
+        if (this.props.currentMessage.contentObj.image2) {
+            return <MessageImage currentMessage={this.props.currentMessage}/>;
         }
         return null;
     }
 
     renderMessageAudio() {
-        if (this.props.currentMessage.audio) {
+        if (this.props.currentMessage.contentObj.audio) {
             console.log("render message auido");
-            return <MessageAudio {...this.props}/>;
+            return <MessageAudio currentMessage={this.props.currentMessage}/>;
         }
     }
 
     renderMessageLocation() {
-        if (this.props.currentMessage.location) {
+        if (this.props.currentMessage.contentObj.location) {
             console.log("render message location");
-            return <MessageLocation {...this.props}/>;
+            return <MessageLocation currentMessage={this.props.currentMessage}/>;
         }
     }
     
     renderTime() {
-        if (this.props.currentMessage.createdAt) {
-            const {containerStyle, wrapperStyle, ...timeProps} = this.props;
-            return <Time {...timeProps}/>;
+        if (this.props.currentMessage.timestamp) {
+            return <Time position={this.props.position} currentMessage={this.props.currentMessage}/>;
         }
         return null;
     }
@@ -81,10 +94,7 @@ export default class Bubble extends React.Component {
                     onLongPress={this.onLongPress}
                     onPress={this.onPress}>
                     <View>
-                        {this.renderMessageImage()}
-                        {this.renderMessageText()}
-                        {this.renderMessageAudio()}
-                        {this.renderMessageLocation()}
+                        {this.renderMessage()}
                         {this.renderTime()}
                     </View>
                 </TouchableWithoutFeedback>
@@ -115,7 +125,7 @@ export default class Bubble extends React.Component {
         return (
             <View >
                 <Text style={[styles['center'].wrapper]}>
-                    {msg.notification}
+                    {msg.contentObj.notification}
                 </Text>
             </View>
         );
@@ -165,60 +175,6 @@ const styles = {
     }),
 };
 
-Bubble.contextTypes = {
-    actionSheet: PropTypes.func,
-};
-
-Bubble.defaultProps = {
-    touchableProps: {},
-    onLongPress: null,
-    renderMessageImage: null,
-    renderMessageText: null,
-    renderCustomView: null,
-    renderTime: null,
-    isSameUser: () => {},
-    isSameDay: () => {},
-    position: 'left',
-    currentMessage: {
-        text: null,
-        createdAt: null,
-        image: null,
-    },
-    nextMessage: {},
-    previousMessage: {},
-    containerStyle: {},
-    wrapperStyle: {},
-    containerToNextStyle: {},
-    containerToPreviousStyle: {},
-};
-
-// Bubble.propTypes = {
-//     touchableProps: PropTypes.object,
-//     onLongPress: PropTypes.func,
-//     renderMessageImage: PropTypes.func,
-//     renderMessageText: PropTypes.func,
-//     renderCustomView: PropTypes.func,
-//     renderTime: PropTypes.func,
-//     isSameUser: PropTypes.func,
-//     isSameDay: PropTypes.func,
-//     position: PropTypes.oneOf(['left', 'right', 'center']),
-//     currentMessage: PropTypes.object,
-//     nextMessage: PropTypes.object,
-//     previousMessage: PropTypes.object,
-//     containerStyle: PropTypes.shape({
-//         left: View.propTypes.style,
-//         right: View.propTypes.style,
-//     }),
-//     wrapperStyle: PropTypes.shape({
-//         left: View.propTypes.style,
-//         right: View.propTypes.style,
-//     }),
-//     containerToNextStyle: PropTypes.shape({
-//         left: View.propTypes.style,
-//         right: View.propTypes.style,
-//     }),
-//     containerToPreviousStyle: PropTypes.shape({
-//         left: View.propTypes.style,
-//         right: View.propTypes.style,
-//     }),
+// Bubble.contextTypes = {
+//     actionSheet: PropTypes.func,
 // };

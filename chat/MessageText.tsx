@@ -9,7 +9,14 @@ import PropTypes from 'prop-types';
 import ParsedText from 'react-native-parsed-text';
 import Communications from 'react-native-communications';
 
-export default class MessageText extends React.Component {
+import {Message as IMessage} from "../model/IMessage";
+
+interface Props {
+  position:string;
+  currentMessage:IMessage;
+
+}
+export default class MessageText extends React.Component<Props, {}> {
   constructor(props) {
     super(props);
     this.onUrlPress = this.onUrlPress.bind(this);
@@ -52,14 +59,14 @@ export default class MessageText extends React.Component {
     return (
       <View style={[styles[this.props.position].container]}>
         <ParsedText
-          style={[styles[this.props.position].text, this.props.textStyle[this.props.position]]}
+          style={[styles[this.props.position].text]}
           parse={[
             {type: 'url', style: StyleSheet.flatten([styles[this.props.position].link]), onPress: this.onUrlPress},
             {type: 'phone', style: StyleSheet.flatten([styles[this.props.position].link]), onPress: this.onPhonePress},
             {type: 'email', style: StyleSheet.flatten([styles[this.props.position].link]), onPress: this.onEmailPress},
           ]}
         >
-          {this.props.currentMessage.text}
+          {this.props.currentMessage.contentObj.text}
         </ParsedText>
       </View>
     );
@@ -102,17 +109,8 @@ const styles = {
   }),
 };
 
-MessageText.contextTypes = {
-  actionSheet: PropTypes.func,
-};
+// MessageText.contextTypes = {
+//   actionSheet: PropTypes.func,
+// };
 
-MessageText.defaultProps = {
-  position: 'left',
-  currentMessage: {
-    text: '',
-  },
-  containerStyle: {},
-  textStyle: {},
-  linkStyle: {},
-};
 

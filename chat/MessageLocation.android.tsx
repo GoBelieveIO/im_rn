@@ -9,16 +9,18 @@ import {
     TouchableOpacity,
 } from 'react-native';
 
-export default class MessageLocation extends React.Component {
+import {Message as IMessage} from "../model/IMessage";
+
+export default class MessageLocation extends React.Component<{currentMessage:IMessage}, {}> {
     render() {
         var region = {
-            latitude: this.props.currentMessage.location.latitude,
-            longitude: this.props.currentMessage.location.longitude,
+            latitude: this.props.currentMessage.contentObj.location.latitude,
+            longitude: this.props.currentMessage.contentObj.location.longitude,
             latitudeDelta: 0.0422,
             longitudeDelta: 0.0221,
         };
 
-        var location = this.props.currentMessage.location;
+        var location = this.props.currentMessage.contentObj.location;
         location.type = 'gcj02';
         //高德，百度地图
         var urls = [
@@ -46,8 +48,7 @@ export default class MessageLocation extends React.Component {
                               onPress={onPress}>
                 <Image  style={styles.mapView}
                         source={require("./Images/location.png")}>
-                    <Text textAlign="center"
-                          numberOfLines={2}>
+                    <Text numberOfLines={2}>
                         {address}
                     </Text>
                 </Image>

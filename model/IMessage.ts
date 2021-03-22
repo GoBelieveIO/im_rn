@@ -66,7 +66,6 @@ export interface MessageContent {
 
 export interface Message  {
     id:number;
-    msgLocalID:number;
     uuid?:string;
 
     sender:number;

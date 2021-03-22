@@ -3,27 +3,35 @@ import {
     View,
     Image,
     StyleSheet,
-    TouchableWithoutFeedback,
     Text
 } from 'react-native';
 
 import Bubble from './Bubble';
 import GiftedAvatar from './GiftedAvatar';
-import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from '../model/IMessage';
+import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED, Message as IMessage} from '../model/IMessage';
 
-export default class Message extends React.Component<{position, currentMessage, user}, {}> {
+
+interface Props {
+    position:any;
+    currentMessage:IMessage;
+    user:any;
+    onMessagePress:any;
+    onMessageLongPress:any;
+}
+
+export default class Message extends React.Component<Props, {}> {
     renderBubble() {
-        const {...other} = this.props;
-        const bubbleProps = {
-            ...other,
-        };
-        return <Bubble {...bubbleProps}/>;
+        return <Bubble 
+                currentMessage={this.props.currentMessage} 
+                position={this.props.position} 
+                onMessagePress={this.props.onMessagePress}
+                onMessageLongPress={this.props.onMessageLongPress}/>;
     }
 
     //发送失败标志
     renderFlags() {
         var msg = this.props.currentMessage;
-        if (this.props.user._id === this.props.currentMessage.user._id) {
+        if (this.props.user._id === this.props.currentMessage.sender) {
             if (this.props.currentMessage.flags & MESSAGE_FLAG_FAILURE) {
                 return (
                     <Image style={{alignSelf:"flex-end", width:20, height:20}}
@@ -33,7 +41,7 @@ export default class Message extends React.Component<{position, currentMessage, 
             }
         }
 
-        if (!msg.outgoing && msg.audio) {
+        if (!msg.isOutgoing && msg.contentObj.audio) {
             if (!(msg.flags & MESSAGE_FLAG_LISTENED)) {
                 return (
                     <View style={{marginLeft:4, justifyContent:"space-between"}}>
@@ -44,7 +52,7 @@ export default class Message extends React.Component<{position, currentMessage, 
                                         borderRadius:90}}/>
 
                         <Text style={{color:"lightgrey"}}>
-                            {"" + msg.audio.duration + "''"}
+                            {"" + msg.contentObj.audio.duration + "''"}
                         </Text>
                     </View>
                 );
@@ -52,18 +60,18 @@ export default class Message extends React.Component<{position, currentMessage, 
                 return (
                     <View style={{marginLeft:4, justifyContent:"flex-end"}}>
                         <Text style={{color:"lightgrey"}}>
-                            {"" + msg.audio.duration + "''"}
+                            {"" + msg.contentObj.audio.duration + "''"}
                         </Text>
                     </View>
                 );                
             }
         }
 
-        if (msg.outgoing && msg.audio) {
+        if (msg.isOutgoing && msg.contentObj.audio) {
             return (
                 <View style={{marginRight:4, justifyContent:"flex-end"}}>
                     <Text style={{color:"lightgrey"}}>
-                        {"" + msg.audio.duration + "''"}
+                        {"" + msg.contentObj.audio.duration + "''"}
                     </Text>
                 </View>
             );                
@@ -75,7 +83,7 @@ export default class Message extends React.Component<{position, currentMessage, 
             <View style={styles[this.props.position].avatar}>
                 <GiftedAvatar
                     avatarStyle={StyleSheet.flatten([styles[this.props.position].image])}
-                    user={this.props.currentMessage.user}
+                    user={{_id:this.props.currentMessage.sender}}
                 />
             </View>
         );

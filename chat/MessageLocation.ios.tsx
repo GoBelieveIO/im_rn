@@ -8,22 +8,25 @@ import {
     TouchableOpacity,
 } from 'react-native';
 
-import MapView from 'react-native-maps';
+import MapView, {Marker} from 'react-native-maps';
 
-export default class MessageLocation extends React.Component {
+import {Message as IMessage} from "../model/IMessage";
+
+export default class MessageLocation extends React.Component<{currentMessage:IMessage}, {}> {
     render() {
+        var location = this.props.currentMessage.contentObj.location;
         var region = {
-            latitude: this.props.currentMessage.location.latitude,
-            longitude: this.props.currentMessage.location.longitude,
+            latitude: location.latitude,
+            longitude: location.longitude,
             latitudeDelta: 0.0422,
             longitudeDelta: 0.0221,
         };
-        
+
         return (
             <TouchableOpacity style={styles.container} onPress={() => {
                     const url = Platform.select({
-                        ios: `http://maps.apple.com/?ll=${this.props.currentMessage.location.latitude},${this.props.currentMessage.location.longitude}`,
-                        android: `http://maps.google.com/?q=${this.props.currentMessage.location.latitude},${this.props.currentMessage.location.longitude}`
+                        ios: `http://maps.apple.com/?ll=${location.latitude},${location.longitude}`,
+                        android: `http://maps.google.com/?q=${location.latitude},${location.longitude}`
                     });
                     Linking.canOpenURL(url).then(supported => {
                         if (supported) {
@@ -38,7 +41,7 @@ export default class MessageLocation extends React.Component {
                     region={region}
                     scrollEnabled={false}
                     zoomEnabled={false}>
-                    <MapView.Marker coordinate={region}/>
+                    <Marker coordinate={region}/>
                 </MapView>
             </TouchableOpacity>
         );

@@ -5,7 +5,9 @@ import {
     View,
 } from 'react-native';
 
-export default class MessageAudio extends React.Component {
+import {Message as IMessage} from "../model/IMessage";
+
+export default class MessageAudio extends React.Component<{currentMessage:IMessage}, {}> {
     render() {
         var sendImages = [
             require('./Images/SenderVoiceNodePlaying000.png'),
@@ -31,7 +33,7 @@ export default class MessageAudio extends React.Component {
         
         console.log("playing:", playing);
         
-        var outgoing = msg.outgoing;
+        var outgoing = msg.isOutgoing;
         if (playing == 0) {
             image = outgoing ? require("./Images/SenderVoiceNodePlaying.png") :
                     require("./Images/ReceiverVoiceNodePlaying.png");
@@ -41,7 +43,7 @@ export default class MessageAudio extends React.Component {
         }
 
         //max 180
-        var margin = msg.audio.duration*3;
+        var margin = msg.contentObj.audio.duration*3;
         margin = Math.min(180, margin);
         return (
             <View style={outgoing ? {flex:1, marginRight:margin} : {flex:1, marginLeft:margin, alignItems:"flex-end"}}>
