@@ -23,14 +23,15 @@ import {
 
 import ImagePicker from 'react-native-image-picker'
 //import ActionSheet from '@exponent/react-native-action-sheet';
-import {AudioRecorder, AudioUtils} from 'react-native-audio';
+//import {AudioRecorder, AudioUtils} from 'react-native-audio';
+// var AudioUtils;
+var AudioRecorder;//disable audio record
 import {OpenCoreAMR} from 'react-native-amr';
 import {request, check, PERMISSIONS} from 'react-native-permissions';
 
-// var Toast = require('react-native-toast')
-const UUID = require('react-native-uuid');
-const Sound = require('react-native-sound');
-const RNFS = require('react-native-fs');
+import UUID from 'react-native-uuid';
+import Sound from 'react-native-sound';
+import RNFS from 'react-native-fs';
 
 import {MESSAGE_FLAG_LISTENED, Message as IMessage, IM} from "../model/IMessage";
 import Message from "../chat/Message";
@@ -154,7 +155,6 @@ export default class Chat extends React.Component<Props, Stat> {
 
     getChildContext() {
         return {
-            // actionSheet: () => this._actionSheetRef,
             getLocale: this.getLocale.bind(this),
         };
     }
@@ -168,42 +168,36 @@ export default class Chat extends React.Component<Props, Stat> {
     }
 
     componentDidMount() {
-        console.log("document path:", AudioUtils.DocumentDirectoryPath);
-        Keyboard.addListener("keyboardWillShow", this.onKeyboardWillShow);
-        Keyboard.addListener("keyboardWillHide", this.onKeyboardWillHide);
-        Keyboard.addListener("keyboardDidShow", this.onKeyboardDidShow);
-        Keyboard.addListener("keyboardDidHide", this.onKeyboardDidHide);
-        AudioRecorder.checkAuthorizationStatus()
-                     .then((status)=>{
-                         console.log("audio auth status:", status);
-                         if (status == "undetermined") {
-                             return AudioRecorder.requestAuthorization();
-                         }
-                     })
-                     .then((granted)=>{
-                         console.log("audio auth granted:", granted)
-                     })
-                     .then(()=> {
-                         return Permissions.getPermissionStatus('location');
-                     })
-                     .then((response) => {
-                         if (response == 'undetermined') {
-                             return Permissions.requestPermission('location');
-                         } else {
-                             return response;
-                         }
-                     })
-                     .then((granted)=> {
-                         console.log("location auth granted:", granted);
-                     })
-                     .catch((e)=>{console.log("audio auth err:", e)});
+        if (Platform.OS === 'ios') {
+            Keyboard.addListener("keyboardWillShow", this.onKeyboardWillShow);
+            Keyboard.addListener("keyboardWillHide", this.onKeyboardWillHide);
+            Keyboard.addListener("keyboardDidShow", this.onKeyboardDidShow);
+            Keyboard.addListener("keyboardDidHide", this.onKeyboardDidHide);
+        }
+        Promise.resolve()
+            .then(()=> {
+                return Permissions.getPermissionStatus('location');
+            })
+            .then((response) => {
+                if (response == 'undetermined') {
+                    return Permissions.requestPermission('location');
+                } else {
+                    return response;
+                }
+            })
+            .then((granted)=> {
+                console.log("location auth granted:", granted);
+            })
+            .catch((e)=>{console.log("auth err:", e)});
     }
 
     componentWillUnmount() {
-        Keyboard.removeListener("keyboardWillShow", this.onKeyboardWillShow);
-        Keyboard.removeListener("keyboardWillHide", this.onKeyboardWillHide);
-        Keyboard.removeListener("keyboardDidShow", this.onKeyboardDidShow);
-        Keyboard.removeListener("keyboardDidHide", this.onKeyboardDidHide);
+        if (Platform.OS === 'ios') {
+            Keyboard.removeListener("keyboardWillShow", this.onKeyboardWillShow);
+            Keyboard.removeListener("keyboardWillHide", this.onKeyboardWillHide);
+            Keyboard.removeListener("keyboardDidShow", this.onKeyboardDidShow);
+            Keyboard.removeListener("keyboardDidHide", this.onKeyboardDidHide);
+        }
     }
 
     addMessage(message, sending) {
@@ -241,7 +235,7 @@ export default class Chat extends React.Component<Props, Stat> {
                 return;
             })
             .then(() => {
-                var path = AudioUtils.DocumentDirectoryPath + "/audios";
+                var path = RNFS.DocumentDirectoryPath + "/audios";
                 return RNFS.mkdir(path);
             })
             .then(() => {
@@ -277,13 +271,13 @@ export default class Chat extends React.Component<Props, Stat> {
     }
 
     getWAVPath(id) {
-        var path = AudioUtils.DocumentDirectoryPath + "/audios";
+        var path = RNFS.DocumentDirectoryPath + "/audios";
         var wavPath = path + "/" + id + ".wav";
         return wavPath;
     }
     
     getAMRPath(id) {
-        var path = AudioUtils.DocumentDirectoryPath + "/audios";
+        var path = RNFS.DocumentDirectoryPath + "/audios";
         var amrPath = path + "/" + id;
         return amrPath;
     }
@@ -393,7 +387,7 @@ export default class Chat extends React.Component<Props, Stat> {
             uri = image.uri.replace('file://', '');
 
             //ios xcode每次run时，document目录都会变化
-            var imagePath = AudioUtils.DocumentDirectoryPath + "/images/";
+            var imagePath = RNFS.DocumentDirectoryPath + "/images/";
             fileName = uri.substr(imagePath.length);
             console.log("fileName:", fileName);
         } else {
@@ -744,7 +738,7 @@ export default class Chat extends React.Component<Props, Stat> {
             ios: "recording.wav",
             android: "recording.amr",
         });
-        var audioPath = AudioUtils.DocumentDirectoryPath + "/" + fileName;
+        var audioPath = RNFS.DocumentDirectoryPath + "/" + fileName;
         AudioRecorder.onProgress = function(data) {
             console.log("record progress:", data);
             if (Platform.OS == 'ios') {
@@ -815,9 +809,9 @@ export default class Chat extends React.Component<Props, Stat> {
             ios: "recording.wav",
             android: "recording.amr",
         });
-        var audioPath = AudioUtils.DocumentDirectoryPath + "/" + fileName;
+        var audioPath = RNFS.DocumentDirectoryPath + "/" + fileName;
         if (Platform.OS == 'android') {
-            var path = AudioUtils.DocumentDirectoryPath + "/audios";
+            var path = RNFS.DocumentDirectoryPath + "/audios";
             var amrPath = path + "/" + id;
             RNFS.mkdir(path)
                 .then(() => {
@@ -831,7 +825,7 @@ export default class Chat extends React.Component<Props, Stat> {
                     console.log("error:", err);
                 });            
         } else {
-            var path = AudioUtils.DocumentDirectoryPath + "/audios";
+            var path = RNFS.DocumentDirectoryPath + "/audios";
             var wavPath = path + "/" + id + ".wav";
             var amrPath = path + "/" + id;
             RNFS.mkdir(path)
@@ -957,7 +951,8 @@ export default class Chat extends React.Component<Props, Stat> {
 
     scrollToBottom(animated = true) {
         if (MESSAGE_LIST_INVERTED) {
-            this.listRef.scrollToIndex({index:0, animated:true});
+            this.listRef.scrollToOffset({offset:0, animated:true});
+//            this.listRef.scrollToIndex({index:0, animated:true});
         } else {
             this.listRef.scrollToEnd({animated:true});
         }
@@ -1201,7 +1196,7 @@ export default class Chat extends React.Component<Props, Stat> {
                 }
             };
             return (
-                <View>
+                <View style={{flex:1}}>
                     <View
                         style={{marginTop:NAVIGATIONBAR_HEIGHT, flex:1, backgroundColor:"white"}}
                         onLayout={onViewLayout}>

@@ -1,10 +1,3 @@
-import React from 'react';
-import {
-    Platform,
-} from 'react-native';
-
-import {AudioUtils} from 'react-native-audio';
-
 import GroupMessageDB from '../model/GroupMessageDB.js'
 import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from '../model/IMessage';
 
@@ -92,13 +85,13 @@ export default class GroupChat extends Chat {
         if (obj.text) {
             m.text = obj.text;
         } else if (obj.image2) {
-            if (obj.image2.fileName) {
-                if (Platform.OS === 'ios') {
-                    var uri = AudioUtils.DocumentDirectoryPath + "/images/" + obj.image2.fileName;
-                    obj.image2.url = uri;
-                    console.log("image uri:", uri);
-                }
-            }
+            // if (obj.image2.fileName) {
+            //     if (Platform.OS === 'ios') {
+            //         var uri = AudioUtils.DocumentDirectoryPath + "/images/" + obj.image2.fileName;
+            //         obj.image2.url = uri;
+            //         console.log("image uri:", uri);
+            //     }
+            // }
             m.image = obj.image2
         } else if (obj.audio) {
             console.log("auido message....");

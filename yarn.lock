@@ -2173,7 +2173,7 @@ history@^4.9.0:
     tiny-warning "^1.0.0"
     value-equal "^1.0.1"
 
-hoist-non-react-statics@3.x.x, hoist-non-react-statics@^3.1.0:
+hoist-non-react-statics@^3.1.0:
   version "3.3.2"
   resolved "https://registry.npm.taobao.org/hoist-non-react-statics/download/hoist-non-react-statics-3.3.2.tgz#ece0acaf71d62c2969c2ec59feff42a4b1a85b45"
   integrity sha1-7OCsr3HWLClpwuxZ/v9CpLGoW0U=
@@ -2707,7 +2707,7 @@ lodash.toarray@^4.4.0:
   resolved "https://registry.npm.taobao.org/lodash.toarray/download/lodash.toarray-4.4.0.tgz#24c4bfcd6b2fba38bfd0594db1179d8e9b656561"
   integrity sha1-JMS/zWsvuji/0FlNsRedjptlZWE=
 
-lodash@4.17.x, lodash@^4.0.0, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.19:
+lodash@^4.0.0, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.17.19:
   version "4.17.21"
   resolved "https://registry.npm.taobao.org/lodash/download/lodash-4.17.21.tgz?cache=0&sync_timestamp=1613835838133&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Flodash%2Fdownload%2Flodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
   integrity sha1-Z5WRxWTDv/quhFTPCz3zcMPWkRw=
@@ -3599,7 +3599,7 @@ prop-types@15.5.10:
     fbjs "^0.8.9"
     loose-envify "^1.3.1"
 
-prop-types@15.x.x, prop-types@^15.5.10, prop-types@^15.6.0, prop-types@^15.6.1, prop-types@^15.6.2, prop-types@^15.7.2, prop-types@^15.7.x:
+prop-types@^15.5.10, prop-types@^15.6.0, prop-types@^15.6.1, prop-types@^15.6.2, prop-types@^15.7.2, prop-types@^15.7.x:
   version "15.7.2"
   resolved "https://registry.npm.taobao.org/prop-types/download/prop-types-15.7.2.tgz?cache=0&sync_timestamp=1599054283476&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Fprop-types%2Fdownload%2Fprop-types-15.7.2.tgz#52c41e75b8c87e72b9d9360e0206b99dcbffa6c5"
   integrity sha1-UsQedbjIfnK52TYOAga5ncv/psU=
@@ -3656,20 +3656,10 @@ react-is@^17.0.1:
   resolved "https://registry.npm.taobao.org/react-is/download/react-is-17.0.1.tgz#5b3531bd76a645a4c9fb6e693ed36419e3301339"
   integrity sha1-WzUxvXamRaTJ+25pPtNkGeMwEzk=
 
-react-lifecycles-compat@2.0.0:
-  version "2.0.0"
-  resolved "https://registry.npm.taobao.org/react-lifecycles-compat/download/react-lifecycles-compat-2.0.0.tgz?cache=0&sync_timestamp=1589806087067&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Freact-lifecycles-compat%2Fdownload%2Freact-lifecycles-compat-2.0.0.tgz#71d9c4cde47114c4102454f76da055c2bc48c948"
-  integrity sha1-cdnEzeRxFMQQJFT3baBVwrxIyUg=
-
 react-native-amr@^1.0.7:
   version "1.0.7"
   resolved "https://registry.npm.taobao.org/react-native-amr/download/react-native-amr-1.0.7.tgz#3ce0f361f32402d64b69d929ed035e03dca4bf0b"
   integrity sha1-PODzYfMkAtZLadkp7QNeA9ykvws=
-
-react-native-audio@^3.2.0:
-  version "3.6.0"
-  resolved "https://registry.npm.taobao.org/react-native-audio/download/react-native-audio-3.6.0.tgz#7e362be16f5a4f437818d542afa50660936c6faa"
-  integrity sha1-fjYr4W9aT0N4GNVCr6UGYJNsb6o=
 
 react-native-camera-roll-picker@^1.1.7:
   version "1.3.0"
@@ -3712,11 +3702,6 @@ react-native-fs@^2.16.6:
     base-64 "^0.1.0"
     utf8 "^3.0.0"
 
-react-native-geocoder@^0.4.5:
-  version "0.4.8"
-  resolved "https://registry.npm.taobao.org/react-native-geocoder/download/react-native-geocoder-0.4.8.tgz#4763ad0a45bd365061b80f52c06564fcc62658e1"
-  integrity sha1-R2OtCkW9NlBhuA9SwGVk/MYmWOE=
-
 react-native-image-picker@^3.3.2:
   version "3.3.2"
   resolved "https://registry.npm.taobao.org/react-native-image-picker/download/react-native-image-picker-3.3.2.tgz#dde494ce4fbb5c36a4ea56346b751b85223d6b25"
@@ -3751,17 +3736,6 @@ react-native-nav@^1.1.4:
   version "1.2.2"
   resolved "https://registry.npm.taobao.org/react-native-nav/download/react-native-nav-1.2.2.tgz#450486f342dce8762c2995d3b6d956baabb0fb43"
   integrity sha1-RQSG80Lc6HYsKZXTttlWuquw+0M=
-
-react-native-navigation@7.11.3:
-  version "7.11.3"
-  resolved "https://registry.npm.taobao.org/react-native-navigation/download/react-native-navigation-7.11.3.tgz#ea0c8553bedfbded4288561d5f0b4b6dce26affe"
-  integrity sha1-6gyFU77fve1CiFYdXwtLbc4mr/4=
-  dependencies:
-    hoist-non-react-statics "3.x.x"
-    lodash "4.17.x"
-    prop-types "15.x.x"
-    react-lifecycles-compat "2.0.0"
-    tslib "1.9.3"
 
 react-native-parsed-text@^0.0.22:
   version "0.0.22"
@@ -3808,10 +3782,10 @@ react-native-search-bar@^3.0.0:
   version "0.8.4"
   resolved "https://codeload.github.com/richmonkey/react-native-sound/tar.gz/ac471d8d1e1fba9d9199b43b08986e7cc39ea1c6"
 
-react-native-sqlite-storage@^3.2.0:
-  version "3.3.11"
-  resolved "https://registry.npm.taobao.org/react-native-sqlite-storage/download/react-native-sqlite-storage-3.3.11.tgz#834c26917f5b5c36a084a9e8d62b04109115422a"
-  integrity sha1-g0wmkX9bXDaghKno1isEEJEVQio=
+react-native-sqlite-storage@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.npm.taobao.org/react-native-sqlite-storage/download/react-native-sqlite-storage-5.0.0.tgz#fb015c928b59d3000360fb0774a99545e7a695d6"
+  integrity sha1-+wFckotZ0wADYPsHdKmVReemldY=
 
 react-native-swiper@^1.5.4:
   version "1.6.0"
@@ -3819,11 +3793,6 @@ react-native-swiper@^1.5.4:
   integrity sha1-Wf29+Vrd7kljAxLycHdiLCd3aBk=
   dependencies:
     prop-types "^15.5.10"
-
-react-native-toast@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.npm.taobao.org/react-native-toast/download/react-native-toast-1.0.1.tgz#9fd21cb4bf7f71e226969aeba7cf8afee9618052"
-  integrity sha1-n9IctL9/ceImlprrp8+K/ulhgFI=
 
 react-native-uuid@^1.4.9:
   version "1.4.9"
@@ -4623,11 +4592,6 @@ toidentifier@1.0.0:
   version "1.0.0"
   resolved "https://registry.npm.taobao.org/toidentifier/download/toidentifier-1.0.0.tgz#7e1be3470f1e77948bc43d94a3c8f4d7752ba553"
   integrity sha1-fhvjRw8ed5SLxD2Uo8j013UrpVM=
-
-tslib@1.9.3:
-  version "1.9.3"
-  resolved "https://registry.npm.taobao.org/tslib/download/tslib-1.9.3.tgz?cache=0&sync_timestamp=1609887539329&other_urls=https%3A%2F%2Fregistry.npm.taobao.org%2Ftslib%2Fdownload%2Ftslib-1.9.3.tgz#d7e4dd79245d85428c4d7e4822a79917954ca286"
-  integrity sha1-1+TdeSRdhUKMTX5IIqeZF5VMooY=
 
 tslib@^2.0.1:
   version "2.1.0"

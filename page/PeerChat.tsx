@@ -1,7 +1,3 @@
-import {
-    Platform,
-} from 'react-native';
-import {AudioUtils} from 'react-native-audio';
 import PeerMessageDB from '../model/PeerMessageDB';
 import {
     MESSAGE_FLAG_FAILURE, 
@@ -11,7 +7,6 @@ import {
 import PropTypes from 'prop-types';
 var IMService = require("../imsdk/im");
 import Chat from './Chat';
-
 import Navigator from "../Navigation";
 import {MESSAGE_LIST_INVERTED, ENABLE_NATIVE_NAVIGATOR} from "../config";
 
@@ -122,13 +117,13 @@ export default class PeerChat extends Chat {
         if (obj.text) {
             m.text = obj.text;
         } else if (obj.image2) {
-            if (obj.image2.fileName) {
-                if (Platform.OS === 'ios') {
-                    var uri = AudioUtils.DocumentDirectoryPath + "/images/" + obj.image2.fileName;
-                    obj.image2.url = uri;
-                    console.log("image uri:", uri);
-                }
-            }
+            // if (obj.image2.fileName) {
+            //     if (Platform.OS === 'ios') {
+            //         var uri = AudioUtils.DocumentDirectoryPath + "/images/" + obj.image2.fileName;
+            //         obj.image2.url = uri;
+            //         console.log("image uri:", uri);
+            //     }
+            // }
             m.image = obj.image2;
             if (m.attachment) {
                 m.image.url = m.attachment;
