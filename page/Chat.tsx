@@ -186,6 +186,7 @@ export default class Chat extends React.Component<Props, Stat> {
     addMessage(message, sending) {
         if (MESSAGE_LIST_INVERTED) {
             this.state.messages.splice(0, 0, message);
+            this.setState({});
         } else {
             this.state.messages.push(message);
             this.setState({}, () => {

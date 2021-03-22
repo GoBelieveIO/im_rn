@@ -55,14 +55,12 @@ export default class Bubble extends React.Component<Props, {}> {
 
     renderMessageAudio() {
         if (this.props.currentMessage.contentObj.audio) {
-            console.log("render message auido");
             return <MessageAudio currentMessage={this.props.currentMessage}/>;
         }
     }
 
     renderMessageLocation() {
         if (this.props.currentMessage.contentObj.location) {
-            console.log("render message location");
             return <MessageLocation currentMessage={this.props.currentMessage}/>;
         }
     }
