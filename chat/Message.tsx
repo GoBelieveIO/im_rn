@@ -11,7 +11,7 @@ import Bubble from './Bubble';
 import GiftedAvatar from './GiftedAvatar';
 import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from '../model/IMessage';
 
-export default class Message extends React.Component<{position, currentMessage, user, onPress}, {}> {
+export default class Message extends React.Component<{position, currentMessage, user}, {}> {
     renderBubble() {
         const {...other} = this.props;
         const bubbleProps = {
@@ -79,18 +79,11 @@ export default class Message extends React.Component<{position, currentMessage, 
                 />
             </View>
         );
-
-        // const {...other} = this.props;
-        // const avatarProps = {
-        //     ...other,
-        // };
-
-        // return <Avatar {...avatarProps}/>;
     }
 
     render() {
         return (
-            <TouchableWithoutFeedback onPress={this.props.onPress}>
+            <View>
                 <View style={styles[this.props.position].container}>
                     {this.props.position === 'left' ? this.renderAvatar() : null}
 
@@ -102,7 +95,7 @@ export default class Message extends React.Component<{position, currentMessage, 
            
                     {this.props.position === 'right' ? this.renderAvatar() : null}
                 </View>
-            </TouchableWithoutFeedback>
+            </View>
         );
     }
 }

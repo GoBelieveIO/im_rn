@@ -634,7 +634,6 @@ export default class Chat extends React.Component<Props, Stat> {
 
     onMessagePress(message) {
         console.log("on message press:", message);
-        Keyboard.dismiss();
         if (message.audio && message.uuid) {
 
             //停止正在播放的消息
@@ -1060,7 +1059,6 @@ export default class Chat extends React.Component<Props, Stat> {
         const messageProps = {
             onMessageLongPress:this.onMessageLongPress,
             onMessagePress:this.onMessagePress,
-            onPress:this.onMessageListPress,
             key: message._id,
             currentMessage: message,
             previousMessage: message.previousMessage,
@@ -1106,6 +1104,10 @@ export default class Chat extends React.Component<Props, Stat> {
                             data={this.state.messages}
                             renderItem={this.renderRow}
                             keyExtractor={(item, index) => {return "" + item.id}}
+                            onTouchStart={() => {
+              
+                            }}
+                            onTouchEnd={this.onMessageListPress}
                             {...props}
                         />
                 </View>

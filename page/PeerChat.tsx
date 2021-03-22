@@ -220,7 +220,6 @@ export default class PeerChat extends Chat {
             var db = PeerMessageDB.getInstance();
             db.getEarlierMessages(this.props.receiver, m.id,
                                   (messages) => {
-                                      console.log("mmm:", messages);
                                       resolve(messages);
                                   },
                                   (err) => {
