@@ -28,7 +28,6 @@ import GroupMessageDB from '../model/GroupMessageDB';
 import ConversationDB from '../model/ConversationDB';
 
 import PeerChat from "./PeerChat";
-import Navigator from "../Navigation";
 import {ENABLE_NATIVE_NAVIGATOR} from "../config";
 
 var IMService = require("../imsdk/im");
@@ -39,6 +38,7 @@ interface Props {
     testPeer:number;
     emitter:any;
     history:any;
+    navigator:any;
 }
 
 interface Stat {
@@ -58,7 +58,7 @@ class Conversation extends React.Component<Props, Stat> {
     
     componentDidMount() {
         if (ENABLE_NATIVE_NAVIGATOR) {
-            Navigator.setTitle("会话");
+            this.props.navigator.setTitle("会话");
         }
         this.loadConversations();
     }
@@ -530,7 +530,7 @@ class Conversation extends React.Component<Props, Stat> {
                 var uid = parseInt(conv.cid.substr(2));
                 if (ENABLE_NATIVE_NAVIGATOR) {
                     var im = IMService.instance;
-                    Navigator.push(PeerChat, {
+                    self.props.navigator.push("PeerChat", {
                         emitter:self.props.emitter,
                         im:im,
                         sender: self.props.uid,

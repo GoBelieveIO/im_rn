@@ -1,7 +1,3 @@
-import {
-    Platform,
-} from 'react-native';
-
 import PeerMessageDB from '../model/PeerMessageDB';
 import {
     MESSAGE_FLAG_FAILURE, 
@@ -11,12 +7,22 @@ import {
 import PropTypes from 'prop-types';
 var IMService = require("../imsdk/im");
 import Chat from './Chat';
-import Navigator from "../Navigation";
 import {MESSAGE_LIST_INVERTED, ENABLE_NATIVE_NAVIGATOR} from "../config";
 
 export default class PeerChat extends Chat {
     static childContextTypes = {
         getLocale:PropTypes.func
+    };
+
+    static navigatorButtons = {
+        rightButtons: [
+            {
+                title: "ok", 
+                id: 'setting', 
+                showAsAction: 'ifRoom' 
+            },
+        ]
+     
     };
 
     constructor(props) {
@@ -27,7 +33,7 @@ export default class PeerChat extends Chat {
         super.componentDidMount();
 
         if (ENABLE_NATIVE_NAVIGATOR && this.props.name) {
-            Navigator.setTitle(this.props.name);
+            this.props.navigator.setTitle(this.props.name);
         }
         this.props.emitter.on('peer_message',this.onPeerMessage, this);
         this.props.emitter.on('peer_message_ack', this.onPeerMessageACK, this);
@@ -62,11 +68,16 @@ export default class PeerChat extends Chat {
         super.componentWillUnmount();
 
         this.props.emitter.emit('clear_conversation_unread', "p_" + this.props.receiver);
-
-
         this.props.emitter.off(this.onPeerMessage, this);
         this.props.emitter.off(this.onPeerMessageACK, this);
         this.props.emitter.off(this.onPeerMessageFailure, this);
+    }
+    
+    onNavigatorEvent(event) {
+        console.log("navigator event:", event);
+        if (event.buttonId == "setting") {
+            //do something
+        }
     }
 
     onPeerMessage(message) {

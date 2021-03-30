@@ -5,8 +5,13 @@ import {
 
 import App from './App';
 import PeerChat from "./page/PeerChat";
-import {NavigatorApp} from "./Navigation";
+import Navigator from "./Navigation";
+import {ENABLE_NATIVE_NAVIGATOR} from "./config";
 
-AppRegistry.registerComponent('app', () => App);
-AppRegistry.registerComponent('NavigatorApp', () => NavigatorApp);
-AppRegistry.registerComponent('PeerChat', () => PeerChat);
+
+if (ENABLE_NATIVE_NAVIGATOR) {
+  Navigator.registerComponent('app', () => App);
+  Navigator.registerComponent('PeerChat', () => PeerChat);
+} else {
+  AppRegistry.registerComponent('app', () => App);
+}

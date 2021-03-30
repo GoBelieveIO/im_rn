@@ -1,60 +1,132 @@
-import { Text, View, NativeModules } from 'react-native';
-import React, { useEffect } from 'react';
-import PeerChat from "./page/PeerChat";
+import { NativeModules, NativeEventEmitter } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import {AppRegistry} from 'react-native';
 
 const { NavigatorModule } = NativeModules;
 
-var uniqueId = 0;
-var Navigator = {
-    screens:{},
+function processButton(button) {
+    button = Object.assign({}, button);
+    if (button.title && typeof(button.title) == "function") {
+        button.title = button.title();
+    }
+    return button;
+}
 
-    push: function(screen, passProps) {
+var uniqueId = 1000;
+
+class Navigator {
+    constructor(navigatorId, screenInstanceId) {
+        this.navigatorId = navigatorId;
+        this.screenInstanceId = screenInstanceId;
+    }
+
+    push(screenId, passProps) {
+        if ("id" in passProps || "navigator" in passProps || 
+            "navigatorId" in passProps || "screenInstanceId" in passProps) {
+            throw "props can't include id|navigator|navigatorId|screenInstanceId property";
+        }
+
         var id = ++uniqueId;
-        this.screens[id] = {component:screen, passProps:passProps};
-        NavigatorModule.push("NavigatorApp", {id:id});
-    },
+        var props = {id:id};
+        for (let k in passProps) {
+            let v = passProps[k];
+            if (typeof(v) == "string" || typeof(v) == "number") {
+                props[k] = v;
+            }
+        }
+
+        Navigation.screenProps[id] = {component:screenId, passProps:passProps};
+        NavigatorModule.push(this.navigatorId, screenId, props);
+    }
     
-    pop: function () {
+    pop() {
         NavigatorModule.pop();
-    },
+    }
     
-    setTitle: function(title)  {
-        NavigatorModule.setTitle(title);
-    },
+    setTitle(title)  {
+        NavigatorModule.setTitle(this.screenInstanceId, title);
+    }
 }
 
 export function Title(props) {
     useEffect(() => {
-        Navigator.setTitle(props.title);
+        Navigator.setTitle(props.screenInstanceId, props.title);
     }, [props.title]);
     return null;
 }
 
-export function NavigatorApp(props) {
-    var id = props.id;
-    if (!(id in Navigator.screens)) {
-        console.log("invalid id:", id);
-        return (<Text>{"invalid id:" + id}</Text>);
-    }
+var Navigation = {
+    screenProps:{},
+    screens:{},
+    eventEmitter:new NativeEventEmitter(NavigatorModule),
 
-    var screen = Navigator.screens[id];
-    delete(Navigator.screens[id]);
+    registerComponent: function(screenId, getComponentFunc) {
+        var NavigatorApp = function(props) {
+            const internalRef = useRef(null);
 
-    var passProps = screen.passProps;
-    var component = screen.component;
+            var screen = {};
+            if (props.id in Navigation.screenProps) {
+                //delete 为了避免内存泄漏
+                screen = Navigation.screenProps[props.id];
+                delete(Navigation.screenProps[props.id]);
+            } else if (props.id) {
+                console.warn("can't get screen props, screen id:", screenId, " instance id:", props.id);
+            }
 
-    console.log("navigator app, pass props:", passProps);
+            useEffect(() => {
+                console.log("register screen:", props.screenInstanceId);
+                Navigation.screens[props.screenInstanceId] = internalRef.current;
+                return () => {
+                    console.log("delete screen:", props.screenInstanceId);
+                    delete(Navigation.screens[props.screenInstanceId]);
+                }
+            }, []);
+        
+            var navigator = new Navigator(props.navigatorId, props.screenInstanceId);
 
-    if (typeof(component) == "function") {
-        var ScreenComponent = component;
-        return <ScreenComponent {...passProps}></ScreenComponent>;
-    }
-    else if (component == "PeerChat") {
-        var passProps = screen.passProps;
-        return (<PeerChat {...passProps}></PeerChat>);
-    } else {
-        return null;
-    }
+            var passProps = screen.passProps;
+            var screenProps = {...props, ...passProps};
+            delete(screenProps.id);
+            delete(screenProps.navigatorId);
+            delete(screenProps.screenInstanceId);
+
+            const InternalComponent = getComponentFunc();
+       
+            var passProps = screen.passProps;
+            return (<InternalComponent ref={internalRef} navigator={navigator} {...screenProps}></InternalComponent>);
+        }
+
+        const InternalComponent = getComponentFunc();
+        if (InternalComponent.navigatorButtons) {
+            let navigatorButtons = Object.assign({}, InternalComponent.navigatorButtons);
+            if (navigatorButtons.leftButtons) {
+                navigatorButtons.leftButtons = navigatorButtons.leftButtons.map((button) => {
+                    return processButton(button);
+                });
+            }
+            if(navigatorButtons.rightButtons) {
+                navigatorButtons.rightButtons = navigatorButtons.rightButtons.map((button) => {
+                    return processButton(button);
+                });
+            }
+            this.registerNavigatorButtons(screenId, navigatorButtons);
+        }
+        AppRegistry.registerComponent(screenId, () => NavigatorApp);
+    },
+
+    registerNavigatorButtons: function(screenId, navigatorButtons) {
+        NavigatorModule.registerNavigatorButtons(screenId, navigatorButtons);
+    },
 }
 
-export default Navigator;
+
+Navigation.eventEmitter.addListener('NavBarButtonPress', (event) => {
+    for (let k in Navigation.screens) {
+        let screenRef = Navigation.screens[k];
+        if ("onNavigatorEvent" in screenRef) {
+            screenRef.onNavigatorEvent(event);
+        }
+    }
+});
+
+export default Navigation;

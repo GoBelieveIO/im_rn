@@ -142,6 +142,7 @@ export default class App extends Component {
                     <Route path="/conversations" render={(routeProps) => {
                         console.log("route props:", routeProps, routeProps.location.state);
                         return (<Conversation 
+                                    navigator={this.props.navigator}
                                     emitter={this.emitter}
                                     testPeer={routeProps.location.state.testPeer} 
                                     uid={routeProps.location.state.uid}

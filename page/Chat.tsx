@@ -74,6 +74,7 @@ interface Props {
     groupID?:any;
     name?:string;
     im:IM;
+    navigator:any;
 }
 
 interface Stat {
@@ -653,7 +654,7 @@ export default class Chat extends React.Component<Props, Stat> {
                 });
 
         }
-        if (message.image) {
+        if (message.contentObj.image2) {
             // var navigator = this.props.navigator;
 
             // if (Platform.OS === 'android') {
