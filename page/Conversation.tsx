@@ -20,7 +20,8 @@ import {
     MESSAGE_FLAG_FAILURE,
     CONVERSATION_PEER,
     CONVERSATION_GROUP,
-    Conversation as IConversation
+    Conversation as IConversation,
+    Message as IMessage
 } from '../model/IMessage';
 
 import PeerMessageDB from '../model/PeerMessageDB';
@@ -188,38 +189,29 @@ class Conversation extends React.Component<Props, Stat> {
         im.observer = undefined;
     }
     
-    handlePeerMessage(message) {
-        console.log("handle peer message:", message, msgObj);
-        message.flags = 0;
-        
-        var msgObj = JSON.parse(message.content);
+    handlePeerMessage(m) {
+        console.log("handle peer message:", m);
+        var contentObj = JSON.parse(m.content);
+        var msg:IMessage = {
+            id:0,
+            sender:m.sender,
+            receiver:m.receiver,
+            content:m.content,
+            timestamp:m.timestamp,
+            contentObj:contentObj,
+            flags:0,
+        };
 
-        if (msgObj.text) {
-            message.text = msgObj.text;
-        } else if (msgObj.image2) {
-            message.image = msgObj.image2
-        } else if (msgObj.audio) {
-            message.audio = msgObj.audio;
-        } else if (msgObj.location) {
-            message.location = msgObj.location;
-        }
-        message.uuid = msgObj.uuid;
+        msg.isOutgoing = (this.props.uid == m.sender);
         
-        var t = new Date();
-        t.setTime(message.timestamp*1000);
-        message.createdAt = t;
-        message.user = {
-            _id: message.sender
-        }
-        message.outgoing = (this.props.uid == message.sender);
-        
-        var peer = (this.props.uid == message.sender) ? message.receiver : message.sender;
+        var peer = (this.props.uid == m.sender) ? m.receiver : m.sender;
+
         var db = PeerMessageDB.getInstance();
-        db.insertMessage(message, peer)
+        db.insertMessage(msg, peer)
           .then((rowid) => {
-              message.id = rowid;
-              message._id = rowid;
-              this.props.emitter.emit('peer_message', message)
+              msg.id = rowid;
+
+              this.props.emitter.emit('peer_message', msg)
           });
 
         var cid = "p_" + peer;
@@ -231,7 +223,7 @@ class Conversation extends React.Component<Props, Stat> {
         if (index != -1) {
             var c = this.state.conversations[index];
             var newConv = Object.assign({}, c);
-            if (this.props.uid != message.sender) {
+            if (this.props.uid != msg.sender) {
                 newConv.unread = newConv.unread + 1;
                 ConversationDB.getInstance().setUnread(newConv.cid, newConv.unread);
             }
@@ -242,28 +234,28 @@ class Conversation extends React.Component<Props, Stat> {
                 type:CONVERSATION_PEER,
                 peer:peer,
                 name:cid,
-                timestamp:message.timestamp,
+                timestamp:msg.timestamp,
                 unread:0,
-                message:message,
+                message:msg,
             };
-            if (this.props.uid != message.sender) {
+            if (this.props.uid != msg.sender) {
                 conv.unread = 1;
                 ConversationDB.getInstance().setUnread(conv.cid, conv.unread);
             }
         }
 
-        conv.message = message;
-        conv.timestamp = message.timestamp;
-        if (msgObj.text) {
-            conv.content = msgObj.text;
-        } else if (msgObj.image2) {
+        conv.message = msg;
+        conv.timestamp = msg.timestamp;
+        if (msg.contentObj.text) {
+            conv.content = msg.contentObj.text;
+        } else if (msg.contentObj.image2) {
             conv.content = "一张图片";
-        } else if (msgObj.audio) {
+        } else if (msg.contentObj.audio) {
             conv.content = "语音"
-        } else if (msgObj.location) {
+        } else if (msg.contentObj.location) {
             conv.content = "位置";
         } else {
-            conv.content = "";
+            conv.content = "未知消息格式";
         }
         
         console.log("new conv:", newConv);

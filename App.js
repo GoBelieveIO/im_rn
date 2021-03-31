@@ -31,8 +31,6 @@ import Conversation from './page/Conversation';
 import { NativeRouter, Route, Switch, useHistory } from "react-router-native";
 
 var IMService = require("./imsdk/im");
-var im = IMService.instance;
-
 
 function NavigationBar() {
     let history = useHistory();
@@ -80,6 +78,8 @@ export default class App extends Component {
     
     componentDidMount() {
 
+        IMService.instance = new IMService();
+
         var db = SQLite.openDatabase({name:"gobelieve.db", createFromLocation : 1},
                                      function() {
                                          console.log("db open success");
@@ -92,6 +92,7 @@ export default class App extends Component {
 
         this.db = db;
         
+        //todo android native event
         AppState.addEventListener('change', this.handleAppStateChange);
         //this.startReachabilityNotifier();
     }
@@ -101,6 +102,7 @@ export default class App extends Component {
     }
 
     startReachabilityNotifier() {
+        var im = IMService.instance;
         NetInfo.fetch().done((reach) => {
             if (reach && (reach.toLowerCase() == 'wifi' || reach.toLowerCase() == 'cell')) {
                 im.reachable = true;
@@ -118,11 +120,13 @@ export default class App extends Component {
     }
     
     handleConnectivityChange(reach) {
+        var im = IMService.instance;
         console.log('connectivity change: ' + reach);
         im.handleConnectivityChange(reach);
     }
 
     handleAppStateChange(currentAppState) {
+        var im = IMService.instance;
         console.log("app state:", currentAppState);
         if (currentAppState == "background") {
             im.enterBackground();
@@ -156,3 +160,4 @@ export default class App extends Component {
     }
 
 }
+

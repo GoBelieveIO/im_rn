@@ -11,7 +11,7 @@ import { withRouter } from "react-router";
 import Spinner from 'react-native-loading-spinner-overlay';
 import api from "../api";
 var IMService = require("../imsdk/im");
-var im = IMService.instance;
+
 
 interface Stat {
     sender:string;
@@ -47,6 +47,7 @@ class Login extends Component<{history}, Stat> {
 
     startIM(sender, receiver) {
         console.log("start im");
+        var im = IMService.instance;
         var self = this;
         //var navigator = this.props.navigator;
         var url = "http://demo.gobelieve.io/auth/token";

@@ -29,8 +29,8 @@ function IMService() {
     this.connectState = IMService.STATE_UNCONNECTED;
     this.seq = 0;
     this.stopped = true;
-    this.reachable = true;
     this.suspended = true;
+    this.reachable = true;
     this.isBackground = false;
     
     this.roomID = 0;
@@ -111,15 +111,6 @@ IMService.HEARTBEAT = 60*3;
 
 
 
-IMService.prototype.addObserver = function(ob) {
- 
-}
-
-IMService.prototype.removeObserver = function(ob) {
- 
-}
-
-
 IMService.prototype.handleConnectivityChange = function(reach) {
     console.log("connectivity changed:" + reach);
     this.reachable = reach && (reach.toLowerCase() == 'wifi' || reach.toLowerCase() == 'cell');
@@ -139,7 +130,9 @@ IMService.prototype.handleConnectivityChange = function(reach) {
 
 IMService.prototype.enterBackground = function() {
     this.isBackground = true;
-    this.suspend();
+    if (!this.stopped) {
+        this.suspend();
+    }
 }
 
 IMService.prototype.enterForeground = function() {
@@ -158,11 +151,12 @@ IMService.prototype.suspend = function() {
 
     console.log("close socket");
     var sock = this.socket;
-    this.socket = null;
     if (sock) {
         //trigger socket onClose event
         sock.close();
     }
+    clearInterval(this.pingTimer);
+    this.pingTimer = null;
 }
 
 IMService.prototype.resume = function() {
@@ -172,10 +166,9 @@ IMService.prototype.resume = function() {
     console.log("resume im service");
     this.suspended = false;
 
-    this.connect()
+    this.connect();
+    this.pingTimer = setInterval(this.ping, IMService.HEARTBEAT*1000);
 }
-
-
 
 IMService.prototype.start = function () {
     if (!this.stopped) {
@@ -184,8 +177,7 @@ IMService.prototype.start = function () {
     }
     console.log("start im service");
     this.stopped = false;
-    this.connect()
-    this.pingTimer = setInterval(this.ping, IMService.HEARTBEAT*1000);
+    this.resume();
 };
 
 IMService.prototype.stop = function () {
@@ -195,14 +187,7 @@ IMService.prototype.stop = function () {
     }
     console.log("stop im service");
     this.stopped = true;
-    if (this.socket == null) {
-        return;
-    }
-    console.log("close socket");
-    this.socket.close();
-    this.socket = null;
-    clearInterval(this.pingTimer);
-    this.pingTimer = null;
+    this.suspend();
 };
 
 IMService.prototype.callStateObserver = function () {
@@ -212,8 +197,8 @@ IMService.prototype.callStateObserver = function () {
 };
 
 IMService.prototype.connect = function () {
-    if (this.stopped) {
-        console.log("im service stopped");
+    if (this.stopped || this.suspended)  {
+        console.log("im service stopped||suspended");
         return;
     }
     if (this.socket != null) {
@@ -277,8 +262,8 @@ IMService.prototype.onOpen = function () {
     this.socket.onmessage = function(message) {
         self.onMessage(message.data)
     };
-    this.socket.onclose = function() {
-        console.log("socket disconnect");
+    this.socket.onclose = function(e) {
+        console.log("socket disconnect:", e);
         self.onClose();
     };
 
@@ -1252,7 +1237,5 @@ IMService.guid = function () {
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
            s4() + '-' + s4() + s4() + s4();
 }
-
-IMService.instance = new IMService();
 
 module.exports = IMService;

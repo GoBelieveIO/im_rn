@@ -30,7 +30,7 @@ class Navigator {
         var props = {id:id};
         for (let k in passProps) {
             let v = passProps[k];
-            if (typeof(v) == "string" || typeof(v) == "number") {
+            if (typeof(v) == "string" || typeof(v) == "number" || typeof(v) == "boolean") {
                 props[k] = v;
             }
         }
@@ -121,8 +121,9 @@ var Navigation = {
 
 
 Navigation.eventEmitter.addListener('NavBarButtonPress', (event) => {
-    for (let k in Navigation.screens) {
-        let screenRef = Navigation.screens[k];
+    var screenInstanceId = event.screenInstanceId;
+    if (screenInstanceId in Navigation.screens) {
+        let screenRef = Navigation.screens[screenInstanceId];
         if ("onNavigatorEvent" in screenRef) {
             screenRef.onNavigatorEvent(event);
         }
