@@ -31,7 +31,7 @@ import ConversationDB from '../model/ConversationDB';
 import PeerChat from "./PeerChat";
 import {ENABLE_NATIVE_NAVIGATOR} from "../config";
 
-var IMService = require("../imsdk/im");
+import IMService from "../imsdk/im";
 
 interface Props {
     uid:number;
@@ -40,6 +40,7 @@ interface Props {
     emitter:any;
     history:any;
     navigator:any;
+    im:IMService;
 }
 
 interface Stat {
@@ -53,7 +54,7 @@ class Conversation extends React.Component<Props, Stat> {
             conversations:[],
         };
 
-        var im = IMService.instance;
+        var im = this.props.im;
         im.observer = this;
     }
     
@@ -61,8 +62,16 @@ class Conversation extends React.Component<Props, Stat> {
         if (ENABLE_NATIVE_NAVIGATOR) {
             this.props.navigator.setTitle("会话");
         }
+
+        this.props.emitter.on("clear_conversation_unread", this.onClearConversationUnread, this);
         this.loadConversations();
     }
+
+    componetWillUnmount() {
+        var im = this.props.im;
+        im.observer = undefined;
+    }
+    
 
     loadConversations() {
         var db = PeerMessageDB.getInstance();
@@ -184,11 +193,7 @@ class Conversation extends React.Component<Props, Stat> {
         })
     }
     
-    componetWillUnmount() {
-        var im = IMService.instance;
-        im.observer = undefined;
-    }
-    
+
     handlePeerMessage(m) {
         console.log("handle peer message:", m);
         var contentObj = JSON.parse(m.content);
@@ -511,17 +516,30 @@ class Conversation extends React.Component<Props, Stat> {
         this.updateConversation(conv, index);*/
     }
 
-    
+    onClearConversationUnread(cid) {
+        var index = this.state.conversations.findIndex((conv) => {
+            return conv.cid == cid;
+        });
+        if (index != -1) {
+            var c = this.state.conversations[index];
+            if (c.unread  != 0) {
+                c.unread = 0;
+                ConversationDB.getInstance().setUnread(c.cid, 0);
+                this.setState({});
+            }
+        }
+    }
+
     renderRow(row) {
         var conv = row.item;
-
         var self = this;
+
         function onPress() {
             console.log("row data:", conv);
             if (conv.cid.startsWith("p_")) {
                 var uid = parseInt(conv.cid.substr(2));
                 if (ENABLE_NATIVE_NAVIGATOR) {
-                    var im = IMService.instance;
+                    var im = self.props.im;
                     self.props.navigator.push("PeerChat", {
                         emitter:self.props.emitter,
                         im:im,
@@ -671,7 +689,7 @@ class Conversation extends React.Component<Props, Stat> {
 
                     <Route path="/conversations/:cid" render={(routeProps) => {
                         var state = routeProps.location.state;
-                        var im = IMService.instance;
+                        var im = this.props.im;
                         return (<PeerChat im={im} emitter={this.props.emitter} {...state}></PeerChat>);
                     }}></Route>
                 </Switch>

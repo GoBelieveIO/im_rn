@@ -5,7 +5,7 @@ import {
     Message as IMessage
 } from '../model/IMessage';
 import PropTypes from 'prop-types';
-var IMService = require("../imsdk/im");
+import {STATE_CONNECTED} from "../imsdk/im";
 import Chat from './Chat';
 import {MESSAGE_LIST_INVERTED, ENABLE_NATIVE_NAVIGATOR} from "../config";
 
@@ -151,7 +151,7 @@ export default class PeerChat extends Chat {
 
     sendMessage(message) {
         var im = this.props.im;
-        if (im.connectState == IMService.STATE_CONNECTED) {
+        if (im.connectState == STATE_CONNECTED) {
             im.sendPeerMessage(message);
         }
     }

@@ -30,7 +30,7 @@ import Conversation from './page/Conversation';
 
 import { NativeRouter, Route, Switch, useHistory } from "react-router-native";
 
-var IMService = require("./imsdk/im");
+import IMService from "./imsdk/im";
 
 function NavigationBar() {
     let history = useHistory();
@@ -72,14 +72,12 @@ export default class App extends Component {
         };
         console.log("this props:", this.props);
         this.emitter = new EventEmitter();
+        this.im = new IMService();
         this.handleConnectivityChange = this.handleConnectivityChange.bind(this);
         this.handleAppStateChange = this.handleAppStateChange.bind(this);
     }
     
     componentDidMount() {
-
-        IMService.instance = new IMService();
-
         var db = SQLite.openDatabase({name:"gobelieve.db", createFromLocation : 1},
                                      function() {
                                          console.log("db open success");
@@ -142,10 +140,13 @@ export default class App extends Component {
                 initialIndex={0}>
                 <NavigationBar></NavigationBar>
                 <Switch>
-                    <Route exact path="/" component={Login} />
+                    <Route exact path="/" render={() => {
+                        return <Login im={this.im}></Login>
+                    }}/>
                     <Route path="/conversations" render={(routeProps) => {
                         console.log("route props:", routeProps, routeProps.location.state);
                         return (<Conversation 
+                                    im={this.im}
                                     navigator={this.props.navigator}
                                     emitter={this.emitter}
                                     testPeer={routeProps.location.state.testPeer} 

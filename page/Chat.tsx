@@ -30,12 +30,13 @@ import UUID from 'react-native-uuid';
 import Sound from 'react-native-sound';
 import RNFS from 'react-native-fs';
 
-import {MESSAGE_FLAG_LISTENED, Message as IMessage, IM} from "../model/IMessage";
+import {MESSAGE_FLAG_LISTENED, Message as IMessage} from "../model/IMessage";
 import Message from "../chat/Message";
 import PropTypes from 'prop-types';
 import TextInputToolbar from '../chat/TextInputToolbar';
 const InputToolbar = TextInputToolbar;
 
+import IMService from "../imsdk/im";
 import api from "../api";
 import {MESSAGE_LIST_INVERTED} from "../config";
 
@@ -73,7 +74,7 @@ interface Props {
     peer?:any;
     groupID?:any;
     name?:string;
-    im:IM;
+    im:IMService;
     navigator:any;
 }
 

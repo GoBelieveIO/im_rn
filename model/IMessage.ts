@@ -11,27 +11,7 @@ export const CONVERSATION_GROUP = "group";
 
 export const PAGE_SIZE = 30;
 
-export interface RTMessage {
-    sender:number;
-    receiver:number;
-    content:string;
-}
 
-export interface IMMessage {
-    sender:number;
-    receiver:number;
-    timestamp:number;
-    content:string;
-    isSelf:boolean;
-}
-
-export interface IM {
-    sendPeerMessage(IMMessage);
-    sendGroupMessage(IMMessage);
-    sendRTMessage(RTMessage);
-    connectState:any;
-    observer:any;
-}
 
 
 export interface MessageContent {

@@ -10,15 +10,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { withRouter } from "react-router";  
 import Spinner from 'react-native-loading-spinner-overlay';
 import api from "../api";
-var IMService = require("../imsdk/im");
-
+import IMService from "../imsdk/im";
 
 interface Stat {
     sender:string;
     receiver:string;
     visible:boolean;
+   
 }
-class Login extends Component<{history}, Stat> {
+class Login extends Component<{history, im:IMService}, Stat> {
     constructor(props) {
         super(props);
         this.state = {
@@ -47,7 +47,6 @@ class Login extends Component<{history}, Stat> {
 
     startIM(sender, receiver) {
         console.log("start im");
-        var im = IMService.instance;
         var self = this;
         //var navigator = this.props.navigator;
         var url = "http://demo.gobelieve.io/auth/token";
@@ -55,7 +54,6 @@ class Login extends Component<{history}, Stat> {
             uid:sender,
             user_name:"测试用户",
             platform_id:3,
-            device_id:im.device_id,
         };
 
         this.setState({
@@ -78,6 +76,7 @@ class Login extends Component<{history}, Stat> {
                 if (response.status == 200) {
                     console.log("response json:", responseJson);
                     AsyncStorage.setItem("access_token", responseJson.token);
+                    var im = this.props.im;
                     im.accessToken = responseJson.token;
                     im.protocol = "wss://";
                     im.port = 14891;

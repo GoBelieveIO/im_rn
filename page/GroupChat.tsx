@@ -1,7 +1,7 @@
 import GroupMessageDB from '../model/GroupMessageDB.js'
 import {MESSAGE_FLAG_FAILURE, MESSAGE_FLAG_LISTENED} from '../model/IMessage';
 
-var IMService = require("../chat/im");
+import {STATE_CONNECTED} from "../imsdk/im";
 
 import Chat from './Chat';
 
@@ -191,8 +191,8 @@ export default class GroupChat extends Chat {
     }
 
     sendMessage(message) {
-        var im = IMService.instance;
-        if (im.connectState == IMService.STATE_CONNECTED) {
+        var im = this.props.im;
+        if (im.connectState == STATE_CONNECTED) {
             im.sendGroupMessage(message);
         }
     }
